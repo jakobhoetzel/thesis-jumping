@@ -1,5 +1,5 @@
 from ruamel.yaml import YAML, dump, RoundTripDumper
-from raisimGymTorch.env.bin import rsg_anymal
+from raisimGymTorch.env.bin import rsg_hubodog as Env
 from raisimGymTorch.env.RaisimGymVecEnv import RaisimGymVecEnv as VecEnv
 from raisimGymTorch.helper.raisim_gym_helper import ConfigurationSaver, load_param, tensorboard_launcher
 import os
@@ -15,7 +15,7 @@ import argparse
 
 
 # task specification
-task_name = "anymal_locomotion"
+task_name = "hubo_locomotion"
 
 # configuration
 parser = argparse.ArgumentParser()
@@ -36,7 +36,7 @@ home_path = task_path + "/../../../.."
 cfg = YAML().load(open(task_path + "/cfg.yaml", 'r'))
 
 # create environment from the configuration file
-env = VecEnv(rsg_anymal.RaisimGymEnv(home_path + "/rsc", dump(cfg['environment'], Dumper=RoundTripDumper)), cfg['environment'])
+env = VecEnv(Env.RaisimGymEnv(home_path + "/rsc", dump(cfg['environment'], Dumper=RoundTripDumper)), cfg['environment'])
 
 # shortcuts
 ob_dim = env.num_obs

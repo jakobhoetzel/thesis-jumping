@@ -1,16 +1,19 @@
-//----------------------------//
-// This file is part of RaiSim//
-// Copyright 2020, RaiSim Tech//
-//----------------------------//
+// Copyright (c) 2020 Robotics and Artificial Intelligence Lab, KAIST
+//
+// Any unauthorized copying, alteration, distribution, transmission,
+// performance, display or use of this material is prohibited.
+//
+// All rights reserved.
 
 #pragma once
 
+#include <set>
 #include "../../BasicEigenTypes.hpp"
 #include "raisim/World.hpp"
 
 namespace raisim {
 
-class AnymalController {
+class HubodogController {
 
  public:
   bool create(raisim::World *world) {

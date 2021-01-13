@@ -1,7 +1,9 @@
-//----------------------------//
-// This file is part of RaiSim//
-// Copyright 2020, RaiSim Tech//
-//----------------------------//
+// Copyright (c) 2020 Robotics and Artificial Intelligence Lab, KAIST
+//
+// Any unauthorized copying, alteration, distribution, transmission,
+// performance, display or use of this material is prohibited.
+//
+// All rights reserved.
 
 #pragma once
 
@@ -30,6 +32,8 @@ class ENVIRONMENT {
     world_->addGround();
 
     controller_.create(world_.get());
+    READ_YAML(double, simulation_dt_, cfg["simulation_dt"])
+    READ_YAML(double, control_dt_, cfg["control_dt"])
     READ_YAML(double, forwardVelRewardCoeff_, cfg["reward"]["forwardVelCoeff"])
     READ_YAML(double, torqueRewardCoeff_, cfg["reward"]["torqueCoeff"])
 
@@ -39,6 +43,10 @@ class ENVIRONMENT {
       server_->launchServer();
       server_->focusOn(robot);
     }
+  }
+
+  ~ENVIRONMENT() {
+    if(server_) server_->killServer();
   }
 
   void init() {}
@@ -106,7 +114,7 @@ class ENVIRONMENT {
   double terminalRewardCoeff_ = -10.;
   double forwardVelRewardCoeff_ = 0.;
   double torqueRewardCoeff_ = 0.;
-  AnymalController controller_;
+  HubodogController controller_;
   std::unique_ptr<raisim::World> world_;
   double simulation_dt_ = 0.001;
   double control_dt_ = 0.01;
