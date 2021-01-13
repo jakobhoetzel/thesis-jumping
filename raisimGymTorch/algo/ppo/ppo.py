@@ -72,16 +72,10 @@ class PPO:
         # self.actions = np.clip(self.actions.numpy(), self.env.action_space.low, self.env.action_space.high)
         return self.actions.cpu().numpy()
 
-    def step(self, value_obs, rews, dones, infos):
+    def step(self, value_obs, rews, dones):
         values = self.critic.predict(torch.from_numpy(value_obs).to(self.device))
         self.storage.add_transitions(self.actor_obs, value_obs, self.actions, rews, dones, values,
                                      self.actions_log_prob)
-
-        # Book keeping
-        for info in infos:
-            ep_info = info.get('episode')
-            if ep_info is not None:
-                self.ep_infos.append(ep_info)
 
     def update(self, actor_obs, value_obs, log_this_iteration, update):
         last_values = self.critic.predict(torch.from_numpy(value_obs).to(self.device))
