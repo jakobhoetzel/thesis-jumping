@@ -17,6 +17,7 @@ using EigenBoolVec = Eigen::Matrix<bool, -1, 1>;
 #define RSG_MAKE_STR(x) _RSG_MAKE_STR(x)
 
 #define READ_YAML(a, b, c) RSFATAL_IF(!&c, "Node "<<RSG_MAKE_STR(c)<<" doesn't exist") b = c.template As<a>();
+
 }
 
 #endif //_RAISIM_GYM_TORCH_RAISIMGYMTORCH_ENV_BASICEIGENTYPES_HPP_

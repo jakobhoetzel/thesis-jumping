@@ -5,17 +5,13 @@
 
 #pragma once
 
-#include <vector>
-#include <memory>
-#include <unordered_map>
-#include <Eigen/Core>
+// raisim include
 #include "raisim/World.hpp"
 #include "raisim/RaisimServer.hpp"
+
+// raisimGymTorch include
 #include "../../Yaml.hpp"
 #include "../../BasicEigenTypes.hpp"
-#include <stdlib.h>
-#include <cstdint>
-#include <set>
 #include "AnymalController.hpp"
 
 namespace raisim {
@@ -28,9 +24,9 @@ class ENVIRONMENT {
       visualizable_(visualizable) {
     /// add objects
     world_ = std::make_unique<raisim::World>();
-    robot_ = world_->addArticulatedSystem(resourceDir + "/anymal/urdf/anymal.urdf");
-    robot_->setName("robot");
-    robot_->setControlMode(raisim::ControlMode::PD_PLUS_FEEDFORWARD_TORQUE);
+    auto* robot = world_->addArticulatedSystem(resourceDir + "/anymal/urdf/anymal.urdf");
+    robot->setName("robot");
+    robot->setControlMode(raisim::ControlMode::PD_PLUS_FEEDFORWARD_TORQUE);
     world_->addGround();
 
     controller_.create(world_.get());
@@ -41,7 +37,7 @@ class ENVIRONMENT {
     if (visualizable_) {
       server_ = std::make_unique<raisim::RaisimServer>(world_.get());
       server_->launchServer();
-      server_->focusOn(robot_);
+      server_->focusOn(robot);
     }
   }
 
@@ -67,7 +63,12 @@ class ENVIRONMENT {
   }
 
   bool isTerminalState(float &terminalReward) {
-    return controller_.isTerminalState(world_.get());
+    if(controller_.isTerminalState(world_.get())) {
+      terminalReward = terminalRewardCoeff_;
+      return true;
+    }
+    terminalReward = 0.f;
+    return false;
   }
 
   void curriculumUpdate() {};
@@ -102,7 +103,7 @@ class ENVIRONMENT {
 
  private:
   bool visualizable_ = false;
-  raisim::ArticulatedSystem *robot_;
+  double terminalRewardCoeff_ = -10.;
   double forwardVelRewardCoeff_ = 0.;
   double torqueRewardCoeff_ = 0.;
   AnymalController controller_;

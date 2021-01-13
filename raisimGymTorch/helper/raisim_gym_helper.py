@@ -2,9 +2,11 @@ from shutil import copyfile
 import datetime
 import os
 import ntpath
+import torch
+
 
 class ConfigurationSaver:
-    def __init__(self, log_dir, save_items, pretrained_items=None):
+    def __init__(self, log_dir, save_items):
         self._data_dir = log_dir + '/' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         os.makedirs(self._data_dir)
 
@@ -13,20 +15,12 @@ class ConfigurationSaver:
                 base_file_name = ntpath.basename(save_item)
                 copyfile(save_item, self._data_dir + '/' + base_file_name)
 
-        if pretrained_items is not None:
-            ## pretrained_items[0] records the original file name of pretrained model; pretrained_items[1] records all the related files to the pretrained model
-            pretrained_data_dir = self._data_dir + '/pretrained_' + pretrained_items[0]
-            os.makedirs(pretrained_data_dir)
-            for pretrained_item in pretrained_items[1]:
-                base_file_name = ntpath.basename(pretrained_item)
-                copyfile(save_item, pretrained_data_dir + '/' + base_file_name)
-
     @property
     def data_dir(self):
         return self._data_dir
         
 
-def TensorboardLauncher(directory_path):
+def tensorboard_launcher(directory_path):
     from tensorboard import program
     import webbrowser
     # learning visualizer
@@ -35,3 +29,13 @@ def TensorboardLauncher(directory_path):
     url = tb.launch()
     print("[RAISIM_GYM] Tensorboard session created: "+url)
     webbrowser.open_new(url)
+
+
+def load_param(file, env, actor, critic, optimizer):
+    full_checkpoint_path = file.rsplit('/', 1)[0] + '/' + 'full_' + file.rsplit('/', 1)[1].split('_', 1)[1] + '.pt'
+    env.load_scaling(file.rsplit('/', 1)[0], int(file.rsplit('/', 1)[1].split('_', 1)[1]))
+    checkpoint = torch.load(full_checkpoint_path)
+    actor.architecture.load_state_dict(checkpoint['actor_architecture_state_dict'])
+    actor.distribution.load_state_dict(checkpoint['actor_distribution_state_dict'])
+    critic.architecture.load_state_dict(checkpoint['critic_architecture_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])

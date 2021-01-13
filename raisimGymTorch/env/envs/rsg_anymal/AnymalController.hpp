@@ -6,6 +6,7 @@
 #pragma once
 
 #include "../../BasicEigenTypes.hpp"
+#include "raisim/World.hpp"
 
 namespace raisim {
 
@@ -36,7 +37,7 @@ class AnymalController {
     anymal->setGeneralizedForce(Eigen::VectorXd::Zero(gvDim_));
 
     /// MUST BE DONE FOR ALL ENVIRONMENTS
-    obDim_ = 34; /// convention described on top
+    obDim_ = 34;
     actionDim_ = nJoints_; actionMean_.setZero(actionDim_); actionStd_.setZero(actionDim_);
     obDouble_.setZero(obDim_);
 
@@ -106,7 +107,6 @@ class AnymalController {
 
   bool isTerminalState(raisim::World *world) {
     auto* anymal = reinterpret_cast<raisim::ArticulatedSystem*>(world->getObject("robot"));
-
     for(auto& contact: anymal->getContacts()){
       if(footIndices_.find(contact.getlocalBodyIndex()) == footIndices_.end()) {
         return true;
