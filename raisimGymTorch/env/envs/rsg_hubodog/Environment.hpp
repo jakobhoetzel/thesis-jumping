@@ -43,6 +43,8 @@ class ENVIRONMENT {
     READ_YAML(double, rewardCoeff_[HubodogController::RewardType::SMOOTHNESS2], cfg["reward"]["smoothness2"])
     READ_YAML(double, rewardCoeff_[HubodogController::RewardType::AIRTIME], cfg["reward"]["airtime"])
 
+    stepData_.resize(controller_.getStepDataTag().size());
+
     /// visualize if it is the first environment
     if (visualizable_) {
       server_ = std::make_unique<raisim::RaisimServer>(world_.get());
@@ -55,6 +57,14 @@ class ENVIRONMENT {
     if(server_) server_->killServer();
   }
 
+  const std::vector<std::string>& getStepDataTag() {
+    return controller_.getStepDataTag();
+  }
+
+  const Eigen::VectorXd& getStepData() {
+    return stepData_;
+  }
+
   void init() {}
 
   void reset() {
@@ -64,12 +74,14 @@ class ENVIRONMENT {
   float step(const Eigen::Ref<EigenVec> &action) {
     controller_.advance(world_.get(), action);
     float reward = 0;
+    stepData_.setZero();
 
     for (int i = 0; i < int(control_dt_ / simulation_dt_ + 1e-10); i++) {
       if (server_) server_->lockVisualizationServerMutex();
       world_->integrate();
       if (server_) server_->unlockVisualizationServerMutex();
-      reward += controller_.getReward(world_.get(), rewardCoeff_, torqueRewardCoeff_, curriculumFactor_);
+      reward += controller_.getReward(world_.get(), rewardCoeff_, simulation_dt_, curriculumFactor_);
+      stepData_ += controller_.getStepData();
 
       if(i % 5 == 0) controller_.updateHistory();
     }
@@ -140,6 +152,7 @@ class ENVIRONMENT {
   double simulation_dt_ = 0.001;
   double control_dt_ = 0.01;
   std::unique_ptr<raisim::RaisimServer> server_;
+  Eigen::VectorXd stepData_;
 };
 }
 

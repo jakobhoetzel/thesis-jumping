@@ -80,6 +80,9 @@ class HubodogController {
     footFrameIndices_.push_back(hubodog->getFrameIdxByName("RL_foot_fixed"));
 
     updateObservation(world);
+
+    stepDataTag_ = {"vel_rew", "joint_pos_rew", "joint_acc_rew", "joint_vel_rew", "smooth_rew1", "smooth_rew1", "airtime"};
+    stepData_.resize(stepDataTag_.size());
   }
 
   void init(raisim::World *world) { }
@@ -173,6 +176,16 @@ class HubodogController {
       else if (airTime_[i] > -0.5 && airTime_[i] < 0.)
         airtimeRew += std::min(-airTime_[i], 0.3) * (1.0-curriculumFactor*0.8);
     }
+    airtimeRew *= rewardCoeff.at(RewardType::AIRTIME);
+
+//    stepDataTag_ = {"vel_rew", "airtime", "joint_pos_rew", "joint_acc_rew", "joint_vel_rew", "smooth_rew1", "smooth_rew1"};
+    stepData_[0] = VelReward;
+    stepData_[1] = airtimeRew;
+    stepData_[2] = jointPositionExp;
+    stepData_[3] = jointAccelerationExp;
+    stepData_[4] = jointVelocityExp;
+    stepData_[5] = smoothness1Exp;
+    stepData_[6] = smoothness2Exp;
 
     return (airtimeRew + VelReward) * exp(jointVelocityExp + jointAccelerationExp + jointPositionExp + smoothness1Exp + smoothness2Exp);
   }
@@ -223,6 +236,14 @@ class HubodogController {
 //    terrainGenerator_.setSeed(seed);
   }
 
+  const std::vector<std::string>& getStepDataTag() {
+    return stepDataTag_;
+  }
+
+  const Eigen::VectorXd& getStepData() {
+    return stepData_;
+  }
+
  private:
   int gcDim_, gvDim_, nJoints_;
   raisim::Vec<4> quat_;
@@ -244,6 +265,9 @@ class HubodogController {
 
   constexpr static size_t historyLength_ = 4;
   int obDim_=0, actionDim_=0;
+
+  Eigen::VectorXd stepData_;
+  std::vector<std::string> stepDataTag_;
 
   thread_local static std::mt19937 gen_;
   thread_local static std::normal_distribution<double> normDist_;
