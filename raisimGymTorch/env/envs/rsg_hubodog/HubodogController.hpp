@@ -149,11 +149,16 @@ class HubodogController {
 
     VelReward *= rewardCoeff.at(RewardType::VELOCITY);
 
-    float jointVelocityExp = rewardCoeff.at(RewardType::JOINT_VELOCITY) * (1.0-curriculumFactor*0.7) * gv_.tail(nJoints_).squaredNorm();
-    float jointAccelerationExp = rewardCoeff.at(RewardType::JOINT_ACCELERATION) * (1.0-curriculumFactor*0.7) * (preJointVel_-gv_.tail(nJoints_)).squaredNorm();
-    float jointPositionExp = rewardCoeff.at(RewardType::JOINT_POSITION) * (1.0-curriculumFactor*0.7) * (gc_init_.tail(nJoints_)-gv_.tail(nJoints_)).norm();
-    float smoothness1Exp = rewardCoeff.at(RewardType::SMOOTHNESS1) * (pTarget12_-targetT_1_).norm() * (1.0-curriculumFactor*0.9);
-    float smoothness2Exp = rewardCoeff.at(RewardType::SMOOTHNESS2) * (pTarget12_- 2 * targetT_1_ + targetT_2_).norm() * (1.0-curriculumFactor*0.9);
+    float jointVelocityExp = rewardCoeff.at(RewardType::JOINT_VELOCITY) * (1.0-curriculumFactor*0.7)
+        * gv_.tail(nJoints_).squaredNorm();
+    float jointAccelerationExp = rewardCoeff.at(RewardType::JOINT_ACCELERATION) * (1.0-curriculumFactor*0.7)
+        * (preJointVel_-gv_.tail(nJoints_)).squaredNorm();
+    float jointPositionExp = rewardCoeff.at(RewardType::JOINT_POSITION) * (1.0-curriculumFactor*0.7)
+        * (gc_init_.tail(nJoints_)-gc_.tail(nJoints_)).norm();
+    float smoothness1Exp = rewardCoeff.at(RewardType::SMOOTHNESS1) * (1.0-curriculumFactor*0.9)
+        * (pTarget12_-targetT_1_).norm();
+    float smoothness2Exp = rewardCoeff.at(RewardType::SMOOTHNESS2) * (1.0-curriculumFactor*0.9)
+        * (pTarget12_- 2 * targetT_1_ + targetT_2_).norm();
 
     for(size_t i=0; i<4; i++)
       footContactState_[i] = false;
@@ -178,14 +183,14 @@ class HubodogController {
     }
     airtimeRew *= rewardCoeff.at(RewardType::AIRTIME);
 
-//    stepDataTag_ = {"vel_rew", "airtime", "joint_pos_rew", "joint_acc_rew", "joint_vel_rew", "smooth_rew1", "smooth_rew1"};
+    // stepDataTag_ = {"vel_rew", "joint_pos_rew", "joint_acc_rew", "joint_vel_rew", "smooth_rew1", "smooth_rew1", "airtime"};
     stepData_[0] = VelReward;
-    stepData_[1] = airtimeRew;
-    stepData_[2] = jointPositionExp;
-    stepData_[3] = jointAccelerationExp;
-    stepData_[4] = jointVelocityExp;
-    stepData_[5] = smoothness1Exp;
-    stepData_[6] = smoothness2Exp;
+    stepData_[1] = jointPositionExp;
+    stepData_[2] = jointAccelerationExp;
+    stepData_[3] = jointVelocityExp;
+    stepData_[4] = smoothness1Exp;
+    stepData_[5] = smoothness2Exp;
+    stepData_[6] = airtimeRew;
 
     return (airtimeRew + VelReward) * exp(jointVelocityExp + jointAccelerationExp + jointPositionExp + smoothness1Exp + smoothness2Exp);
   }

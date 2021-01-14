@@ -1,8 +1,8 @@
+import os
 from ruamel.yaml import YAML, dump, RoundTripDumper
 from raisimGymTorch.env.bin import rsg_hubodog as Env
 from raisimGymTorch.env.RaisimGymVecEnv import RaisimGymVecEnv as VecEnv
 from raisimGymTorch.helper.raisim_gym_helper import ConfigurationSaver, load_param, tensorboard_launcher
-import os
 import math
 import time
 import raisimGymTorch.algo.ppo.module as ppo_module
@@ -93,10 +93,10 @@ for update in range(1000000):
 
         data_tags = env.get_step_data_tag()
         data_size = 0
-        data_mean = np.ndarray(shape=(len(data_tags), 1), dtype=np.double)
-        data_var = np.ndarray(shape=(len(data_tags), 1), dtype=np.double)
-        data_min = np.ndarray(shape=(len(data_tags), 1), dtype=np.double)
-        data_max = np.ndarray(shape=(len(data_tags), 1), dtype=np.double)
+        data_mean = np.zeros(shape=(len(data_tags), 1), dtype=np.double)
+        data_var = np.zeros(shape=(len(data_tags), 1), dtype=np.double)
+        data_min = np.zeros(shape=(len(data_tags), 1), dtype=np.double)
+        data_max = np.zeros(shape=(len(data_tags), 1), dtype=np.double)
 
         for step in range(n_steps*2):
             frame_start = time.time()
@@ -110,7 +110,8 @@ for update in range(1000000):
             if wait_time > 0.:
                 time.sleep(wait_time)
 
-        data_std = np.sqrt(data_var)
+        data_std = np.sqrt(data_var / (data_size-1)+1e-16)
+
         for data_id in range(len(data_tags)):
             ppo.writer.add_scalar(data_tags[data_id]+'/mean', data_mean[data_id], global_step=update)
             ppo.writer.add_scalar(data_tags[data_id]+'/std', data_std[data_id], global_step=update)
