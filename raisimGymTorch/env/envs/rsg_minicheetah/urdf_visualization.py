@@ -55,7 +55,7 @@ critic = ppo_module.Critic(ppo_module.MLP(cfg['architecture']['value_net'], nn.L
                            device)
 
 saver = ConfigurationSaver(log_dir=home_path + "/raisimGymTorch/data/"+task_name,  # save environment and configuration data.
-                           save_items=[task_path + "/cfg.yaml", task_path + "/Environment.hpp", task_path + "/MinicheetahController.hpp"])
+                           save_items=[])
 #tensorboard_launcher(saver.data_dir+"/..")  # press refresh (F5) after the first ppo update
 
 ppo = PPO.PPO(actor=actor,

@@ -13,16 +13,16 @@ environment:
   curriculum_factor: 0.3
   curriculum_rate: 0.997
   reward:
-    bodyAngularVelCoeff1: 0.2
+    bodyAngularVelCoeff1: 0.5
     bodyAngularVelCoeff2: 0.05
     forwardVelCoeff1: 1
     forwardVelCoeff2: 1
     torqueCoeff: -1.5e-5
-    jointSpeedCoeff: -1e-5
-    footClearanceCoeff: -0.5
-    footSlipCoeff: -0.01
-    bodyOriCoeff: -0.1
-    smoothnessCoeff: -1e-5
+    jointSpeedCoeff: -3e-5
+    footClearanceCoeff: -1
+    footSlipCoeff: -0.006
+    bodyOriCoeff: -0.125
+    smoothnessCoeff: -3e-5
 
 architecture:
   policy_net: [128, 128]

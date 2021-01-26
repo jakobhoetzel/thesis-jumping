@@ -4,6 +4,11 @@
 1) ***Modify body mass/inertia***
 	(1) mass: 3.3 --> 5.868
 	(2) inertia: {ixx, iyy, izz} = {0.011253, 0.362030, 0.042673} --> {0.02000988, 0.075876593, 0.085403948}
+2) ***Add maximum torque***
+	(1) abduction, thigh: 18 Nm
+	(2) knee: 11.6 Nm
+3) Modify thigh's collision box to become smaller
+	(1) {0.038 0.03 0.21} --> {0.025 0.025 0.16}
 
 Now, total mass = 10.82kg(including a battery)
 cf) the order of magnitude of iyy is reduced by referring to the pybullet3's minicheetah urdf file.

@@ -47,7 +47,7 @@ class MinicheetahController {
     pTarget_.setZero(gcDim_); vTarget_.setZero(gvDim_); pTarget12_.setZero(nJoints_); // p and v mean position and velocity.
     footVelocityFR_.setZero(); footVelocityFL_.setZero(); footVelocityHR_.setZero(); footVelocityHL_.setZero();
 //    desiredFootPositionFR_.setZero(), desiredFootPositionFL_.setZero(), desiredFootPositionHR_.setZero(), desiredFootPositionHL_.setZero();
-    desiredFootZPosition_ = 0.07;
+    desiredFootZPosition_ = 0.04;
     currentFootPositionFR_.setZero(), currentFootPositionFL_.setZero(), currentFootPositionHR_.setZero(), currentFootPositionHL_.setZero();
     footPositionInBodyFrame_ = {0.0, 0.0, -0.18};
     // pTarget12_, which is for last 12 values of pTarget_, would be incorporated into pTarget later.
