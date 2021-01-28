@@ -54,8 +54,8 @@ actor = ppo_module.Actor(ppo_module.MLP(cfg['architecture']['policy_net'], nn.Le
 critic = ppo_module.Critic(ppo_module.MLP(cfg['architecture']['value_net'], nn.LeakyReLU, ob_dim, 1),
                            device)
 
-saver = ConfigurationSaver(log_dir=home_path + "/raisimGymTorch/data/"+task_name,  # save environment and configuration data.
-                           save_items=[])
+# saver = ConfigurationSaver(log_dir=home_path + "/raisimGymTorch/data/"+task_name,  # save environment and configuration data.
+#                            save_items=[])
 #tensorboard_launcher(saver.data_dir+"/..")  # press refresh (F5) after the first ppo update
 
 ppo = PPO.PPO(actor=actor,
@@ -67,7 +67,7 @@ ppo = PPO.PPO(actor=actor,
               lam=0.95,
               num_mini_batches=4,
               device=device,
-              log_dir=saver.data_dir,
+              # log_dir=saver.data_dir,
               shuffle_batch=False,
               )
 

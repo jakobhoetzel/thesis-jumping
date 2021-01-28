@@ -72,7 +72,7 @@ ppo = PPO.PPO(actor=actor,
               )
 
 data_tags = env.get_step_data_tag()
-data_size = 0
+data_size = env.num_envs
 data_mean = np.zeros(shape=(len(data_tags), 1), dtype=np.double)
 data_var = np.zeros(shape=(len(data_tags), 1), dtype=np.double)
 data_min = np.zeros(shape=(len(data_tags), 1), dtype=np.double)
@@ -96,10 +96,6 @@ for update in range(1000000):
             'critic_architecture_state_dict': critic.architecture.state_dict(),
             'optimizer_state_dict': ppo.optimizer.state_dict(),
         }, saver.data_dir+"/full_"+str(update)+'.pt')
-        # we create another graph just to demonstrate the save/load method
-        # Why should I create a new architecture?
-        loaded_graph = ppo_module.MLP(cfg['architecture']['policy_net'], nn.LeakyReLU, ob_dim, act_dim)  # actor architecture(MLP)
-        loaded_graph.load_state_dict(torch.load(saver.data_dir+"/full_"+str(update)+'.pt')['actor_architecture_state_dict'])
 
         env.turn_on_visualization()
         env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy_"+str(update)+'.mp4')
@@ -107,7 +103,8 @@ for update in range(1000000):
         for step in range(n_steps):  # n_steps*2
             frame_start = time.time()
             obs = env.observe(False)  # don't compute rms
-            action_ll = loaded_graph.architecture(torch.from_numpy(obs).cpu())
+            action_ll = actor.architecture.architecture(torch.from_numpy(obs).to(device))
+
             reward_ll, dones = env.step(action_ll.cpu().detach().numpy())  # why detach?
             frame_end = time.time()
             wait_time = cfg['environment']['control_dt'] - (frame_end-frame_start)
@@ -137,7 +134,7 @@ for update in range(1000000):
     average_dones = done_sum / total_steps
     avg_rewards.append(average_ll_performance)
 
-    if update % 10 == 0:
+    if update % 5 == 0:
         env.get_step_data(data_size, data_mean, data_var, data_min, data_max)
 
         data_std = np.sqrt(data_var / (data_size-1)+1e-16)
@@ -149,7 +146,7 @@ for update in range(1000000):
             ppo.writer.add_scalar(data_tags[data_id]+'/max', data_max[data_id], global_step=update)
 
 
-    actor.distribution.enforce_minimum_std((torch.ones(12)*0.2).to(device))
+    actor.distribution.enforce_minimum_std((torch.ones(12)*0.25).to(device))
 
     env.curriculum_callback()
 
