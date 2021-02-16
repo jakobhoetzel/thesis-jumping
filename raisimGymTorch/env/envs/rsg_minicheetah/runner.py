@@ -56,7 +56,7 @@ critic = ppo_module.Critic(ppo_module.MLP(cfg['architecture']['value_net'], nn.L
 
 saver = ConfigurationSaver(log_dir=home_path + "/raisimGymTorch/data/"+task_name,  # save environment and configuration data.
                            save_items=[task_path + "/cfg.yaml", task_path + "/Environment.hpp", task_path + "/MinicheetahController.hpp"])
-tensorboard_launcher(saver.data_dir+"/..")  # press refresh (F5) after the first ppo update
+# tensorboard_launcher(saver.data_dir+"/..")  # press refresh (F5) after the first ppo update
 
 ppo = PPO.PPO(actor=actor,
               critic=critic,
@@ -70,6 +70,8 @@ ppo = PPO.PPO(actor=actor,
               log_dir=saver.data_dir,
               shuffle_batch=False,
               )
+
+actor_architecture_for_save = ppo_module.MLP(cfg['architecture']['policy_net'], nn.LeakyReLU, ob_dim, act_dim)
 
 data_tags = env.get_step_data_tag()
 data_size = env.num_envs
@@ -96,6 +98,8 @@ for update in range(1000000):
             'critic_architecture_state_dict': critic.architecture.state_dict(),
             'optimizer_state_dict': ppo.optimizer.state_dict(),
         }, saver.data_dir+"/full_"+str(update)+'.pt')
+        actor_architecture_for_save.load_state_dict(actor.architecture.state_dict())
+        torch.jit.script(actor_architecture_for_save).save(saver.data_dir + "/actor_architecture_" + str(update) + ".pt")
 
         env.turn_on_visualization()
         env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy_"+str(update)+'.mp4')

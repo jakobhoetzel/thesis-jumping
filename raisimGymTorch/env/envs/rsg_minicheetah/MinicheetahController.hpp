@@ -18,9 +18,9 @@ class MinicheetahController {
 
  public:
   enum class RewardType : int {
-    ANGULARVELOCIY1,
+    ANGULARVELOCIY1 = 1,
     ANGULARVELOCIY2,
-    VELOCITY1 = 1,
+    VELOCITY1,
     VELOCITY2,
     TORQUE,
     JOINTSPEED,
@@ -44,6 +44,7 @@ class MinicheetahController {
     /// initialize containers
     gc_.setZero(gcDim_); gc_init_.setZero(gcDim_);  //gc_ and gv_ are expressed in the joint frame and with respect to the parent body
     gv_.setZero(gvDim_); gv_init_.setZero(gvDim_);
+    gc_stationay_target.setZero(gcDim_);
     pTarget_.setZero(gcDim_); vTarget_.setZero(gvDim_); pTarget12_.setZero(nJoints_); // p and v mean position and velocity.
     footVelocityFR_.setZero(); footVelocityFL_.setZero(); footVelocityHR_.setZero(); footVelocityHL_.setZero();
 //    desiredFootPositionFR_.setZero(), desiredFootPositionFL_.setZero(), desiredFootPositionHR_.setZero(), desiredFootPositionHL_.setZero();
@@ -53,10 +54,14 @@ class MinicheetahController {
     // pTarget12_, which is for last 12 values of pTarget_, would be incorporated into pTarget later.
 
     /// this is nominal configuration of minicheetah
-    gc_init_ << 0, 0, 0.28,  // gc_init_.segment(0, 3): x, y, z position  //0.28
+    gc_init_ << 0, 0, 0.28, //0.07,  // gc_init_.segment(0, 3): x, y, z position  //0.28
         1.0, 0.0, 0.0, 0.0,  // gc_init_.segment(3, 4): quaternion
-        0, -0.7854, 1.8326, 0, -0.7854, 1.8326, 0, -0.7854, 1.8326, 0, -0.7854, 1.8326;  // gc_init_.tail(12): movable joint angle
+        0, -0.8, 1.8, 0, -0.8, 1.6, 0, -0.8, 1.6, 0, -0.8, 1.6;  // gc_init_.tail(12): movable joint angle
+//        0, -0.7854, 1.8326, 0, -0.7854, 1.8326, 0, -0.7854, 1.8326, 0, -0.7854, 1.8326;  // gc_init_.tail(12): movable joint angle
+//        -0.6, -1, 2.7, 0.6, -1, 2.7, -0.6, -1, 2.7, 0.6, -1, 2.7;
 //        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
+//    gc_stationay_target << gc_init_.head(7),
+//        0, -0.8, 1.8, 0, -0.8, 1.6, 0, -0.8, 1.6, 0, -0.8, 1.6;
 
     /// set pd gains
     Eigen::VectorXd jointPgain(gvDim_), jointDgain(gvDim_);
@@ -105,6 +110,9 @@ class MinicheetahController {
     pTarget12_ = pTarget12_.cwiseProduct(actionStd_);
     pTarget12_ += actionMean_;
     pTarget_.tail(nJoints_) = pTarget12_;
+
+//    pTarget_ = gc_stationay_target;
+
     cheetah->setPdTarget(pTarget_, vTarget_);  // Set vTarget as 0 because we don't know vTarget. It works quite well.
 
     updateObservation(world);  // update obDouble, and so on.
@@ -276,6 +284,7 @@ class MinicheetahController {
  private:
   int gcDim_, gvDim_, nJoints_;
   Eigen::VectorXd gc_init_, gv_init_, gc_, gv_, pTarget_, pTarget12_, vTarget_;
+  Eigen::VectorXd gc_stationay_target;
   Eigen::VectorXd actionMean_, actionStd_, obDouble_;
   Eigen::Vector3d bodyLinearVel_, bodyAngularVel_;
   std::set<size_t> footIndices_;
