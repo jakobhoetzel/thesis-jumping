@@ -98,8 +98,9 @@ for update in range(1000000):
             'critic_architecture_state_dict': critic.architecture.state_dict(),
             'optimizer_state_dict': ppo.optimizer.state_dict(),
         }, saver.data_dir+"/full_"+str(update)+'.pt')
-        actor_architecture_for_save.load_state_dict(actor.architecture.state_dict())
-        torch.jit.script(actor_architecture_for_save).save(saver.data_dir + "/actor_architecture_" + str(update) + ".pt")
+        actor.save_deterministic_graph(saver.data_dir + "/actor_" + str(update) + ".pt", torch.rand(1, ob_dim).cpu())
+        # actor_architecture_for_save.load_state_dict(actor.architecture.state_dict())
+        # torch.jit.script(actor_architecture_for_save).save(saver.data_dir + "/actor_" + str(update) + ".pt")
 
         env.turn_on_visualization()
         env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy_"+str(update)+'.mp4')

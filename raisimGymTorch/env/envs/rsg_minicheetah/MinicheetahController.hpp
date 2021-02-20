@@ -269,7 +269,11 @@ class MinicheetahController {
       if(footIndices_.find(contact.getlocalBodyIndex()) == footIndices_.end()) {  //If the contact index is not an index of feet, it is terminal state.
         return true;
       }
+//      std::cout<<"is ObjectA: "<<contact.isObjectA()<<std::endl;
+//      std::cout<<"Contact position in the world frame: "<<contact.getPosition().e().transpose()<<std::endl;
+//      std::cout<<"It collides with: "<<int(contact.getPairObjectBodyType())<<std::endl;
     }
+//    std::cout<<"One step is finished" << std::endl;
     return false;
   }
 

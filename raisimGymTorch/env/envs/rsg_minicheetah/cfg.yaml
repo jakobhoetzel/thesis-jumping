@@ -6,7 +6,7 @@ environment:
   num_envs: 1000
   eval_every_n: 200
   num_threads: 30
-  simulation_dt: 0.0025
+  simulation_dt: 0.002
   control_dt: 0.01
   max_time: 4.0
   updateHistPeriod: 4
