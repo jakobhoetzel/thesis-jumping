@@ -58,8 +58,8 @@ class RaisimGymVecEnv:
     def save_scaling(self, dir_name, iteration):
         mean_file_name = dir_name + "/mean" + iteration + ".csv"
         var_file_name = dir_name + "/var" + iteration + ".csv"
-        np.savetxt(mean_file_name, self.obs_rms.mean)
-        np.savetxt(var_file_name, self.obs_rms.var)
+        np.savetxt(mean_file_name, self.obs_rms.mean[0])
+        np.savetxt(var_file_name, self.obs_rms.var[0])
 
     def observe(self, update_mean=True):
         self.wrapper.observe(self._observation)
