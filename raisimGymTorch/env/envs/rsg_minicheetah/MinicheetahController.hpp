@@ -96,6 +96,8 @@ class MinicheetahController {
     stepDataTag_ = {"rewBodyAngularVel", "rewLinearVel", "rewTorque", "rewJointSpeed", "rewFootClearance", "rewFootSlip", "rewBodyOri", "rewSmoothness"};
     stepData_.resize(stepDataTag_.size());  // reward & gv_
 
+    srand(static_cast <unsigned> (time(0)));  // for observation noise
+
     updateObservation(world);
     return true;
   }
