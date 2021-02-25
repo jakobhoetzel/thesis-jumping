@@ -57,7 +57,7 @@ class PPO:
 
         # Log
         self.log_dir = os.path.join(log_dir, datetime.now().strftime('%b%d_%H-%M-%S'))
-        self.writer = SummaryWriter(log_dir=self.log_dir, flush_secs=10)
+        self.writer = SummaryWriter(log_dir=self.log_dir, flush_secs=2)
         self.tot_timesteps = 0
         self.tot_time = 0
 

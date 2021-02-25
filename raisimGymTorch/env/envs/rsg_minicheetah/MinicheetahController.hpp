@@ -54,12 +54,16 @@ class MinicheetahController {
     // pTarget12_, which is for last 12 values of pTarget_, would be incorporated into pTarget later.
 
     /// this is nominal configuration of minicheetah
-    gc_init_ << 0, 0, 0.28, //0.07,  // gc_init_.segment(0, 3): x, y, z position  //0.28
+    gc_init_ << 0, 0, 0.05, //0.07,  // gc_init_.segment(0, 3): x, y, z position  //0.28
         1.0, 0.0, 0.0, 0.0,  // gc_init_.segment(3, 4): quaternion
-        0, -0.8, 1.8, 0, -0.8, 1.6, 0, -0.8, 1.6, 0, -0.8, 1.6;  // gc_init_.tail(12): movable joint angle
+//        0, -0.8, 1.8, 0, -0.8, 1.6, 0, -0.8, 1.6, 0, -0.8, 1.6;  // gc_init_.tail(12): movable joint angle
 //        0, -0.7854, 1.8326, 0, -0.7854, 1.8326, 0, -0.7854, 1.8326, 0, -0.7854, 1.8326;  // gc_init_.tail(12): movable joint angle
 //        -0.6, -1, 2.7, 0.6, -1, 2.7, -0.6, -1, 2.7, 0.6, -1, 2.7;
 //        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
+//        -0.62057, -1.039, 2.7, 0.6206, -1.039, 2.7, -0.6245, -1.034, 2.7, 0.62436, -1.034, 2.7;
+//        0., 0., 0.5, 0., 0., 0.5, 0., 0., 0.5, 0., 0., 0.5;
+//        -0.8659, -0.5307, 1.9672, 0.8661, -0.5302, 1.9666, -1.1019, -0.7014, 1.8063, 1.1017, -0.701, 1.8066;
+        -0.726685, -0.947298, 2.7, 0.726636, -0.947339, 2.7, -0.727, -0.94654, 2.65542, 0.727415, -0.946541, 2.65542;
 //    gc_stationay_target << gc_init_.head(7),
 //        0, -0.8, 1.8, 0, -0.8, 1.6, 0, -0.8, 1.6, 0, -0.8, 1.6;
 
@@ -81,7 +85,7 @@ class MinicheetahController {
 
     /// action scaling
     actionMean_ = gc_init_.tail(nJoints_);
-    actionStd_.setConstant(0.3);  // How to change std?
+    actionStd_.setConstant(0.3);
 
     /// indices of links that are only possible to make contact with ground
     footIndices_.insert(cheetah->getBodyIdx("shank_fr"));
@@ -90,7 +94,7 @@ class MinicheetahController {
     footIndices_.insert(cheetah->getBodyIdx("shank_hl"));
 
     stepDataTag_ = {"rewBodyAngularVel", "rewLinearVel", "rewTorque", "rewJointSpeed", "rewFootClearance", "rewFootSlip", "rewBodyOri", "rewSmoothness"};
-    stepData_.resize(stepDataTag_.size());
+    stepData_.resize(stepDataTag_.size());  // reward & gv_
 
     updateObservation(world);
     return true;
@@ -210,7 +214,7 @@ class MinicheetahController {
 //     generalized force is joint torques, and doesn't include contact forces.
 //     positive rot.e().row(2)[0]: pitch up
 //     positive rot.e().row(2)[1]: roll to the right
-//     rot.e().row(2)[2]: yaw. initial value = 1.
+//     rot.e().row(2): projection of body frame's unit vectors onto the gravity vector.
 
 //    std::cout << (desiredFootZPosition_ - currentFootPositionFR_[2]) << std::endl;
 
@@ -256,6 +260,19 @@ class MinicheetahController {
         gv_.tail(12); /// joint velocity 12
 //        jointVelHist_, /// history 48
 //        jointErrorHist_; /// pos error 48
+
+    bool addObsNoise = false;
+
+    if(addObsNoise) {
+      for(int i=0; i<obDim_; i++) {
+        obDouble_(i) = obDouble_(i) * (1 + generateRandomFloat(-0.03, 0.03));
+      }
+    }
+
+  }
+
+  float generateRandomFloat(float min_f, float max_f) {
+    return (max_f - min_f) * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX)) + min_f;
   }
 
   const Eigen::VectorXd& getObservation() {

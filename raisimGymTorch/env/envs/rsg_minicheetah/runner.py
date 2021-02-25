@@ -56,7 +56,7 @@ critic = ppo_module.Critic(ppo_module.MLP(cfg['architecture']['value_net'], nn.L
 
 saver = ConfigurationSaver(log_dir=home_path + "/raisimGymTorch/data/"+task_name,  # save environment and configuration data.
                            save_items=[task_path + "/cfg.yaml", task_path + "/Environment.hpp", task_path + "/MinicheetahController.hpp"])
-# tensorboard_launcher(saver.data_dir+"/..")  # press refresh (F5) after the first ppo update
+tensorboard_launcher(saver.data_dir+"/..")  # press refresh (F5) after the first ppo update
 
 ppo = PPO.PPO(actor=actor,
               critic=critic,
@@ -104,6 +104,7 @@ for update in range(1000000):
 
         env.turn_on_visualization()
         env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy_"+str(update)+'.mp4')
+        time.sleep(1)
 
         for step in range(n_steps):  # n_steps*2
             frame_start = time.time()
@@ -139,7 +140,7 @@ for update in range(1000000):
     average_dones = done_sum / total_steps
     avg_rewards.append(average_ll_performance)
 
-    if update % 5 == 0:
+    if update % 2 == 0:
         env.get_step_data(data_size, data_mean, data_var, data_min, data_max)
 
         data_std = np.sqrt(data_var / (data_size-1)+1e-16)
