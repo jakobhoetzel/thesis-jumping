@@ -54,16 +54,16 @@ class MinicheetahController {
     // pTarget12_, which is for last 12 values of pTarget_, would be incorporated into pTarget later.
 
     /// this is nominal configuration of minicheetah
-    gc_init_ << 0, 0, 0.05, //0.07,  // gc_init_.segment(0, 3): x, y, z position  //0.28
+    gc_init_ << 0, 0, 0.28, //0.07,  // gc_init_.segment(0, 3): x, y, z position  //0.28
         1.0, 0.0, 0.0, 0.0,  // gc_init_.segment(3, 4): quaternion
-//        0, -0.8, 1.8, 0, -0.8, 1.6, 0, -0.8, 1.6, 0, -0.8, 1.6;  // gc_init_.tail(12): movable joint angle
-//        0, -0.7854, 1.8326, 0, -0.7854, 1.8326, 0, -0.7854, 1.8326, 0, -0.7854, 1.8326;  // gc_init_.tail(12): movable joint angle
+//        0, -0.8, 1.8, 0, -0.8, 1.6, 0, -0.8, 1.6, 0, -0.8, 1.6;  // stand up
+        0, -0.7854, 1.8326, 0, -0.7854, 1.8326, 0, -0.7854, 1.8326, 0, -0.7854, 1.8326;  // stand up
 //        -0.6, -1, 2.7, 0.6, -1, 2.7, -0.6, -1, 2.7, 0.6, -1, 2.7;
 //        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
-//        -0.62057, -1.039, 2.7, 0.6206, -1.039, 2.7, -0.6245, -1.034, 2.7, 0.62436, -1.034, 2.7;
+//        -0.62057, -1.039, 2.7, 0.6206, -1.039, 2.7, -0.6245, -1.034, 2.7, 0.62436, -1.034, 2.7;  // intended initial pose
 //        0., 0., 0.5, 0., 0., 0.5, 0., 0., 0.5, 0., 0., 0.5;
 //        -0.8659, -0.5307, 1.9672, 0.8661, -0.5302, 1.9666, -1.1019, -0.7014, 1.8063, 1.1017, -0.701, 1.8066;
-        -0.726685, -0.947298, 2.7, 0.726636, -0.947339, 2.7, -0.727, -0.94654, 2.65542, 0.727415, -0.946541, 2.65542;
+//        -0.726685, -0.947298, 2.7, 0.726636, -0.947339, 2.7, -0.727, -0.94654, 2.65542, 0.727415, -0.946541, 2.65542;  // unintended initial pose
 //    gc_stationay_target << gc_init_.head(7),
 //        0, -0.8, 1.8, 0, -0.8, 1.6, 0, -0.8, 1.6, 0, -0.8, 1.6;
 
@@ -75,7 +75,7 @@ class MinicheetahController {
     cheetah->setGeneralizedForce(Eigen::VectorXd::Zero(gvDim_));
 
     /// MUST BE DONE FOR ALL ENVIRONMENTS
-    obDim_ = 34;
+    obDim_ = 16;
     actionDim_ = nJoints_; actionMean_.setZero(actionDim_); actionStd_.setZero(actionDim_);  // action dimension is the same as the number of joints(by applying torque)
     obDouble_.setZero(obDim_);
     preJointTorque_.setZero(gv_.size());
@@ -255,13 +255,13 @@ class MinicheetahController {
 
     obDouble_ << gc_[2], /// body height. 1
         rot.e().row(2).transpose(), /// body orientation. 3
-        gc_.tail(12), /// joint angles 12
-        bodyLinearVel_, bodyAngularVel_, /// body linear&angular velocity. 3, 3
-        gv_.tail(12); /// joint velocity 12
+        gc_.tail(12); /// joint angles 12
+//        bodyLinearVel_, bodyAngularVel_, /// body linear&angular velocity. 3, 3
+//        gv_.tail(12); /// joint velocity 12
 //        jointVelHist_, /// history 48
 //        jointErrorHist_; /// pos error 48
 
-    bool addObsNoise = false;
+    bool addObsNoise = true;
 
     if(addObsNoise) {
       for(int i=0; i<obDim_; i++) {
