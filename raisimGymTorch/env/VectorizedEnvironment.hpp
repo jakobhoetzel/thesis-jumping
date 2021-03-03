@@ -150,6 +150,8 @@ class VectorizedEnvironment {
       env->curriculumUpdate();
   };
 
+  void printTest() { environments_[0]->printTest();}
+
  private:
 
   inline void perAgentStep(int agentId,

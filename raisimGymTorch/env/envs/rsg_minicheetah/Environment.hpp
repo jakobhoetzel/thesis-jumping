@@ -46,6 +46,7 @@ class ENVIRONMENT {
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::FOOTSLIP], cfg["reward"]["footSlipCoeff"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::ORIENTATION], cfg["reward"]["bodyOriCoeff"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::SMOOTHNESS], cfg["reward"]["smoothnessCoeff"])
+    READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::AIRTIME], cfg["reward"]["airTimeCoeff"])
 
     /// visualize if it is the first environment
     if (visualizable_) {  //RaisimUnity
@@ -83,7 +84,7 @@ class ENVIRONMENT {
        controller_.updateHistory();  // every 4 steps
     }
 
-    return controller_.getReward(world_.get(), rewardCoeff_, curriculumFactor_);
+    return controller_.getReward(world_.get(), rewardCoeff_, simulation_dt_, curriculumFactor_);
   }
 
   void observe(Eigen::Ref<EigenVec> ob) {
@@ -129,13 +130,15 @@ class ENVIRONMENT {
 
   void stopRecordingVideo() { server_->stopRecordingVideo(); }
 
+  void printTest() { controller_.printTest();}
+
  private:
   std::map<MinicheetahController::RewardType, float> rewardCoeff_;
   bool visualizable_ = false;
   double terminalRewardCoeff_ = -10.;
   MinicheetahController controller_;
   std::unique_ptr<raisim::World> world_;
-  double curriculumFactor_ = 0.3, curriculumRate_ = 0.997;
+  double curriculumFactor_ = 0.3, curriculumRate_ = 0.998;
   double simulation_dt_ = 0.001;  // 0.0025
   double control_dt_ = 0.01;  // 0.01
   std::unique_ptr<raisim::RaisimServer> server_;

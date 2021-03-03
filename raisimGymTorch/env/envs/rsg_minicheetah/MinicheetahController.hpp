@@ -28,6 +28,7 @@ class MinicheetahController {
     FOOTSLIP,
     ORIENTATION,
     SMOOTHNESS,
+    AIRTIME
   };
 
   bool create(raisim::World *world) { // called only once
@@ -42,8 +43,8 @@ class MinicheetahController {
     nJoints_ = gvDim_ - 6;  // because each joint has 1 DOF and the main body has 6 DOF.
 
     /// initialize containers
-    gc_.setZero(gcDim_); gc_init_.setZero(gcDim_);  //gc_ and gv_ are expressed in the joint frame and with respect to the parent body
-    gv_.setZero(gvDim_); gv_init_.setZero(gvDim_);
+    gc_.setZero(gcDim_); gc_init_.setZero(gcDim_); gc_init_noise.setZero(gcDim_);  //gc_ and gv_ are expressed in the joint frame and with respect to the parent body
+    gv_.setZero(gvDim_); gv_init_.setZero(gvDim_); gv_init_noise.setZero(gvDim_);
     gc_stationay_target.setZero(gcDim_);
     pTarget_.setZero(gcDim_); vTarget_.setZero(gvDim_); pTarget12_.setZero(nJoints_); // p and v mean position and velocity.
     footVelocityFR_.setZero(); footVelocityFL_.setZero(); footVelocityHR_.setZero(); footVelocityHL_.setZero();
@@ -54,7 +55,7 @@ class MinicheetahController {
     // pTarget12_, which is for last 12 values of pTarget_, would be incorporated into pTarget later.
 
     /// this is nominal configuration of minicheetah
-    gc_init_ << 0, 0, 0.28, //0.07,  // gc_init_.segment(0, 3): x, y, z position  //0.28
+    gc_init_ << 0, 0, 0.25, //0.07,  // gc_init_.segment(0, 3): x, y, z position  //0.28
         1.0, 0.0, 0.0, 0.0,  // gc_init_.segment(3, 4): quaternion
 //        0, -0.8, 1.8, 0, -0.8, 1.6, 0, -0.8, 1.6, 0, -0.8, 1.6;  // stand up
         0, -0.7854, 1.8326, 0, -0.7854, 1.8326, 0, -0.7854, 1.8326, 0, -0.7854, 1.8326;  // stand up
@@ -64,8 +65,11 @@ class MinicheetahController {
 //        0., 0., 0.5, 0., 0., 0.5, 0., 0., 0.5, 0., 0., 0.5;
 //        -0.8659, -0.5307, 1.9672, 0.8661, -0.5302, 1.9666, -1.1019, -0.7014, 1.8063, 1.1017, -0.701, 1.8066;
 //        -0.726685, -0.947298, 2.7, 0.726636, -0.947339, 2.7, -0.727, -0.94654, 2.65542, 0.727415, -0.946541, 2.65542;  // unintended initial pose
-//    gc_stationay_target << gc_init_.head(7),
-//        0, -0.8, 1.8, 0, -0.8, 1.6, 0, -0.8, 1.6, 0, -0.8, 1.6;
+    gc_stationay_target << gc_init_.head(7),
+        0, -0.7854, 1.8326, 0, -0.7854, 1.8326, 0, -0.7854, 1.8326, 0, -0.7854, 1.8326;
+
+//    gv_init_ << 0.016, 0, 0.09, 0.028, -0.016, 0,
+//        0.36, 0.068, -0.394, -0.847, 0.03, -1.08, 0.325, 0.0556, -0.364, -0.324, 0.073, -0.406;
 
     /// set pd gains
     Eigen::VectorXd jointPgain(gvDim_), jointDgain(gvDim_);
@@ -75,10 +79,11 @@ class MinicheetahController {
     cheetah->setGeneralizedForce(Eigen::VectorXd::Zero(gvDim_));
 
     /// MUST BE DONE FOR ALL ENVIRONMENTS
-    obDim_ = 16;
+    obDim_ = 34;
     actionDim_ = nJoints_; actionMean_.setZero(actionDim_); actionStd_.setZero(actionDim_);  // action dimension is the same as the number of joints(by applying torque)
     obDouble_.setZero(obDim_);
     preJointTorque_.setZero(gv_.size());
+    airTime_.setZero(4);
     jointVelHist_.setZero(nJoints_ * historyLength_);
     jointErrorHist_.setZero(nJoints_ * historyLength_);
     historyTempMem_.setZero(nJoints_ * historyLength_);
@@ -88,12 +93,13 @@ class MinicheetahController {
     actionStd_.setConstant(0.3);
 
     /// indices of links that are only possible to make contact with ground
-    footIndices_.insert(cheetah->getBodyIdx("shank_fr"));
-    footIndices_.insert(cheetah->getBodyIdx("shank_fl"));
-    footIndices_.insert(cheetah->getBodyIdx("shank_hr"));
-    footIndices_.insert(cheetah->getBodyIdx("shank_hl"));
+    footIndices_.push_back(cheetah->getBodyIdx("shank_fr"));
+    footIndices_.push_back(cheetah->getBodyIdx("shank_fl"));
+    footIndices_.push_back(cheetah->getBodyIdx("shank_hr"));
+    footIndices_.push_back(cheetah->getBodyIdx("shank_hl"));
 
-    stepDataTag_ = {"rewBodyAngularVel", "rewLinearVel", "rewTorque", "rewJointSpeed", "rewFootClearance", "rewFootSlip", "rewBodyOri", "rewSmoothness"};
+    stepDataTag_ = {"rewBodyAngularVel", "rewLinearVel", "rewTorque", "rewJointSpeed", "rewFootClearance",
+                    "rewFootSlip", "rewBodyOri", "rewSmoothness", "rewAirTime"};
     stepData_.resize(stepDataTag_.size());  // reward & gv_
 
     srand(static_cast <unsigned> (time(0)));  // for observation noise
@@ -126,8 +132,36 @@ class MinicheetahController {
   }
 
   bool reset(raisim::World *world) {
-    auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world->getObject("robot"));
-    cheetah->setState(gc_init_, gv_init_);  // initialize the environment
+    auto *cheetah = reinterpret_cast<raisim::ArticulatedSystem *>(world->getObject("robot"));
+
+    bool init_noise = true;
+
+    if (init_noise) {
+      for (int i = 0; i < gcDim_; i++) {
+        if(i==0) {
+          gc_init_noise(i) = gc_init_(i) + generateRandomFloat(-0.1, 0.1);
+        } else if(i<4) {
+          gc_init_noise(i) = gc_init_(i) + generateRandomFloat(-0.02, 0.02);
+        } else {
+          gc_init_noise(i) = gc_init_(i) + generateRandomFloat(-0.4, 0.4);
+        }
+      }
+      double quat_sum = gc_init_noise.segment(1, 3).norm();
+      gc_init_noise.segment(1, 3) /= quat_sum;
+      for (int i = 0; i < gcDim_; i++) {
+        if(i<3) {
+          gv_init_noise(i) = gv_init_(i) + generateRandomFloat(-0.5, 0.5);
+        } else if(i<6) {
+          gv_init_noise(i) = gv_init_(i) + generateRandomFloat(-0.5, 0.5);
+        } else {
+          gv_init_noise(i) = gv_init_(i) + generateRandomFloat(-0.9, 0.9);
+        }
+      }
+      cheetah->setState(gc_init_noise, gv_init_noise);
+    } else {
+      cheetah->setState(gc_init_, gv_init_);  // initialize the environment
+    }
+
 
     preJointTorque_.setZero();
     jointVelHist_.setZero();
@@ -154,7 +188,7 @@ class MinicheetahController {
     jointErrorHist_.tail(nJoints_) = pTarget12_ - gc_.tail(nJoints_);
   }
 
-  double getReward(raisim::World *world, const std::map<RewardType, float>& rewardCoeff, double curriculumFactor) {
+  double getReward(raisim::World *world, const std::map<RewardType, float>& rewardCoeff, double simulation_dt, double curriculumFactor) {
     auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world->getObject("robot"));
 
     raisim::Vec<4> quat;
@@ -168,6 +202,14 @@ class MinicheetahController {
 
     VecDyn torqueDifference = cheetah->getGeneralizedForce();
     torqueDifference -= preJointTorque_;
+
+    for(size_t i=0; i<4; i++)
+      footContactState_[i] = false;
+
+    for(auto& contact: cheetah->getContacts())
+      for(size_t i=0; i<4; i++)
+        if(contact.getlocalBodyIndex() == footIndices_[i])
+          footContactState_[i] = true;
 
 //    raisim::Vec<3> desiredFootPositionInBodyFrameFR = {0.18*sin((pTarget12_-actionMean_)[2]), 0, -0.18*cos((pTarget12_-actionMean_)[2])};
 //    raisim::Vec<3> desiredFootPositionInBodyFrameFL = {0.18*sin((pTarget12_-actionMean_)[5]), 0, -0.18*cos((pTarget12_-actionMean_)[5])};
@@ -194,10 +236,27 @@ class MinicheetahController {
     double footTangentialHR = sqrt(pow(footVelocityHR_[0], 2) + pow(footVelocityHR_[1], 2));
     double footTangentialHL = sqrt(pow(footVelocityHL_[0], 2) + pow(footVelocityHL_[1], 2));
 
+    double footTangentialForSlip = footContactState_[0] * footTangentialFR + footContactState_[1] * footTangentialFL +
+        footContactState_[2] * footTangentialHR + footContactState_[3] * footTangentialHL;
+
 //    double footClearanceFR = pow((desiredFootPositionFR_[2] - currentFootPositionFR_[2]), 2) * footTangentialFR;
 //    double footClearanceFL = pow((desiredFootPositionFL_[2] - currentFootPositionFL_[2]), 2) * footTangentialFL;
 //    double footClearanceHR = pow((desiredFootPositionHR_[2] - currentFootPositionHR_[2]), 2) * footTangentialHR;
 //    double footClearanceHL = pow((desiredFootPositionHL_[2] - currentFootPositionHL_[2]), 2) * footTangentialHL;
+
+    double airtimeRew = 0;
+
+    for(size_t i=0; i<4; i++) {
+      if (footContactState_[i])
+        airTime_[i] = std::min(0., airTime_[i]) - simulation_dt;
+      else
+        airTime_[i] = std::max(0., airTime_[i]) + simulation_dt;
+
+      if (airTime_[i] < 0.4 && airTime_[i] > 0.)
+        airtimeRew += std::min(airTime_[i], 0.2);
+      else if (airTime_[i] > -0.4 && airTime_[i] < 0.)
+        airtimeRew += std::min(-airTime_[i], 0.2);
+    }
 
     double footClearanceFR = pow((desiredFootZPosition_ - currentFootPositionFR_[2]), 2) * footTangentialFR;
     double footClearanceFL = pow((desiredFootZPosition_ - currentFootPositionFL_[2]), 2) * footTangentialFL;
@@ -210,9 +269,10 @@ class MinicheetahController {
     double rewTorque = curriculumFactor * cheetah->getGeneralizedForce().squaredNorm() * rewardCoeff.at(RewardType::TORQUE);
     double rewFootClearance = curriculumFactor * (footClearanceFR + footClearanceFL + footClearanceHR + footClearanceHL) * rewardCoeff.at(RewardType::FOOTCLEARANCE);
     double rewJointSpeed = curriculumFactor * (gv_.tail(12)).squaredNorm() * rewardCoeff.at(RewardType::JOINTSPEED);
-    double rewFootSlip = curriculumFactor * (footTangentialFR + footTangentialFL + footTangentialHR + footTangentialHL) * rewardCoeff.at(RewardType::FOOTSLIP);
+    double rewFootSlip = curriculumFactor * footTangentialForSlip * rewardCoeff.at(RewardType::FOOTSLIP);
     double rewBodyOri = curriculumFactor * (oriTarget - rot.e().row(2).transpose()).norm() * rewardCoeff.at(RewardType::ORIENTATION);
     double rewSmoothness = curriculumFactor * (torqueDifference).squaredNorm() * rewardCoeff.at(RewardType::SMOOTHNESS);
+    double rewAirTime = curriculumFactor * airtimeRew * rewardCoeff.at(RewardType::AIRTIME);
 //     generalized force is joint torques, and doesn't include contact forces.
 //     positive rot.e().row(2)[0]: pitch up
 //     positive rot.e().row(2)[1]: roll to the right
@@ -228,6 +288,7 @@ class MinicheetahController {
     stepData_[5] = rewFootSlip;
     stepData_[6] = rewBodyOri;
     stepData_[7] = rewSmoothness;
+    stepData_[8] = rewAirTime;
 
     return stepData_.sum();
   }
@@ -257,9 +318,9 @@ class MinicheetahController {
 
     obDouble_ << gc_[2], /// body height. 1
         rot.e().row(2).transpose(), /// body orientation. 3
-        gc_.tail(12); /// joint angles 12
-//        bodyLinearVel_, bodyAngularVel_, /// body linear&angular velocity. 3, 3
-//        gv_.tail(12); /// joint velocity 12
+        gc_.tail(12), /// joint angles 12
+        bodyLinearVel_, bodyAngularVel_, /// body linear&angular velocity. 3, 3
+        gv_.tail(12); /// joint velocity 12
 //        jointVelHist_, /// history 48
 //        jointErrorHist_; /// pos error 48
 
@@ -267,7 +328,11 @@ class MinicheetahController {
 
     if(addObsNoise) {
       for(int i=0; i<obDim_; i++) {
-        obDouble_(i) = obDouble_(i) * (1 + generateRandomFloat(-0.03, 0.03));
+        if(i<16) {
+          obDouble_(i) = obDouble_(i) * (1 + generateRandomFloat(-0.03, 0.03)) + generateRandomFloat(-0.03, 0.03);
+        } else {
+          obDouble_(i) = obDouble_(i) * (1 + generateRandomFloat(-0.1, 0.1)) + generateRandomFloat(-0.1, 0.1);
+        }
       }
     }
 
@@ -285,9 +350,8 @@ class MinicheetahController {
   bool isTerminalState(raisim::World *world) {
     auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world->getObject("robot"));
     for(auto& contact: cheetah->getContacts()){  //getContacts() returns a vector of Contact instances
-      if(footIndices_.find(contact.getlocalBodyIndex()) == footIndices_.end()) {  //If the contact index is not an index of feet, it is terminal state.
+      if(std::find(footIndices_.begin(), footIndices_.end(), contact.getlocalBodyIndex()) == footIndices_.end())
         return true;
-      }
 //      std::cout<<"is ObjectA: "<<contact.isObjectA()<<std::endl;
 //      std::cout<<"Contact position in the world frame: "<<contact.getPosition().e().transpose()<<std::endl;
 //      std::cout<<"It collides with: "<<int(contact.getPairObjectBodyType())<<std::endl;
@@ -304,13 +368,21 @@ class MinicheetahController {
     return actionDim_;
   }
 
+  void printTest() {
+    std::cout << "Test1: Observation before normalization." << std::endl;
+    std::cout << obDouble_ << std::endl;
+    std::cout << "joint target after scaling: " << std::endl;
+    std::cout << pTarget12_ << std::endl;
+  }
+
  private:
   int gcDim_, gvDim_, nJoints_;
   Eigen::VectorXd gc_init_, gv_init_, gc_, gv_, pTarget_, pTarget12_, vTarget_;
-  Eigen::VectorXd gc_stationay_target;
+  Eigen::VectorXd gc_init_noise, gv_init_noise, gc_stationay_target;
   Eigen::VectorXd actionMean_, actionStd_, obDouble_;
   Eigen::Vector3d bodyLinearVel_, bodyAngularVel_;
-  std::set<size_t> footIndices_;
+  std::vector<size_t> footIndices_;
+  std::array<bool, 4> footContactState_;
 //  raisim::Vec<3> desiredFootPositionFR_, desiredFootPositionFL_, desiredFootPositionHR_, desiredFootPositionHL_;
   double desiredFootZPosition_;
   raisim::Vec<3> currentFootPositionFR_, currentFootPositionFL_, currentFootPositionHR_, currentFootPositionHL_;
@@ -319,6 +391,7 @@ class MinicheetahController {
   int obDim_=0, actionDim_=0;
   int historyLength_ = 4;
   Eigen::VectorXd stepData_;
+  Eigen::VectorXd airTime_;
   std::vector<std::string> stepDataTag_;
   Eigen::VectorXd jointVelHist_, jointErrorHist_, historyTempMem_;
   VecDyn preJointTorque_;

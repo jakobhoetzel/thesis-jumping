@@ -26,7 +26,7 @@
         <origin rpy="0 0 0" xyz="0.2 -0.049 0.0"/>
         <parent link="body"/>
         <child link="abduct_fr"/>
-        <limit effort="18" lower="-2.094395102" upper="2.094395102" velocity="40"/>
+        <limit effort="18" lower="-1.5" upper="1.5" velocity="40"/>
         <dynamics rotor_inertia="63e-6" damping="0.01"/>
     </joint>
     <link name="abduct_fr">
@@ -55,7 +55,7 @@
         <origin rpy="0.0 0.0 0.0" xyz="0.0 -0.062 0.00"/>
         <parent link="abduct_fr"/>
         <child link="thigh_fr"/>
-        <limit effort="18" lower="-4.712388" upper="4.712388" velocity="40"/>
+        <limit effort="18" lower="-5." upper="5." velocity="40"/>
         <dynamics rotor_inertia="63e-6" damping="0.01"/>
     </joint>
     <link name="thigh_fr">
@@ -100,7 +100,7 @@
         </visual>
         <collision>
             <geometry>
-                <box size="0.016 0.016 0.18"/>
+                <box size="0.016 0.016 0.175"/>
             </geometry>
             <origin rpy="0 0 0" xyz="0 0 -0.09"/>
         </collision>
@@ -145,7 +145,7 @@
         <origin rpy="0 0 0" xyz="0.20 0.049 0.0"/>
         <parent link="body"/>
         <child link="abduct_fl"/>
-        <limit effort="18" lower="-2.094395102" upper="2.094395102" velocity="40"/>
+        <limit effort="18" lower="-1.5" upper="1.5" velocity="40"/>
         <dynamics rotor_inertia="63e-6" damping="0.01"/>
     </joint>
     <link name="abduct_fl">
@@ -174,7 +174,7 @@
         <origin rpy="0.0 0.0 0.0" xyz="0.0 0.062 0.00"/>
         <parent link="abduct_fl"/>
         <child link="thigh_fl"/>
-        <limit effort="18" lower="-4.712388" upper="4.712388" velocity="40"/>
+        <limit effort="18" lower="-5." upper="5." velocity="40"/>
         <dynamics rotor_inertia="63e-6" damping="0.01"/>
     </joint>
     <link name="thigh_fl">
@@ -264,7 +264,7 @@
         <origin rpy="0 0 0" xyz="-0.2 -0.049 0.0"/>
         <parent link="body"/>
         <child link="abduct_hr"/>
-        <limit effort="18" lower="-2.094395102" upper="2.094395102" velocity="40"/>
+        <limit effort="18" lower="-1.5" upper="1.5" velocity="40"/>
         <dynamics rotor_inertia="63e-6" damping="0.01"/>
     </joint>
     <link name="abduct_hr">
@@ -293,7 +293,7 @@
         <origin rpy="0.0 0.0 0.0" xyz="0.0 -0.062 0.00"/>
         <parent link="abduct_hr"/>
         <child link="thigh_hr"/>
-        <limit effort="18" lower="-4.712388" upper="4.712388" velocity="40"/>
+        <limit effort="18" lower="-5." upper="5." velocity="40"/>
         <dynamics rotor_inertia="63e-6" damping="0.01"/>
     </joint>
     <link name="thigh_hr">
@@ -383,7 +383,7 @@
         <origin rpy="0 0 0" xyz="-0.2 0.049 0.0"/>
         <parent link="body"/>
         <child link="abduct_hl"/>
-        <limit effort="18" lower="-2.094395102" upper="2.094395102" velocity="40"/>
+        <limit effort="18" lower="-1.5" upper="1.5" velocity="40"/>
         <dynamics rotor_inertia="63e-6" damping="0.01"/>
     </joint>
     <link name="abduct_hl">
@@ -412,7 +412,7 @@
         <origin rpy="0.0 0.0 0.0" xyz="0.0 0.062 0.00"/>
         <parent link="abduct_hl"/>
         <child link="thigh_hl"/>
-        <limit effort="18" lower="-4.712388" upper="4.712388" velocity="40"/>
+        <limit effort="18" lower="-5." upper="5." velocity="40"/>
         <dynamics rotor_inertia="63e-6" damping="0.01"/>
         </joint>
     <link name="thigh_hl">

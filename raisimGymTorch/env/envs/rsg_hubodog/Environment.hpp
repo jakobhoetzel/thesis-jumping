@@ -140,6 +140,9 @@ class ENVIRONMENT {
 
   void stopRecordingVideo() { server_->stopRecordingVideo(); }
 
+  void printTest() {}
+
+
  private:
   bool visualizable_ = false;
   std::map<HubodogController::RewardType, float> rewardCoeff_;

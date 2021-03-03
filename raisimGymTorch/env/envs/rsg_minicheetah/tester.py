@@ -62,6 +62,8 @@ else:
         obs = env.observe(False)
         action_ll = loaded_graph.architecture(torch.from_numpy(obs).cpu())
         reward_ll, dones = env.step(action_ll.cpu().detach().numpy())
+        if step == 0:
+            env.printTest()
         reward_ll_sum = reward_ll_sum + reward_ll[0]
         if dones or step == max_steps - 1:
             print('----------------------------------------------------')

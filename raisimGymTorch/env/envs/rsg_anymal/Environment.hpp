@@ -120,6 +120,8 @@ class ENVIRONMENT {
 
   void stopRecordingVideo() { server_->stopRecordingVideo(); }
 
+  void printTest() {}
+
  private:
   bool visualizable_ = false;
   double terminalRewardCoeff_ = -10.;
