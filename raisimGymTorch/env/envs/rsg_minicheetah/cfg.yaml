@@ -3,27 +3,28 @@ record_video: yes
 
 environment:
   render: True
-  num_envs: 700
-  eval_every_n: 100
+  num_envs: 200
+  eval_every_n: 50
   num_threads: 30
   simulation_dt: 0.002
-  control_dt: 0.002
+  control_dt: 0.008
   max_time: 4.0
   updateHistPeriod: 4
   curriculum_factor: 0.3
   curriculum_rate: 0.997
   reward:
-    bodyAngularVelCoeff1: 0.03
+    bodyAngularVelCoeff1: 0.25
     bodyAngularVelCoeff2: 0.05
     forwardVelCoeff1: 1
     forwardVelCoeff2: 1
-    torqueCoeff: -1e-5
-    jointSpeedCoeff: -1e-6
+    torqueCoeff: -2.5e-6
+    jointSpeedCoeff: -2e-6
     footClearanceCoeff: -0.05
-    footSlipCoeff: -0.003
-    bodyOriCoeff: -0.125
-    smoothnessCoeff: -3e-6
-    airTimeCoeff: 0.01
+    footSlipCoeff: -0.001
+    bodyOriCoeff: -0.06
+    smoothnessCoeff: -2e-6
+    airTimeCoeff: 0.04
+    heightCoeff: -5e-2
 
 architecture:
   policy_net: [128, 128]

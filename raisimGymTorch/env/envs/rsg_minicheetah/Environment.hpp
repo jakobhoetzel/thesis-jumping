@@ -47,6 +47,7 @@ class ENVIRONMENT {
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::ORIENTATION], cfg["reward"]["bodyOriCoeff"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::SMOOTHNESS], cfg["reward"]["smoothnessCoeff"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::AIRTIME], cfg["reward"]["airTimeCoeff"])
+    READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::HEIGHT], cfg["reward"]["heightCoeff"])
 
     /// visualize if it is the first environment
     if (visualizable_) {  //RaisimUnity

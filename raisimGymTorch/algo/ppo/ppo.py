@@ -4,8 +4,10 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
-from .storage import RolloutStorage
+import numpy as np
 
+from .storage import RolloutStorage
+from adamp import AdamP
 
 class PPO:
     def __init__(self,
@@ -37,7 +39,8 @@ class PPO:
         else:
             self.batch_sampler = self.storage.mini_batch_generator_inorder
 
-        self.optimizer = optim.Adam([*self.actor.parameters(), *self.critic.parameters()], lr=learning_rate)
+        # self.optimizer = optim.Adam([*self.actor.parameters(), *self.critic.parameters()], lr=learning_rate)
+        self.optimizer = AdamP([*self.actor.parameters(), *self.critic.parameters()], lr=learning_rate)
         self.device = device
 
         # env parameters
@@ -57,7 +60,7 @@ class PPO:
 
         # Log
         self.log_dir = os.path.join(log_dir, datetime.now().strftime('%b%d_%H-%M-%S'))
-        self.writer = SummaryWriter(log_dir=self.log_dir, flush_secs=2)
+        self.writer = SummaryWriter(log_dir=self.log_dir, flush_secs=5)
         self.tot_timesteps = 0
         self.tot_time = 0
 
