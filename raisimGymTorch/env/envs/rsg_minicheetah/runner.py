@@ -137,11 +137,12 @@ for update in range(1000000):
 
     data_std = np.sqrt((data_square_sum - data_size * data_mean * data_mean) / (data_size - 1 + 1e-16))
 
-    for data_id in range(len(data_tags)):
-        ppo.writer.add_scalar(data_tags[data_id]+'/mean', data_mean[data_id], global_step=update)
-        ppo.writer.add_scalar(data_tags[data_id]+'/std', data_std[data_id], global_step=update)
-        ppo.writer.add_scalar(data_tags[data_id]+'/min', data_min[data_id], global_step=update)
-        ppo.writer.add_scalar(data_tags[data_id]+'/max', data_max[data_id], global_step=update)
+    if update % 5:
+        for data_id in range(len(data_tags)):
+            ppo.writer.add_scalar(data_tags[data_id]+'/mean', data_mean[data_id], global_step=update)
+            ppo.writer.add_scalar(data_tags[data_id]+'/std', data_std[data_id], global_step=update)
+            ppo.writer.add_scalar(data_tags[data_id]+'/min', data_min[data_id], global_step=update)
+            ppo.writer.add_scalar(data_tags[data_id]+'/max', data_max[data_id], global_step=update)
 
     # take st step to get value obs
     obs = env.observe()
