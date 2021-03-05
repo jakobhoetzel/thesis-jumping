@@ -80,7 +80,7 @@ class MinicheetahController {
     cheetah->setGeneralizedForce(Eigen::VectorXd::Zero(gvDim_));
 
     /// MUST BE DONE FOR ALL ENVIRONMENTS
-    obDim_ = 34;
+    obDim_ = 130;  //34 //130
     actionDim_ = nJoints_; actionMean_.setZero(actionDim_); actionStd_.setZero(actionDim_);  // action dimension is the same as the number of joints(by applying torque)
     obDouble_.setZero(obDim_);
     preJointTorque_.setZero(gv_.size()); preJointVel_.setZero(nJoints_);
@@ -321,9 +321,9 @@ class MinicheetahController {
         rot.e().row(2).transpose(), /// body orientation(z-axis in world frame expressed in body frame). 3
         gc_.tail(12), /// joint angles 12
         bodyLinearVel_, bodyAngularVel_, /// body linear&angular velocity. 3, 3
-        gv_.tail(12); /// joint velocity 12
-//        jointVelHist_, /// history 48
-//        jointErrorHist_; /// pos error 48
+        gv_.tail(12), /// joint velocity 12
+        jointVelHist_, /// history 48
+        jointErrorHist_; /// pos error 48
 
     bool addObsNoise = true;
 
