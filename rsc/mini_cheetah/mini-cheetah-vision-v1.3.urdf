@@ -73,7 +73,7 @@
         </visual>
         <collision>
             <geometry>
-                <box size="0.025 0.025 0.16"/>
+                <box size="0.025 0.025 0.22"/>
             </geometry>
             <origin rpy="0 0 0" xyz="0 0 -0.105"/>
         </collision>
@@ -100,7 +100,7 @@
         </visual>
         <collision>
             <geometry>
-                <box size="0.016 0.016 0.175"/>
+                <box size="0.016 0.016 0.16"/>
             </geometry>
             <origin rpy="0 0 0" xyz="0 0 -0.09"/>
         </collision>
@@ -192,7 +192,7 @@
         </visual>
         <collision>
             <geometry>
-                <box size="0.025 0.025 0.16"/>
+                <box size="0.025 0.025 0.22"/>
             </geometry>
             <origin rpy="0 0 0" xyz="0 0 -0.105"/>
         </collision>
@@ -219,7 +219,7 @@
         </visual>
         <collision>
             <geometry>
-                <box size="0.016 0.016 0.18"/>
+                <box size="0.016 0.016 0.16"/>
             </geometry>
             <origin rpy="0 3.141592 0" xyz="0 0 -0.09"/>
         </collision>
@@ -311,7 +311,7 @@
         </visual>
         <collision>
             <geometry>
-                <box size="0.025 0.025 0.16"/>
+                <box size="0.025 0.025 0.22"/>
             </geometry>
             <origin rpy="0 0 0" xyz="0 0 -0.105"/>
         </collision>
@@ -338,7 +338,7 @@
         </visual>
         <collision>
             <geometry>
-                <box size="0.016 0.016 0.18"/>
+                <box size="0.016 0.016 0.16"/>
             </geometry>
             <origin rpy="0 3.141592 0" xyz="0 0 -0.09"/>
         </collision>
@@ -430,7 +430,7 @@
         </visual>
         <collision>
             <geometry>
-                <box size="0.025 0.025 0.16"/>
+                <box size="0.025 0.025 0.22"/>
             </geometry>
             <origin rpy="0 0 0" xyz="0 0 -0.105"/>
         </collision>
@@ -457,7 +457,7 @@
         </visual>
         <collision>
             <geometry>
-                <box size="0.016 0.016 0.18"/>
+                <box size="0.016 0.016 0.16"/>
             </geometry>
             <origin rpy="0 3.141592 0" xyz="0 0 -0.09"/>
         </collision>

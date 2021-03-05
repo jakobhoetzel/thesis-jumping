@@ -63,7 +63,7 @@ ppo = PPO.PPO(actor=actor,
               num_envs=cfg['environment']['num_envs'],
               num_transitions_per_env=n_steps,
               num_learning_epochs=4,
-              gamma=0.996,
+              gamma=0.98,
               lam=0.95,
               num_mini_batches=4,
               device=device,
@@ -74,11 +74,6 @@ ppo = PPO.PPO(actor=actor,
 actor_architecture_for_save = ppo_module.MLP(cfg['architecture']['policy_net'], nn.LeakyReLU, ob_dim, act_dim)
 
 data_tags = env.get_step_data_tag()
-data_size = env.num_envs
-data_mean = np.zeros(shape=(len(data_tags), 1), dtype=np.double)
-data_var = np.zeros(shape=(len(data_tags), 1), dtype=np.double)
-data_min = np.zeros(shape=(len(data_tags), 1), dtype=np.double)
-data_max = np.zeros(shape=(len(data_tags), 1), dtype=np.double)
 
 if mode == 'retrain':
     load_param(weight_path, env, actor, critic, ppo.optimizer, saver.data_dir)
@@ -124,6 +119,12 @@ for update in range(1000000):
         env.reset()
         env.save_scaling(saver.data_dir, str(update))  # save obs_rms
 
+    data_size = env.num_envs
+    data_mean = np.zeros(shape=(len(data_tags), 1), dtype=np.double)
+    data_square_sum = np.zeros(shape=(len(data_tags), 1), dtype=np.double)
+    data_min = np.zeros(shape=(len(data_tags), 1), dtype=np.double)
+    data_max = np.zeros(shape=(len(data_tags), 1), dtype=np.double)
+
     # actual training
     for step in range(n_steps):
         obs = env.observe()  # np.ndarray([num_envs, 34])
@@ -132,6 +133,15 @@ for update in range(1000000):
         ppo.step(value_obs=obs, rews=reward, dones=dones)
         done_sum = done_sum + sum(dones)
         reward_ll_sum = reward_ll_sum + sum(reward)
+        env.get_step_data(data_size, data_mean, data_square_sum, data_min, data_max)
+
+    data_std = np.sqrt((data_square_sum - data_size * data_mean * data_mean) / (data_size - 1 + 1e-16))
+
+    for data_id in range(len(data_tags)):
+        ppo.writer.add_scalar(data_tags[data_id]+'/mean', data_mean[data_id], global_step=update)
+        ppo.writer.add_scalar(data_tags[data_id]+'/std', data_std[data_id], global_step=update)
+        ppo.writer.add_scalar(data_tags[data_id]+'/min', data_min[data_id], global_step=update)
+        ppo.writer.add_scalar(data_tags[data_id]+'/max', data_max[data_id], global_step=update)
 
     # take st step to get value obs
     obs = env.observe()
@@ -139,17 +149,6 @@ for update in range(1000000):
     average_ll_performance = reward_ll_sum / total_steps  # average reward per step per environment
     average_dones = done_sum / total_steps
     avg_rewards.append(average_ll_performance)
-
-    if update % 2 == 0:
-        env.get_step_data(data_size, data_mean, data_var, data_min, data_max)
-
-        data_std = np.sqrt(data_var / (data_size-1)+1e-16)
-
-        for data_id in range(len(data_tags)):
-            ppo.writer.add_scalar(data_tags[data_id]+'/mean', data_mean[data_id], global_step=update)
-            ppo.writer.add_scalar(data_tags[data_id]+'/std', data_std[data_id], global_step=update)
-            ppo.writer.add_scalar(data_tags[data_id]+'/min', data_min[data_id], global_step=update)
-            ppo.writer.add_scalar(data_tags[data_id]+'/max', data_max[data_id], global_step=update)
 
 
     actor.distribution.enforce_minimum_std((torch.ones(12)*0.25).to(device))
