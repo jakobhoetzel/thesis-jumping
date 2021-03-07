@@ -109,7 +109,7 @@ class RaisimGymVecEnv:
         return self.wrapper.getStepDataTag()
 
     def get_step_data(self, data_size, data_mean, data_var, data_min, data_max):
-        self.wrapper.getStepData(data_size, data_mean, data_var, data_min, data_max)
+        return self.wrapper.getStepData(data_size, data_mean, data_var, data_min, data_max)
 
     def printTest(self):
         self.wrapper.printTest()

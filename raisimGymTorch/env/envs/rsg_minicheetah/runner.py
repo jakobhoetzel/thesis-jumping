@@ -119,25 +119,25 @@ for update in range(1000000):
         env.reset()
         env.save_scaling(saver.data_dir, str(update))  # save obs_rms
 
-    data_size = env.num_envs
+    data_size = 0
     data_mean = np.zeros(shape=(len(data_tags), 1), dtype=np.double)
     data_square_sum = np.zeros(shape=(len(data_tags), 1), dtype=np.double)
-    data_min = np.zeros(shape=(len(data_tags), 1), dtype=np.double)
-    data_max = np.zeros(shape=(len(data_tags), 1), dtype=np.double)
+    data_min = np.inf * np.ones(shape=(len(data_tags), 1), dtype=np.double)
+    data_max = -np.inf * np.ones(shape=(len(data_tags), 1), dtype=np.double)
 
     # actual training
     for step in range(n_steps):
-        obs = env.observe()  # np.ndarray([num_envs, 34])
-        action = ppo.observe(obs)  # np.ndarray([num_envs, 18])
-        reward, dones = env.step(action)  # np.ndarray(num_envs)
+        obs = env.observe()
+        action = ppo.observe(obs)
+        reward, dones = env.step(action)
         ppo.step(value_obs=obs, rews=reward, dones=dones)
         done_sum = done_sum + sum(dones)
         reward_ll_sum = reward_ll_sum + sum(reward)
-        env.get_step_data(data_size, data_mean, data_square_sum, data_min, data_max)
+        data_size = env.get_step_data(data_size, data_mean, data_square_sum, data_min, data_max)
 
     data_std = np.sqrt((data_square_sum - data_size * data_mean * data_mean) / (data_size - 1 + 1e-16))
 
-    if update % 5:
+    if update % 50 == 0:
         for data_id in range(len(data_tags)):
             ppo.writer.add_scalar(data_tags[data_id]+'/mean', data_mean[data_id], global_step=update)
             ppo.writer.add_scalar(data_tags[data_id]+'/std', data_std[data_id], global_step=update)

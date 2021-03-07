@@ -67,18 +67,20 @@ class VectorizedEnvironment {
     return environments_[0]->getStepDataTag();
   }
 
-  int getStepData(int& sample_size,
-                   Eigen::Ref<EigenDoubleVec> &mean,
-                   Eigen::Ref<EigenDoubleVec> &var,
-                   Eigen::Ref<EigenDoubleVec> &min,
-                   Eigen::Ref<EigenDoubleVec> &max) {
+  int getStepData(int sample_size,
+                  Eigen::Ref<EigenDoubleVec> &mean,
+                  Eigen::Ref<EigenDoubleVec> &squareSum,
+                  Eigen::Ref<EigenDoubleVec> &min,
+                  Eigen::Ref<EigenDoubleVec> &max) {
     size_t data_size = getStepDataTag().size();
-    if( data_size == 0 ) return num_envs_;
+    if( data_size == 0 ) return sample_size;
 
     RSFATAL_IF(mean.size() != data_size ||
-        var.size() != data_size ||
+        squareSum.size() != data_size ||
         min.size() != data_size ||
         max.size() != data_size, "vector size mismatch")
+
+    mean *= sample_size;
 
     for (int i = 0; i < num_envs_; i++) {
       mean += environments_[i]->getStepData();
@@ -88,15 +90,15 @@ class VectorizedEnvironment {
       }
     }
 
-    mean /= num_envs_;
+    sample_size += num_envs_;
+    mean /= sample_size;
     for (int i = 0; i < num_envs_; i++) {
       for (int j = 0; j < data_size; j++) {
-        double diff = mean[j] - environments_[i]->getStepData()[j];
-        var[j] += diff * diff;
+        double temp = environments_[i]->getStepData()[j];
+        squareSum[j] += temp * temp;
       }
     }
 
-    sample_size += num_envs_;
     return sample_size;
   }
 
