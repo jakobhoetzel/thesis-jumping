@@ -64,8 +64,8 @@ class MinicheetahController {
         0, -0.7854, 1.8326, 0, -0.7854, 1.8326, 0, -0.7854, 1.8326, 0, -0.7854, 1.8326;
 
     linVelTarget_ << 1., 0., 0.;
-    angVelTarget_ << 0, 0, 0;
-    oriTarget_ << 0, 0, 1;
+    angVelTarget_ << 0., 0., 0.;
+    oriTarget_ << 0., 0., 1.;
 
     /// set pd gains
     Eigen::VectorXd jointPgain(gvDim_), jointDgain(gvDim_);
@@ -147,7 +147,7 @@ class MinicheetahController {
       gc_init_noise.segment(3, 4) /= quat_sum;
 
       /// Generalized Velocities randomization.
-      for (int i = 0; i < gcDim_; i++) {
+      for (int i = 0; i < gvDim_; i++) {
         if(i<3) {
           gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 0.5;  /// XYZ velocity: +- 0.5m/s
         } else if(i<6) {
