@@ -12,17 +12,17 @@ environment:
   curriculum_factor: 0.3
   curriculum_rate: 0.997
   reward:
-    bodyAngularVelCoeff1: 1.5 #0.25
-    forwardVelCoeff1: 1.8 #1
-    airTimeCoeff: 1.2 #0.05
-    torqueCoeff: -2.e-5 #-1e-6
-    jointSpeedCoeff: -3.25e-3 #-1e-6
-    footSlipCoeff: -8.e-2 #-0.001
-    bodyOriCoeff: -5.0 #-0.1
-    smoothnessCoeff1: -5.0 #-1e-4
-    smoothnessCoeff2: -1.6 #-1e-4
+    bodyAngularVelCoeff1: 1.5
+    forwardVelCoeff1: 1.8
+    airTimeCoeff: 1.2
+    torqueCoeff: -2.e-3 #-2.e-5
+    jointSpeedCoeff: -3.25e-4 #-3.25e-3
+    footSlipCoeff: -8.e-2
+    bodyOriCoeff: -5.0
+    smoothnessCoeff1: -0.5 #-5.0
+    smoothnessCoeff2: -1.0 #-1.6
     jointPosCoeff: -0.5
-    jointAccCoeff: -3e-2 #-1e-8
+    jointAccCoeff: -3e-4 #-3e-2
     baseMotionCoeff: -1.0
 
 architecture:

@@ -23,7 +23,7 @@
     <!--!!!!!!!!!!!! Front Right Leg !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!-->
     <joint name="torso_to_abduct_fr_j" type="revolute">
         <axis xyz="1 0 0"/>
-        <origin rpy="0 0 0" xyz="0.2 -0.049 0.0"/>
+        <origin rpy="0 0 0" xyz="0.14775 -0.049 0.0"/>
         <parent link="body"/>
         <child link="abduct_fr"/>
         <limit effort="18" lower="-1.5" upper="1.5" velocity="40"/>
@@ -32,7 +32,7 @@
     <link name="abduct_fr">
         <inertial>
             <mass value="0.54"/>
-            <origin xyz="0.0 0.036 0."/>
+            <origin xyz="0.055 -0.036 0."/>
             <inertia ixx="0.000381" ixy="0.000058" ixz="0.00000045" 
                 iyy="0.000560" iyz="0.00000095" izz="0.000444"/>
         </inertial>
@@ -40,19 +40,19 @@
             <geometry>
                 <mesh filename="meshes/mini_abad.obj"/>
             </geometry>
-            <origin rpy="3.141592 0.0 1.5708" xyz="-0.055 0.0 0.0"/>
+            <origin rpy="3.141592 0.0 1.5708" xyz="0 0.0 0.0"/>
         </visual>
         <collision>
             <geometry>
                 <cylinder radius="0.048" length="0.022"/>
             </geometry>
-            <origin rpy="3.141592 1.5708 0.0" xyz="-0.067 0 0"/>
+            <origin rpy="3.141592 1.5708 0.0" xyz="-0.01475 0 0"/>
         </collision>
     </link>
 
     <joint name="abduct_fr_to_thigh_fr_j" type="revolute">
         <axis xyz="0 -1 0"/>
-        <origin rpy="0.0 0.0 0.0" xyz="0.0 -0.062 0.00"/>
+        <origin rpy="0.0 0.0 0.0" xyz="0.055 -0.019 0.00"/>
         <parent link="abduct_fr"/>
         <child link="thigh_fr"/>
         <limit effort="18" lower="-5." upper="5." velocity="40"/>
@@ -69,19 +69,19 @@
             <geometry>
                 <mesh filename="meshes/mini_upper_link.obj"/>
             </geometry>
-            <origin rpy="0.0 -1.5708 0.0" xyz="0.0 0.0 0.0"/>
+            <origin rpy="0.0 -1.5708 0.0" xyz="0.0 -0.049 0.0"/>
         </visual>
         <collision>
             <geometry>
                 <box size="0.025 0.025 0.22"/>
             </geometry>
-            <origin rpy="0 0 0" xyz="0 0 -0.105"/>
+            <origin rpy="0 0 0" xyz="0 -0.049 -0.105"/>
         </collision>
     </link>
 
     <joint name="thigh_fr_to_knee_fr_j" type="revolute">
         <axis xyz="0 -1 0"/>
-        <origin rpy="0.0 0 0.0" xyz="0.0 0.0 -0.209"/>
+        <origin rpy="0.0 0 0.0" xyz="0.0 -0.049 -0.2085"/>
         <parent link="thigh_fr"/>
         <child link="shank_fr"/>
         <limit effort="11.6" lower="-2.705259778" upper="2.705259778" velocity="40"/>
@@ -135,14 +135,14 @@
   <joint name="toe_fr_joint" type="fixed">
     <parent link="shank_fr"/>
     <child link="toe_fr"/>
-    <origin xyz="0 0 -0.18"/>
+    <origin xyz="0 0 -0.1885"/>
     <dynamics damping="0.0" friction="0.0"/>
   </joint>
 
 <!--!!!!!!!!!!!! Front Left Leg !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!-->
     <joint name="torso_to_abduct_fl_j" type="revolute">
         <axis xyz="1 0 0"/>
-        <origin rpy="0 0 0" xyz="0.20 0.049 0.0"/>
+        <origin rpy="0 0 0" xyz="0.14775 0.049 0.0"/>
         <parent link="body"/>
         <child link="abduct_fl"/>
         <limit effort="18" lower="-1.5" upper="1.5" velocity="40"/>
@@ -151,7 +151,7 @@
     <link name="abduct_fl">
         <inertial>
             <mass value="0.54"/>
-            <origin xyz="0.0 0.036 0."/>
+            <origin xyz="0.055 0.036 0."/>
             <inertia ixx="0.000381" ixy="0.000058" ixz="0.00000045"
                 iyy="0.000560" iyz="0.00000095" izz="0.000444"/>
         </inertial>
@@ -159,19 +159,19 @@
             <geometry>
                 <mesh filename="meshes/mini_abad.obj"/>
             </geometry>
-            <origin rpy="0. 0. -1.5708" xyz="-0.055 0.0 0.0"/>
+            <origin rpy="0. 0. -1.5708" xyz="0.0 0.0 0.0"/>
         </visual>
         <collision>
             <geometry>
                 <cylinder radius="0.048" length="0.022"/>
             </geometry>
-            <origin rpy="0 1.5708 0" xyz="-0.067 0 0"/>
+            <origin rpy="0 1.5708 0" xyz="-0.01475 0 0"/>
         </collision>
     </link>
 
     <joint name="abduct_fl_to_thigh_fl_j" type="revolute">
         <axis xyz="0 -1 0"/>
-        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.062 0.00"/>
+        <origin rpy="0.0 0.0 0.0" xyz="0.055 0.019 0.00"/>
         <parent link="abduct_fl"/>
         <child link="thigh_fl"/>
         <limit effort="18" lower="-5." upper="5." velocity="40"/>
@@ -188,19 +188,19 @@
             <geometry>
                 <mesh filename="meshes/mini_upper_link.obj"/>
             </geometry>
-            <origin rpy="0.0 -1.5708 0.0" xyz="0.0 0.0 0.0"/>
+            <origin rpy="0.0 -1.5708 0.0" xyz="0.0 0.049 0.0"/>
         </visual>
         <collision>
             <geometry>
                 <box size="0.025 0.025 0.22"/>
             </geometry>
-            <origin rpy="0 0 0" xyz="0 0 -0.105"/>
+            <origin rpy="0 0 0" xyz="0 0.049 -0.105"/>
         </collision>
     </link>
 
     <joint name="thigh_fl_to_knee_fl_j" type="revolute">
         <axis xyz="0 -1 0"/>
-        <origin rpy="0.0 0 0.0" xyz="0.0 0.0 -0.209"/>
+        <origin rpy="0.0 0 0.0" xyz="0.0 0.049 -0.2085"/>
         <parent link="thigh_fl"/>
         <child link="shank_fl"/>
         <limit effort="11.6" lower="-2.705259778" upper="2.705259778" velocity="40"/>
@@ -253,7 +253,7 @@
   <joint name="toe_fl_joint" type="fixed">
     <parent link="shank_fl"/>
     <child link="toe_fl"/>
-    <origin xyz="0 0 -0.18"/>
+    <origin xyz="0 0 -0.1885"/>
     <dynamics damping="0.0" friction="0.0"/>
   </joint>
 
@@ -261,7 +261,7 @@
 <!--!!!!!!!!!!!! Hind Right Leg !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!-->
     <joint name="torso_to_abduct_hr_j" type="revolute">
         <axis xyz="1 0 0"/>
-        <origin rpy="0 0 0" xyz="-0.2 -0.049 0.0"/>
+        <origin rpy="0 3.141592 0" xyz="-0.14775 -0.049 0.0"/>
         <parent link="body"/>
         <child link="abduct_hr"/>
         <limit effort="18" lower="-1.5" upper="1.5" velocity="40"/>
@@ -278,19 +278,19 @@
             <geometry>
                 <mesh filename="meshes/mini_abad.obj"/>
             </geometry>
-            <origin rpy="0.0 0.0 1.5708" xyz="0.055 0.0 0.0"/>
+            <origin rpy="0.0 3.141592 -1.5708" xyz="0.0 0.0 0.0"/>
         </visual>
         <collision>
             <geometry>
                 <cylinder radius="0.048" length="0.022"/>
             </geometry>
-            <origin rpy="0 -1.5708 0" xyz="0.067 0 0"/>
+            <origin rpy="0 -1.5708 0" xyz="-0.01475 0 0"/>
         </collision>
     </link>
 
     <joint name="abduct_hr_to_thigh_hr_j" type="revolute">
         <axis xyz="0 -1 0"/>
-        <origin rpy="0.0 0.0 0.0" xyz="0.0 -0.062 0.00"/>
+        <origin rpy="0.0 3.141592 0.0" xyz="0.055 -0.019 0.00"/>
         <parent link="abduct_hr"/>
         <child link="thigh_hr"/>
         <limit effort="18" lower="-5." upper="5." velocity="40"/>
@@ -307,19 +307,19 @@
             <geometry>
                 <mesh filename="meshes/mini_upper_link.obj"/>
             </geometry>
-            <origin rpy="0.0 -1.5708 0.0" xyz="0.0 0.0 0.0"/>
+            <origin rpy="0.0 -1.5708 0.0" xyz="0.0 -0.049 0.0"/>
         </visual>
         <collision>
             <geometry>
                 <box size="0.025 0.025 0.22"/>
             </geometry>
-            <origin rpy="0 0 0" xyz="0 0 -0.105"/>
+            <origin rpy="0 0 0" xyz="0 -0.049 -0.105"/>
         </collision>
     </link>
 
     <joint name="thigh_hr_to_knee_hr_j" type="revolute">
         <axis xyz="0 -1 0"/>
-        <origin rpy="0.0 0 0.0" xyz="0.0 0.0 -0.209"/>
+        <origin rpy="0.0 0 0.0" xyz="0.0 -0.049 -0.2085"/>
         <parent link="thigh_hr"/>
         <child link="shank_hr"/>
         <limit effort="11.6" lower="-2.705259778" upper="2.705259778" velocity="40"/>
@@ -372,7 +372,7 @@
   <joint name="toe_hr_joint" type="fixed">
     <parent link="shank_hr"/>
     <child link="toe_hr"/>
-    <origin xyz="0 0 -0.18"/>
+    <origin xyz="0 0 -0.1885"/>
     <dynamics damping="0.0" friction="0.0"/>
   </joint>
 
@@ -380,7 +380,7 @@
 <!--!!!!!!!!!!!! Hind Left Leg !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!-->
     <joint name="torso_to_abduct_hl_j" type="revolute">
         <axis xyz="1 0 0"/>
-        <origin rpy="0 0 0" xyz="-0.2 0.049 0.0"/>
+        <origin rpy="0 3.141592 0" xyz="-0.14775 0.049 0.0"/>
         <parent link="body"/>
         <child link="abduct_hl"/>
         <limit effort="18" lower="-1.5" upper="1.5" velocity="40"/>
@@ -389,7 +389,7 @@
     <link name="abduct_hl">
         <inertial>
             <mass value="0.54"/>
-            <origin xyz="0.0 0.036 0."/>
+            <origin xyz="0.055 0.036 0."/>
             <inertia ixx="0.000381" ixy="0.000058" ixz="0.00000045"
                 iyy="0.000560" iyz="0.00000095" izz="0.000444"/>
         </inertial>
@@ -397,19 +397,19 @@
             <geometry>
                 <mesh filename="meshes/mini_abad.obj"/>
             </geometry>
-            <origin rpy="3.141592 0.0 -1.5708" xyz="0.055 0.0 0.0"/>
+            <origin rpy="0.0 0.0 -1.5708" xyz="0.0 0.0 0.0"/>
         </visual>
         <collision>
             <geometry>
                 <cylinder radius="0.048" length="0.022"/>
             </geometry>
-            <origin rpy="3.141592 -1.5708 0" xyz="0.067 0 0"/>
+            <origin rpy="3.141592 -1.5708 0" xyz="-0.01475 0 0"/>
         </collision>
     </link>
 
     <joint name="abduct_hl_to_thigh_hl_j" type="revolute">
         <axis xyz="0 -1 0"/>
-        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.062 0.00"/>
+        <origin rpy="0.0 3.141592 0.0" xyz="0.055 0.019 0.00"/>
         <parent link="abduct_hl"/>
         <child link="thigh_hl"/>
         <limit effort="18" lower="-5." upper="5." velocity="40"/>
@@ -426,19 +426,19 @@
             <geometry>
                 <mesh filename="meshes/mini_upper_link.obj"/>
             </geometry>
-            <origin rpy="0.0 -1.5708 0.0" xyz="0.0 0.0 0.0"/>
+            <origin rpy="0.0 -1.5708 0.0" xyz="0.0 0.049 0.0"/>
         </visual>
         <collision>
             <geometry>
                 <box size="0.025 0.025 0.22"/>
             </geometry>
-            <origin rpy="0 0 0" xyz="0 0 -0.105"/>
+            <origin rpy="0 0 0" xyz="0 0.049 -0.105"/>
         </collision>
     </link>
 
     <joint name="thigh_hl_to_knee_hl_j" type="revolute">
         <axis xyz="0 -1 0"/>
-        <origin rpy="0.0 0 0.0" xyz="0.0 0.0 -0.209"/>
+        <origin rpy="0.0 0 0.0" xyz="0.0 0.049 -0.2085"/>
         <parent link="thigh_hl"/>
         <child link="shank_hl"/>
         <limit effort="11.6" lower="-2.705259778" upper="2.705259778" velocity="40"/>
@@ -491,7 +491,7 @@
   <joint name="toe_hl_joint" type="fixed">
     <parent link="shank_hl"/>
     <child link="toe_hl"/>
-    <origin xyz="0 0 -0.18"/>
+    <origin xyz="0 0 -0.1885"/>
     <dynamics damping="0.0" friction="0.0"/>
   </joint>
 

@@ -101,7 +101,7 @@ for update in range(1000000):
         env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy_"+str(update)+'.mp4')
         time.sleep(1)
 
-        for step in range(n_steps):  # n_steps*2
+        for step in range(n_steps*2):  # n_steps*2
             frame_start = time.time()
             obs = env.observe(False)  # don't compute rms
             action_ll = actor.architecture.architecture(torch.from_numpy(obs).to(device))

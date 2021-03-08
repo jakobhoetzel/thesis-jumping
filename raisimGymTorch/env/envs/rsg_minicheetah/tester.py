@@ -55,15 +55,14 @@ else:
     env.turn_on_visualization()
 
     # max_steps = 1000000
-    max_steps = 1000 ## 10 secs
+    max_steps = 10000 ## 10 secs
 
     for step in range(max_steps):
-        time.sleep(0.01)
+        frame_start = time.time()
         obs = env.observe(False)
         action_ll = loaded_graph.architecture(torch.from_numpy(obs).cpu())
         reward_ll, dones = env.step(action_ll.cpu().detach().numpy())
-        if step == 0:
-            env.printTest()
+
         reward_ll_sum = reward_ll_sum + reward_ll[0]
         if dones or step == max_steps - 1:
             print('----------------------------------------------------')
@@ -72,6 +71,10 @@ else:
             print('----------------------------------------------------\n')
             start_step_id = step + 1
             reward_ll_sum = 0.0
+        frame_end = time.time()
+        wait_time = cfg['environment']['control_dt'] - (frame_end-frame_start)
+        if wait_time > 0.:
+            time.sleep(wait_time)
 
     env.turn_off_visualization()
     env.reset()

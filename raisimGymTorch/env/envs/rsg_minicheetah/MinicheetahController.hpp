@@ -63,6 +63,10 @@ class MinicheetahController {
     gc_stationay_target << gc_init_.head(7),
         0, -0.7854, 1.8326, 0, -0.7854, 1.8326, 0, -0.7854, 1.8326, 0, -0.7854, 1.8326;
 
+    linVelTarget_ << 1., 0., 0.;
+    angVelTarget_ << 0, 0, 0;
+    oriTarget_ << 0, 0, 1;
+
     /// set pd gains
     Eigen::VectorXd jointPgain(gvDim_), jointDgain(gvDim_);
     jointPgain.setZero(); jointPgain.tail(nJoints_).setConstant(50.0);
@@ -74,7 +78,7 @@ class MinicheetahController {
     obDim_ = 130;  //34 //130 //106
     actionDim_ = nJoints_; actionMean_.setZero(actionDim_); actionStd_.setZero(actionDim_);  // action dimension is the same as the number of joints(by applying torque)
     obDouble_.setZero(obDim_);
-    preJointTorque_.setZero(gv_.size()); preJointVel_.setZero(nJoints_);
+    preJointVel_.setZero(nJoints_);
     previousAction_.setZero(actionDim_); prepreviousAction_.setZero(actionDim_);
     airTime_.setZero(4);
     jointPosHist_.setZero(nJoints_ * historyLength_); jointVelHist_.setZero(nJoints_ * historyLength_);
@@ -110,11 +114,6 @@ class MinicheetahController {
   bool advance(raisim::World *world, const Eigen::Ref<EigenVec>& action) {  // action is a position target. Eigen::Ref is for interchanging between c++ and python data types.
     auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world->getObject("robot"));
 
-    preJointTorque_ = cheetah->getGeneralizedForce();
-    previousAction_ = pTarget12_;
-    prepreviousAction_ = previousAction_;
-    preJointVel_ = gv_.tail(nJoints_);
-
     /// action scaling
     pTarget12_ = action.cast<double>();
     pTarget12_ = pTarget12_.cwiseProduct(actionStd_);
@@ -125,7 +124,6 @@ class MinicheetahController {
 
     cheetah->setPdTarget(pTarget_, vTarget_);  // Set vTarget as 0 because we don't know vTarget. It works quite well.
 
-    updateObservation(world);  // update obDouble, and so on.
     return true;
   }
 
@@ -176,7 +174,7 @@ class MinicheetahController {
     }
 
 
-    preJointTorque_.setZero(); preJointVel_.setZero(); previousAction_ << actionMean_;
+    preJointVel_.setZero(); previousAction_ << actionMean_;
     jointVelHist_.setZero();
     jointPosHist_.setZero();
     historyTempMem_.setZero();
@@ -192,6 +190,9 @@ class MinicheetahController {
   }
 
   void updateHistory() {
+    previousAction_ = pTarget12_;
+    prepreviousAction_ = previousAction_;
+
     historyTempMem_ = jointVelHist_;
     jointVelHist_.head((historyLength_-1) * nJoints_) = historyTempMem_.tail((historyLength_-1) * nJoints_);
     jointVelHist_.tail(nJoints_) = gv_.tail(nJoints_);
@@ -204,9 +205,8 @@ class MinicheetahController {
   void getReward(raisim::World *world, const std::map<RewardType, float>& rewardCoeff, double simulation_dt, double curriculumFactor) {
     auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world->getObject("robot"));
 
-    Eigen::Vector3d linVelTarget(1, 0, 0);
-    Eigen::Vector3d angVelTarget(0, 0, 0);
-    Eigen::Vector3d oriTarget(0, 0, 1);
+    preJointVel_ = gv_.tail(nJoints_);
+    updateObservation(world);  // update obDouble, and so on.
 
     /// A variable for foot slip reward
     double footTangentialForSlip = 0;
@@ -224,15 +224,15 @@ class MinicheetahController {
         airTime_[i] = std::max(0., airTime_[i]) + simulation_dt;
 
       if (airTime_[i] < 0.5 && airTime_[i] > 0.)
-        airtimeTotal += std::min(airTime_[i], 0.35);
+        airtimeTotal += std::min(airTime_[i], 0.3);
       else if (airTime_[i] > -0.5 && airTime_[i] < 0.)
-        airtimeTotal += std::min(-airTime_[i], 0.35);
+        airtimeTotal += std::min(-airTime_[i], 0.3);
     }
 
     /// Reward functions
     // no curriculum factor is applied at the moment
-    double rewBodyAngularVel = std::exp(-1.5 * pow((angVelTarget(2) - bodyAngularVel_(2)), 2)) * rewardCoeff.at(RewardType::ANGULARVELOCIY1);
-    double rewLinearVel = std::exp(-1.0 * (linVelTarget.head(2) - bodyLinearVel_.head(2)).squaredNorm()) * rewardCoeff.at(RewardType::VELOCITY1);
+    double rewBodyAngularVel = std::exp(-1.5 * pow((angVelTarget_(2) - bodyAngularVel_(2)), 2)) * rewardCoeff.at(RewardType::ANGULARVELOCIY1);
+    double rewLinearVel = std::exp(-1.0 * (linVelTarget_.head(2) - bodyLinearVel_.head(2)).squaredNorm()) * rewardCoeff.at(RewardType::VELOCITY1);
     double rewAirTime = airtimeTotal * rewardCoeff.at(RewardType::AIRTIME);
     double rewTorque = cheetah->getGeneralizedForce().squaredNorm() * rewardCoeff.at(RewardType::TORQUE);
     double rewJointSpeed = (gv_.tail(12)).squaredNorm() * rewardCoeff.at(RewardType::JOINTSPEED);
@@ -243,7 +243,6 @@ class MinicheetahController {
     double rewJointPosition = (gc_.tail(nJoints_) - gc_init_.tail(nJoints_)).squaredNorm() * rewardCoeff.at(RewardType::JOINTPOS);
     double rewJointAcc = (gv_.tail(12) - preJointVel_.e()).squaredNorm() * rewardCoeff.at(RewardType::JOINTACC);
     double rewBaseMotion = (0.8 * bodyLinearVel_[2] * bodyLinearVel_[2] + 0.2 * fabs(bodyAngularVel_[0]) + 0.2 * fabs(bodyAngularVel_[1])) * rewardCoeff.at(RewardType::BASEMOTION);
-
 
     stepData_[0] = rewBodyAngularVel;  /// positive reward
     stepData_[1] = rewLinearVel;  /// positive reward
@@ -283,7 +282,7 @@ class MinicheetahController {
     cheetah->getState(gc_, gv_);
     raisim::Vec<4> quat;
     quat[0] = gc_[3]; quat[1] = gc_[4]; quat[2] = gc_[5]; quat[3] = gc_[6];
-    raisim::quatToRotMat(quat, rot_);  // How to convert quaternion to orientation?
+    raisim::quatToRotMat(quat, rot_);  // rot_: R_wb
     bodyLinearVel_ = rot_.e().transpose() * gv_.segment(0, 3);
     bodyAngularVel_ = rot_.e().transpose() * gv_.segment(3, 3);
 
@@ -299,7 +298,9 @@ class MinicheetahController {
       for(size_t i=0; i<4; i++)
         if(contact.getlocalBodyIndex() == footIndices_[i])
           footContactState_[i] = true;
+  }
 
+  const Eigen::VectorXd& getObservation() {
     obDouble_ << gc_[2], /// body height. 1
         rot_.e().row(2).transpose(), /// body orientation(z-axis in world frame expressed in body frame). 3
         gc_.tail(12), /// joint angles 12
@@ -324,13 +325,6 @@ class MinicheetahController {
       }
     }
 
-  }
-
-  float generateRandomFloat(float min_f, float max_f) {
-    return (max_f - min_f) * (uniDist_(gen_) + 1) / 2 + min_f;
-  }
-
-  const Eigen::VectorXd& getObservation() {
     return obDouble_;
   }
 
@@ -376,7 +370,11 @@ class MinicheetahController {
   Eigen::VectorXd airTime_;
   std::vector<std::string> stepDataTag_;
   Eigen::VectorXd jointPosHist_, jointVelHist_, historyTempMem_;
-  VecDyn preJointTorque_, preJointVel_;
+  VecDyn preJointVel_;
+
+  Eigen::Vector3d linVelTarget_;
+  Eigen::Vector3d angVelTarget_;
+  Eigen::Vector3d oriTarget_;
 
   thread_local static std::mt19937 gen_;
   thread_local static std::normal_distribution<double> normDist_;
