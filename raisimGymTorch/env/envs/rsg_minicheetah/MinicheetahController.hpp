@@ -145,8 +145,8 @@ class MinicheetahController {
           gc_init_noise(i) = gc_init_(i) + uniDist_(gen_) * 0.2;  /// joint angles: +- 0.2rad
         }
       }
-      double quat_sum = gc_init_noise.segment(1, 3).norm();
-      gc_init_noise.segment(1, 3) /= quat_sum;
+      double quat_sum = gc_init_noise.segment(3, 4).norm();
+      gc_init_noise.segment(3, 4) /= quat_sum;
 
       /// Generalized Velocities randomization.
       for (int i = 0; i < gcDim_; i++) {
@@ -158,9 +158,9 @@ class MinicheetahController {
           gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 0.9;  /// joint speed: +- 0.9rad/s
         }
       }
-      cheetah->setGeneralizedCoordinate(gc_init_noise);
 
       /// Set the lowest foot on the ground.
+      cheetah->setGeneralizedCoordinate(gc_init_noise);
       raisim::Vec<3> footPosition;
       double maxNecessaryShift = -1e20; // some arbitrary high negative value
       for(auto& foot: footFrameIndices_) {
@@ -223,10 +223,10 @@ class MinicheetahController {
       else
         airTime_[i] = std::max(0., airTime_[i]) + simulation_dt;
 
-      if (airTime_[i] < 0.4 && airTime_[i] > 0.)
-        airtimeTotal += std::min(airTime_[i], 0.3);
-      else if (airTime_[i] > -0.4 && airTime_[i] < 0.)
-        airtimeTotal += std::min(-airTime_[i], 0.3);
+      if (airTime_[i] < 0.5 && airTime_[i] > 0.)
+        airtimeTotal += std::min(airTime_[i], 0.35);
+      else if (airTime_[i] > -0.5 && airTime_[i] < 0.)
+        airtimeTotal += std::min(-airTime_[i], 0.35);
     }
 
     /// Reward functions
