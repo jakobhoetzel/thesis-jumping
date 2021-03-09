@@ -219,7 +219,7 @@ class MinicheetahController {
     // no curriculum factor is applied at the moment
     double rewBodyAngularVel = std::exp(-1.5 * pow((angVelTarget_(2) - bodyAngularVel_(2)), 2)) * rewardCoeff.at(RewardType::ANGULARVELOCIY1);
     double rewLinearVel = std::exp(-1.0 * (linVelTarget_.head(2) - bodyLinearVel_.head(2)).squaredNorm()) * rewardCoeff.at(RewardType::VELOCITY1);
-    double rewAirTime = airtimeTotal * rewardCoeff.at(RewardType::AIRTIME);
+    double rewAirTime = curriculumFactor * airtimeTotal * rewardCoeff.at(RewardType::AIRTIME);
     double rewTorque = cheetah->getGeneralizedForce().squaredNorm() * rewardCoeff.at(RewardType::TORQUE);
     double rewJointSpeed = (gv_.tail(12)).squaredNorm() * rewardCoeff.at(RewardType::JOINTSPEED);
     double rewFootSlip = footTangentialForSlip * rewardCoeff.at(RewardType::FOOTSLIP);
