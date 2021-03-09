@@ -65,7 +65,6 @@ class MinicheetahController {
 
     linVelTarget_ << 1., 0., 0.;
     angVelTarget_ << 0., 0., 0.;
-    oriTarget_ << 0., 0., 1.;
 
     /// set pd gains
     Eigen::VectorXd jointPgain(gvDim_), jointDgain(gvDim_);
@@ -189,19 +188,6 @@ class MinicheetahController {
     return true;
   }
 
-  void updateHistory() {
-    previousAction_ = pTarget12_;
-    prepreviousAction_ = previousAction_;
-
-    historyTempMem_ = jointVelHist_;
-    jointVelHist_.head((historyLength_-1) * nJoints_) = historyTempMem_.tail((historyLength_-1) * nJoints_);
-    jointVelHist_.tail(nJoints_) = gv_.tail(nJoints_);
-
-    historyTempMem_ = jointPosHist_;
-    jointPosHist_.head((historyLength_-1) * nJoints_) = historyTempMem_.tail((historyLength_-1) * nJoints_);
-    jointPosHist_.tail(nJoints_) = pTarget12_ - gc_.tail(nJoints_);
-  }
-
   void getReward(raisim::World *world, const std::map<RewardType, float>& rewardCoeff, double simulation_dt, double curriculumFactor) {
     auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world->getObject("robot"));
 
@@ -241,7 +227,7 @@ class MinicheetahController {
     double rewSmoothness1 = rewardCoeff.at(RewardType::SMOOTHNESS1) * (pTarget12_ - previousAction_).squaredNorm();
     double rewSmoothness2 = rewardCoeff.at(RewardType::SMOOTHNESS2) * (pTarget12_ - 2 * previousAction_ + prepreviousAction_).squaredNorm();
     double rewJointPosition = (gc_.tail(nJoints_) - gc_init_.tail(nJoints_)).squaredNorm() * rewardCoeff.at(RewardType::JOINTPOS);
-    double rewJointAcc = (gv_.tail(12) - preJointVel_.e()).squaredNorm() * rewardCoeff.at(RewardType::JOINTACC);
+    double rewJointAcc = (gv_.tail(12) - preJointVel_).squaredNorm() * rewardCoeff.at(RewardType::JOINTACC);
     double rewBaseMotion = (0.8 * bodyLinearVel_[2] * bodyLinearVel_[2] + 0.2 * fabs(bodyAngularVel_[0]) + 0.2 * fabs(bodyAngularVel_[1])) * rewardCoeff.at(RewardType::BASEMOTION);
 
     stepData_[0] = rewBodyAngularVel;  /// positive reward
@@ -276,6 +262,20 @@ class MinicheetahController {
     return stepData_;
   }
 
+  void updateHistory() {
+    historyTempMem_ = jointVelHist_;
+    jointVelHist_.head((historyLength_-1) * nJoints_) = historyTempMem_.tail((historyLength_-1) * nJoints_);
+    jointVelHist_.tail(nJoints_) = gv_.tail(nJoints_);
+
+    historyTempMem_ = jointPosHist_;
+    jointPosHist_.head((historyLength_-1) * nJoints_) = historyTempMem_.tail((historyLength_-1) * nJoints_);
+    jointPosHist_.tail(nJoints_) = pTarget12_ - gc_.tail(nJoints_);
+  }
+
+  void updatePreviousActions() {
+    prepreviousAction_ = previousAction_;
+    previousAction_ = pTarget12_;
+  }
 
   void updateObservation(raisim::World *world) {
     auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world->getObject("robot"));
@@ -369,12 +369,10 @@ class MinicheetahController {
   Eigen::VectorXd stepData_;
   Eigen::VectorXd airTime_;
   std::vector<std::string> stepDataTag_;
-  Eigen::VectorXd jointPosHist_, jointVelHist_, historyTempMem_;
-  VecDyn preJointVel_;
+  Eigen::VectorXd jointPosHist_, jointVelHist_, historyTempMem_, preJointVel_;
 
   Eigen::Vector3d linVelTarget_;
   Eigen::Vector3d angVelTarget_;
-  Eigen::Vector3d oriTarget_;
 
   thread_local static std::mt19937 gen_;
   thread_local static std::normal_distribution<double> normDist_;

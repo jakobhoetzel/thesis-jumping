@@ -22,7 +22,7 @@ environment:
     smoothnessCoeff1: -0.5 #-5.0
     smoothnessCoeff2: -1.0 #-1.6
     jointPosCoeff: -0.5
-    jointAccCoeff: -3e-4 #-3e-2
+    jointAccCoeff: -3e-3 #-3e-2
     baseMotionCoeff: -1.0
 
 architecture:

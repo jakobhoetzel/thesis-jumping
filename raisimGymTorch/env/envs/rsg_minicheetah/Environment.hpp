@@ -89,7 +89,9 @@ class ENVIRONMENT {
       controller_.getReward(world_.get(), rewardCoeff_, simulation_dt_, curriculumFactor_);
       stepData_ += controller_.getStepData();
     }
+
     controller_.updateHistory();  /// update every control_dt
+    controller_.updatePreviousActions();  /// update every control_dt
 
     stepData_ /= loopCount;
 
