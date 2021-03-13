@@ -71,8 +71,6 @@ ppo = PPO.PPO(actor=actor,
               shuffle_batch=False,
               )
 
-actor_architecture_for_save = ppo_module.MLP(cfg['architecture']['policy_net'], nn.LeakyReLU, ob_dim, act_dim)
-
 data_tags = env.get_step_data_tag()
 
 if mode == 'retrain':
@@ -94,8 +92,10 @@ for update in range(1000000):
             'optimizer_state_dict': ppo.optimizer.state_dict(),
         }, saver.data_dir+"/full_"+str(update)+'.pt')
         actor.save_deterministic_graph(saver.data_dir + "/actor_" + str(update) + ".pt", torch.rand(1, ob_dim).cpu())
-        # actor_architecture_for_save.load_state_dict(actor.architecture.state_dict())
-        # torch.jit.script(actor_architecture_for_save).save(saver.data_dir + "/actor_" + str(update) + ".pt")
+
+        # we create another graph just to demonstrate the save/load method
+        loaded_graph = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim, act_dim)
+        loaded_graph.load_state_dict(torch.load(saver.data_dir+"/full_"+str(update)+'.pt')['actor_architecture_state_dict'])
 
         env.turn_on_visualization()
         env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy_"+str(update)+'.mp4')
@@ -104,20 +104,21 @@ for update in range(1000000):
         for step in range(n_steps*2):  # n_steps*2
             frame_start = time.time()
             obs = env.observe(False)  # don't compute rms
-            action_ll = actor.architecture.architecture(torch.from_numpy(obs).to(device))
+            action_ll, _ = actor.sample(torch.from_numpy(obs).to(device))  # stochastic action
+            # action_ll = loaded_graph.architecture(torch.from_numpy(obs).cpu())
 
-            reward_ll, dones = env.step(action_ll.cpu().detach().numpy())  # why detach?
+            reward_ll, dones = env.step(action_ll.cpu().numpy())  # in stochastic action case
+            # reward_ll, dones = env.step(action_ll.cpu().detach().numpy())  # in deterministic action case
             frame_end = time.time()
             wait_time = cfg['environment']['control_dt'] - (frame_end-frame_start)
             if wait_time > 0.:
                 time.sleep(wait_time)  # Because real robots can't be controlled faster than control_dt.
 
-
         env.stop_video_recording()
         env.turn_off_visualization()
 
         env.reset()
-        env.save_scaling(saver.data_dir, str(update))  # save obs_rms
+        env.save_scaling(saver.data_dir, str(update))
 
     data_size = 0
     data_mean = np.zeros(shape=(len(data_tags), 1), dtype=np.double)

@@ -38,7 +38,6 @@ class ENVIRONMENT {
     READ_YAML(double, curriculumRate_, cfg["curriculum_rate"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::ANGULARVELOCIY1], cfg["reward"]["bodyAngularVelCoeff1"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::VELOCITY1], cfg["reward"]["forwardVelCoeff1"])
-    READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::TORQUE], cfg["reward"]["torqueCoeff"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::JOINTSPEED], cfg["reward"]["jointSpeedCoeff"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::FOOTSLIP], cfg["reward"]["footSlipCoeff"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::ORIENTATION], cfg["reward"]["bodyOriCoeff"])
@@ -117,7 +116,7 @@ class ENVIRONMENT {
   void curriculumUpdate() {curriculumFactor_ = pow(curriculumFactor_, curriculumRate_);};
   float getCurriculumFactor() {return float(curriculumFactor_);};
   void close() { if (server_) server_->killServer(); };
-  void setSeed(int seed) {};
+  void setSeed(int seed) { controller_.setSeed(seed); };
   ////////////////////////////////
 
   void setSimulationTimeStep(double dt) {

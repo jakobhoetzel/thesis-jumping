@@ -15,7 +15,6 @@ environment:
     bodyAngularVelCoeff1: 1.5
     forwardVelCoeff1: 1.8
     airTimeCoeff: 1.2
-    torqueCoeff: -2.e-3 #-2.e-5
     jointSpeedCoeff: -3.25e-4 #-3.25e-3
     footSlipCoeff: -8.e-2
     bodyOriCoeff: -5.0

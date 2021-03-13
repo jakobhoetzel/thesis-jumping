@@ -52,8 +52,9 @@ class RaisimGymVecEnv:
         mean_file_name = dir_name + "/mean" + str(iteration) + ".csv"
         var_file_name = dir_name + "/var" + str(iteration) + ".csv"
         self.obs_rms.count = count
-        self.obs_rms.mean = np.loadtxt(mean_file_name, dtype=np.float32)
-        self.obs_rms.var = np.loadtxt(var_file_name, dtype=np.float32)
+        for i in range(self.num_envs):
+            self.obs_rms.mean[i] = np.loadtxt(mean_file_name, dtype=np.float32)
+            self.obs_rms.var[i] = np.loadtxt(var_file_name, dtype=np.float32)
 
     def save_scaling(self, dir_name, iteration):
         mean_file_name = dir_name + "/mean" + iteration + ".csv"
@@ -113,8 +114,8 @@ class RaisimGymVecEnv:
 
     def printTest(self):
         self.wrapper.printTest()
-        print("observation after normalization:")
-        print(self.observe(False))
+        # print("observation after normalization:")
+        # print(self.observe(False))
 
     @property
     def num_envs(self):

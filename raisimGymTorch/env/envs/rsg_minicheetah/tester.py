@@ -1,10 +1,11 @@
 from ruamel.yaml import YAML, dump, RoundTripDumper
 from raisimGymTorch.env.bin import rsg_minicheetah
 from raisimGymTorch.env.RaisimGymVecEnv import RaisimGymVecEnv as VecEnv
-import raisimGymTorch.algo.ppo.module as ppo_module
 import os
 import math
 import time
+import raisimGymTorch.algo.ppo.module as ppo_module
+import numpy as np
 import torch
 import argparse
 
@@ -16,13 +17,13 @@ args = parser.parse_args()
 
 # directories
 task_path = os.path.dirname(os.path.realpath(__file__))
-home_path = task_path + "/../../../../.."
+home_path = task_path + "/../../../.."
 
 # config
 cfg = YAML().load(open(task_path + "/cfg.yaml", 'r'))
 
 # create environment from the configuration file
-cfg['environment']['num_envs'] = 1
+# cfg['environment']['num_envs'] = 1
 
 env = VecEnv(rsg_minicheetah.RaisimGymEnv(home_path + "/rsc", dump(cfg['environment'], Dumper=RoundTripDumper)), cfg['environment'])
 
@@ -71,6 +72,7 @@ else:
             print('----------------------------------------------------\n')
             start_step_id = step + 1
             reward_ll_sum = 0.0
+
         frame_end = time.time()
         wait_time = cfg['environment']['control_dt'] - (frame_end-frame_start)
         if wait_time > 0.:
