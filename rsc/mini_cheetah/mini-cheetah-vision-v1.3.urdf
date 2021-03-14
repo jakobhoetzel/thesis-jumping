@@ -114,13 +114,6 @@
       <spinning_friction value="0.3"/>
       <lateral_friction value="3.0"/>
     </contact>
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <sphere radius="0.02"/>
-      </geometry>
-      <material name="darkgray"/>
-    </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
@@ -135,7 +128,7 @@
   <joint name="toe_fr_joint" type="fixed">
     <parent link="shank_fr"/>
     <child link="toe_fr"/>
-    <origin xyz="0 0 -0.1885"/>
+    <origin xyz="0 0 -0.175"/>
     <dynamics damping="0.0" friction="0.0"/>
   </joint>
 
@@ -232,13 +225,6 @@
       <spinning_friction value="0.3"/>
       <lateral_friction value="3.0"/>
     </contact>
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <sphere radius="0.02"/>
-      </geometry>
-      <material name="darkgray"/>
-    </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
@@ -253,7 +239,7 @@
   <joint name="toe_fl_joint" type="fixed">
     <parent link="shank_fl"/>
     <child link="toe_fl"/>
-    <origin xyz="0 0 -0.1885"/>
+    <origin xyz="0 0 -0.175"/>
     <dynamics damping="0.0" friction="0.0"/>
   </joint>
 
@@ -270,7 +256,7 @@
     <link name="abduct_hr">
         <inertial>
             <mass value="0.54"/>
-            <origin xyz="0.0 0.036 0."/>
+            <origin xyz="-0.055 -0.036 0."/>
             <inertia ixx="0.000381" ixy="0.000058" ixz="0.00000045"
                 iyy="0.000560" iyz="0.00000095" izz="0.000444"/>
         </inertial>
@@ -351,13 +337,6 @@
       <spinning_friction value="0.3"/>
       <lateral_friction value="3.0"/>
     </contact>
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <sphere radius="0.02"/>
-      </geometry>
-      <material name="darkgray"/>
-    </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
@@ -372,7 +351,7 @@
   <joint name="toe_hr_joint" type="fixed">
     <parent link="shank_hr"/>
     <child link="toe_hr"/>
-    <origin xyz="0 0 -0.1885"/>
+    <origin xyz="0 0 -0.175"/>
     <dynamics damping="0.0" friction="0.0"/>
   </joint>
 
@@ -389,7 +368,7 @@
     <link name="abduct_hl">
         <inertial>
             <mass value="0.54"/>
-            <origin xyz="0.055 0.036 0."/>
+            <origin xyz="-0.055 0.036 0."/>
             <inertia ixx="0.000381" ixy="0.000058" ixz="0.00000045"
                 iyy="0.000560" iyz="0.00000095" izz="0.000444"/>
         </inertial>
@@ -470,13 +449,6 @@
       <spinning_friction value="0.3"/>
       <lateral_friction value="3.0"/>
     </contact>
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <sphere radius="0.02"/>
-      </geometry>
-      <material name="darkgray"/>
-    </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
@@ -491,7 +463,7 @@
   <joint name="toe_hl_joint" type="fixed">
     <parent link="shank_hl"/>
     <child link="toe_hl"/>
-    <origin xyz="0 0 -0.1885"/>
+    <origin xyz="0 0 -0.175"/>
     <dynamics damping="0.0" friction="0.0"/>
   </joint>
 

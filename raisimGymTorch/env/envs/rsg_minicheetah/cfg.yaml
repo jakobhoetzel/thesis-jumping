@@ -13,7 +13,7 @@ environment:
   curriculum_rate: 0.997
   reward:
     bodyAngularVelCoeff1: 1.5
-    forwardVelCoeff1: 1.8
+    forwardVelCoeff1: 3
     airTimeCoeff: 1.2
     jointSpeedCoeff: -3.25e-4 #-3.25e-3
     footSlipCoeff: -8.e-2

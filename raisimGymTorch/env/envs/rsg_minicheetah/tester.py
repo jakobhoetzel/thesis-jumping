@@ -23,7 +23,7 @@ home_path = task_path + "/../../../.."
 cfg = YAML().load(open(task_path + "/cfg.yaml", 'r'))
 
 # create environment from the configuration file
-# cfg['environment']['num_envs'] = 1
+cfg['environment']['num_envs'] = 1
 
 env = VecEnv(rsg_minicheetah.RaisimGymEnv(home_path + "/rsc", dump(cfg['environment'], Dumper=RoundTripDumper)), cfg['environment'])
 
