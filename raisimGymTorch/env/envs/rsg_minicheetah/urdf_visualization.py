@@ -46,7 +46,7 @@ for update in range(1000000):
     env.reset()
 
     env.turn_on_visualization()
+    time.sleep(10000)
 
     env.turn_off_visualization()
 
-    time.sleep(100000)

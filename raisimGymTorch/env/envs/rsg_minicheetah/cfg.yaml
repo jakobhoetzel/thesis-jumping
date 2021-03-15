@@ -3,7 +3,7 @@ record_video: yes
 
 environment:
   render: True
-  num_envs: 800
+  num_envs: 100
   eval_every_n: 200
   num_threads: 128
   simulation_dt: 0.002
@@ -20,7 +20,7 @@ environment:
     bodyOriCoeff: -5.0
     smoothnessCoeff1: -0.5 #-5.0
     smoothnessCoeff2: -1.0 #-1.6
-    jointPosCoeff: -0.5
+    jointPosCoeff: -0.2
     jointAccCoeff: -3e-3 #-3e-2
     baseMotionCoeff: -1.0
 

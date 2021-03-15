@@ -216,7 +216,7 @@ class MinicheetahController {
     // no curriculum factor is applied at the moment
     double rewBodyAngularVel = std::exp(-1.5 * pow((angVelTarget_(2) - bodyAngularVel_(2)), 2)) * rewardCoeff.at(RewardType::ANGULARVELOCIY1);
     double rewLinearVel = std::exp(-1.0 * (linVelTarget_.head(2) - bodyLinearVel_.head(2)).squaredNorm()) * rewardCoeff.at(RewardType::VELOCITY1);
-    double rewAirTime = curriculumFactor * airtimeTotal * rewardCoeff.at(RewardType::AIRTIME);
+    double rewAirTime = airtimeTotal * rewardCoeff.at(RewardType::AIRTIME);
     double rewJointSpeed = (gv_.tail(12)).squaredNorm() * rewardCoeff.at(RewardType::JOINTSPEED);
     double rewFootSlip = footTangentialForSlip * rewardCoeff.at(RewardType::FOOTSLIP);
     double rewBodyOri = std::acos(rot_(8)) * std::acos(rot_(8)) * rewardCoeff.at(RewardType::ORIENTATION);
@@ -308,14 +308,31 @@ class MinicheetahController {
         jointPosErrorHist_.segment((historyLength_ - 3) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 2) * nJoints_, nJoints_); /// joint History 24
 
     /// Observation noise
-    bool addObsNoise = false;
+    bool addObsNoise = true;
     if(addObsNoise) {
       for(int i=0; i<obDim_; i++) {
-        if(i<16) {
-          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.01) + normDist_(gen_) * 0.01;  /// height, orientation, joint angle
-        } else if(i<34){
-          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.05) + normDist_(gen_) * 0.05;  /// velocities, joint velocity
+        if(i==0) {  // body height
+          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.02) + normDist_(gen_) * 0.02;
+        } else if(i<4) {  // orientation
+          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.05) + normDist_(gen_) * 0.05;
+        } else if(i<16) {  // joint angle
+          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.05) + normDist_(gen_) * 0.05;
+        } else if(i<19) {  // body linear velocity
+          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.1) + normDist_(gen_) * 0.1;
+        } else if(i<22) {  // body angular velocity
+          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.5) + normDist_(gen_) * 0.5;
+        } else if(i<34) {  // joint velocity
+          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.5) + normDist_(gen_) * 0.5;
+        } else if(((i>=58) && (i<70)) || ((i>=82) && (i<94)) || ((i>=106) && (i<118))) {  // joint error history
+          continue;
+        } else if(((i>=70) && (i<82)) || ((i>=94) && (i<106)) || ((i>=118) && (i<130))) {  // joint velocity history
+          continue;
         }
+//        if(i<16) {
+//          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.01) + normDist_(gen_) * 0.01;  /// height, orientation, joint angle
+//        } else if(i<34){
+//          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.05) + normDist_(gen_) * 0.05;  /// velocities, joint velocity
+//        }
       }
     }
 

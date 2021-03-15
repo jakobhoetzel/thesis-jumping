@@ -153,7 +153,7 @@ for update in range(1000000):
     avg_rewards.append(average_ll_performance)
 
 
-    actor.distribution.enforce_minimum_std((torch.ones(12)*0.3).to(device))
+    actor.distribution.enforce_minimum_std((torch.ones(12)*0.2).to(device))
 
     env.curriculum_callback()
 
