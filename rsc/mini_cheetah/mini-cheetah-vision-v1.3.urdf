@@ -2,9 +2,9 @@
 <robot name="mini_cheetah" xmlns:xacro="http://ros.org/wiki/xacro">
     <link name="body">
         <inertial>
-            <mass value="5.868"/>
+            <mass value="5.208"/>
             <origin xyz="0.0 0.0 0.0"/>
-            <inertia ixx="0.02000988" ixy="0" ixz="0" iyy="0.075876593" iyz="0" izz="0.085403948"/>
+            <inertia ixx="0.01775928" ixy="0" ixz="0" iyy="0.067342415" iyz="0" izz="0.075798186"/>
         </inertial>
         <visual>
             <geometry>
@@ -27,7 +27,7 @@
         <parent link="body"/>
         <child link="abduct_fr"/>
         <limit effort="18" lower="-1.5" upper="1.5" velocity="40"/>
-        <dynamics rotor_inertia="63e-6" damping="0.01"/>
+        <dynamics rotor_inertia="63e-6"/>
     </joint>
     <link name="abduct_fr">
         <inertial>
@@ -49,6 +49,19 @@
             <origin rpy="3.141592 1.5708 0.0" xyz="-0.06975 0 0"/>
         </collision>
     </link>
+    <joint name="abduct_fr_rotor_j" type="fixed">
+        <parent link="abduct_fr"/>
+        <child link="abduct_fr_rotor"/>
+        <origin xyz="-0.055 0 0"/>
+    </joint>
+    <link name="abduct_fr_rotor">
+        <inertial>
+            <mass value="0.055"/>
+            <origin xyz="0.0 0.0 0.0"/>
+            <inertia ixx="0.000063" ixy="0.0" ixz="0.0"
+                iyy="0.000033" iyz="0.0" izz="0.000033"/>
+        </inertial>
+    </link>
 
     <joint name="abduct_fr_to_thigh_fr_j" type="revolute">
         <axis xyz="0 -1 0"/>
@@ -56,12 +69,11 @@
         <parent link="abduct_fr"/>
         <child link="thigh_fr"/>
         <limit effort="18" lower="-5." upper="5." velocity="40"/>
-        <dynamics rotor_inertia="63e-6" damping="0.01"/>
     </joint>
     <link name="thigh_fr">
         <inertial>
             <mass value="0.634"/>
-            <origin xyz="0.0 0.016 -0.02"/>
+            <origin xyz="0.0 0.033 -0.02"/>
             <inertia ixx="0.001983" ixy="0.000245" ixz="0.000013"
                 iyy="0.002103" iyz="0.0000015" izz="0.000408"/>
         </inertial>
@@ -77,6 +89,19 @@
             </geometry>
             <origin rpy="0 0 0" xyz="0 -0.049 -0.105"/>
         </collision>
+    </link>
+    <joint name="thigh_fr_rotor_j" type="fixed">
+        <parent link="thigh_fr"/>
+        <child link="thigh_fr_rotor"/>
+        <origin xyz="0 0 0"/>
+    </joint>
+    <link name="thigh_fr_rotor">
+        <inertial>
+            <mass value="0.055"/>
+            <origin xyz="0.0 0.0 0.0"/>
+            <inertia ixx="0.000033" ixy="0.0" ixz="0.0"
+                iyy="0.000063" iyz="0.0" izz="0.000033"/>
+        </inertial>
     </link>
 
     <joint name="thigh_fr_to_knee_fr_j" type="revolute">
@@ -105,12 +130,25 @@
             <origin rpy="0 0 0" xyz="0 0 -0.0975"/>
         </collision>
     </link>
+    <joint name="shank_fr_rotor_j" type="fixed">
+        <parent link="shank_fr"/>
+        <child link="shank_fr_rotor"/>
+        <origin xyz="0 0 0"/>
+    </joint>
+    <link name="shank_fr_rotor">
+        <inertial>
+            <mass value="0.055"/>
+            <origin xyz="0.0 0.0 0.0"/>
+            <inertia ixx="0.000033" ixy="0.0" ixz="0.0"
+                iyy="0.000063" iyz="0.0" izz="0.000033"/>
+        </inertial>
+    </link>
 
     <link name="toe_fr">
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <sphere radius="0.0"/>
+        <sphere radius="0.018"/>
       </geometry>
     </collision>
     <inertial>
@@ -132,7 +170,6 @@
         <parent link="body"/>
         <child link="abduct_fl"/>
         <limit effort="18" lower="-1.5" upper="1.5" velocity="40"/>
-        <dynamics rotor_inertia="63e-6" damping="0.01"/>
     </joint>
     <link name="abduct_fl">
         <inertial>
@@ -154,6 +191,19 @@
             <origin rpy="0 1.5708 0" xyz="-0.06975 0 0"/>
         </collision>
     </link>
+    <joint name="abduct_fl_rotor_j" type="fixed">
+        <parent link="abduct_fl"/>
+        <child link="abduct_fl_rotor"/>
+        <origin xyz="-0.055 0 0"/>
+    </joint>
+    <link name="abduct_fl_rotor">
+        <inertial>
+            <mass value="0.055"/>
+            <origin xyz="0.0 0.0 0.0"/>
+            <inertia ixx="0.000063" ixy="0.0" ixz="0.0"
+                iyy="0.000033" iyz="0.0" izz="0.000033"/>
+        </inertial>
+    </link>
 
     <joint name="abduct_fl_to_thigh_fl_j" type="revolute">
         <axis xyz="0 -1 0"/>
@@ -161,12 +211,11 @@
         <parent link="abduct_fl"/>
         <child link="thigh_fl"/>
         <limit effort="18" lower="-5." upper="5." velocity="40"/>
-        <dynamics rotor_inertia="63e-6" damping="0.01"/>
     </joint>
     <link name="thigh_fl">
         <inertial>
             <mass value="0.634"/>
-            <origin xyz="0.0 0.016 -0.02"/>
+            <origin xyz="0.0 -0.033 -0.02"/>
             <inertia ixx="0.001983" ixy="0.000245" ixz="0.000013"
                 iyy="0.002103" iyz="0.0000015" izz="0.000408"/>
         </inertial>
@@ -182,6 +231,19 @@
             </geometry>
             <origin rpy="0 0 0" xyz="0 0.049 -0.105"/>
         </collision>
+    </link>
+    <joint name="thigh_fl_rotor_j" type="fixed">
+        <parent link="thigh_fl"/>
+        <child link="thigh_fl_rotor"/>
+        <origin xyz="0 0 0"/>
+    </joint>
+        <link name="thigh_fl_rotor">
+        <inertial>
+            <mass value="0.055"/>
+            <origin xyz="0.0 0.0 0.0"/>
+            <inertia ixx="0.000033" ixy="0.0" ixz="0.0"
+                iyy="0.000063" iyz="0.0" izz="0.000033"/>
+        </inertial>
     </link>
 
     <joint name="thigh_fl_to_knee_fl_j" type="revolute">
@@ -210,11 +272,25 @@
             <origin rpy="0 3.141592 0" xyz="0 0 -0.0975"/>
         </collision>
     </link>
+    <joint name="shank_fl_rotor_j" type="fixed">
+        <parent link="shank_fl"/>
+        <child link="shank_fl_rotor"/>
+        <origin xyz="0 0 0"/>
+    </joint>
+    <link name="shank_fl_rotor">
+        <inertial>
+            <mass value="0.055"/>
+            <origin xyz="0.0 0.0 0.0"/>
+            <inertia ixx="0.000033" ixy="0.0" ixz="0.0"
+                iyy="0.000063" iyz="0.0" izz="0.000033"/>
+        </inertial>
+    </link>
+
     <link name="toe_fl">
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <sphere radius="0.0"/>
+        <sphere radius="0.018"/>
       </geometry>
     </collision>
     <inertial>
@@ -237,7 +313,6 @@
         <parent link="body"/>
         <child link="abduct_hr"/>
         <limit effort="18" lower="-1.5" upper="1.5" velocity="40"/>
-        <dynamics rotor_inertia="63e-6" damping="0.01"/>
     </joint>
     <link name="abduct_hr">
         <inertial>
@@ -259,6 +334,19 @@
             <origin rpy="0 -1.5708 0" xyz="0.06975 0 0"/>
         </collision>
     </link>
+    <joint name="abduct_hr_rotor_j" type="fixed">
+        <parent link="abduct_hr"/>
+        <child link="abduct_hr_rotor"/>
+        <origin xyz="0.055 0 0"/>
+    </joint>
+    <link name="abduct_hr_rotor">
+        <inertial>
+            <mass value="0.055"/>
+            <origin xyz="0.0 0.0 0.0"/>
+            <inertia ixx="0.000063" ixy="0.0" ixz="0.0"
+                iyy="0.000033" iyz="0.0" izz="0.000033"/>
+        </inertial>
+    </link>
 
     <joint name="abduct_hr_to_thigh_hr_j" type="revolute">
         <axis xyz="0 -1 0"/>
@@ -266,12 +354,11 @@
         <parent link="abduct_hr"/>
         <child link="thigh_hr"/>
         <limit effort="18" lower="-5." upper="5." velocity="40"/>
-        <dynamics rotor_inertia="63e-6" damping="0.01"/>
     </joint>
     <link name="thigh_hr">
         <inertial>
             <mass value="0.634"/>
-            <origin xyz="0.0 0.016 -0.02"/>
+            <origin xyz="0.0 0.033 -0.02"/>
             <inertia ixx="0.001983" ixy="0.000245" ixz="0.000013"
                 iyy="0.002103" iyz="0.0000015" izz="0.000408"/>
         </inertial>
@@ -287,6 +374,19 @@
             </geometry>
             <origin rpy="0 0 0" xyz="0 -0.049 -0.105"/>
         </collision>
+    </link>
+    <joint name="thigh_hr_rotor_j" type="fixed">
+        <parent link="thigh_hr"/>
+        <child link="thigh_hr_rotor"/>
+        <origin xyz="0 0 0"/>
+    </joint>
+    <link name="thigh_hr_rotor">
+        <inertial>
+            <mass value="0.055"/>
+            <origin xyz="0.0 0.0 0.0"/>
+            <inertia ixx="0.000033" ixy="0.0" ixz="0.0"
+                iyy="0.000063" iyz="0.0" izz="0.000033"/>
+        </inertial>
     </link>
 
     <joint name="thigh_hr_to_knee_hr_j" type="revolute">
@@ -315,11 +415,25 @@
             <origin rpy="0 3.141592 0" xyz="0 0 -0.0975"/>
         </collision>
     </link>
+    <joint name="shank_hr_rotor_j" type="fixed">
+        <parent link="shank_hr"/>
+        <child link="shank_hr_rotor"/>
+        <origin xyz="0 0 0"/>
+    </joint>
+    <link name="shank_hr_rotor">
+        <inertial>
+            <mass value="0.055"/>
+            <origin xyz="0.0 0.0 0.0"/>
+            <inertia ixx="0.000033" ixy="0.0" ixz="0.0"
+                iyy="0.000063" iyz="0.0" izz="0.000033"/>
+        </inertial>
+    </link>
+
      <link name="toe_hr">
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <sphere radius="0.0"/>
+        <sphere radius="0.018"/>
       </geometry>
     </collision>
     <inertial>
@@ -342,7 +456,6 @@
         <parent link="body"/>
         <child link="abduct_hl"/>
         <limit effort="18" lower="-1.5" upper="1.5" velocity="40"/>
-        <dynamics rotor_inertia="63e-6" damping="0.01"/>
     </joint>
     <link name="abduct_hl">
         <inertial>
@@ -364,6 +477,19 @@
             <origin rpy="0 1.5708 0" xyz="0.06975 0 0"/>
         </collision>
     </link>
+    <joint name="abduct_hl_rotor_j" type="fixed">
+        <parent link="abduct_hl"/>
+        <child link="abduct_hl_rotor"/>
+        <origin xyz="0.055 0 0"/>
+    </joint>
+    <link name="abduct_hl_rotor">
+        <inertial>
+            <mass value="0.055"/>
+            <origin xyz="0.0 0.0 0.0"/>
+            <inertia ixx="0.000063" ixy="0.0" ixz="0.0"
+                iyy="0.000033" iyz="0.0" izz="0.000033"/>
+        </inertial>
+    </link>
 
     <joint name="abduct_hl_to_thigh_hl_j" type="revolute">
         <axis xyz="0 -1 0"/>
@@ -371,12 +497,11 @@
         <parent link="abduct_hl"/>
         <child link="thigh_hl"/>
         <limit effort="18" lower="-5." upper="5." velocity="40"/>
-        <dynamics rotor_inertia="63e-6" damping="0.01"/>
         </joint>
     <link name="thigh_hl">
         <inertial>
             <mass value="0.634"/>
-            <origin xyz="0.0 0.016 -0.02"/>
+            <origin xyz="0.0 -0.033 -0.02"/>
             <inertia ixx="0.001983" ixy="0.000245" ixz="0.000013" 
                 iyy="0.002103" iyz="0.0000015" izz="0.000408"/>
         </inertial>
@@ -392,6 +517,19 @@
             </geometry>
             <origin rpy="0 0 0" xyz="0 0.049 -0.105"/>
         </collision>
+    </link>
+    <joint name="thigh_hl_rotor_j" type="fixed">
+        <parent link="thigh_hl"/>
+        <child link="thigh_hl_rotor"/>
+        <origin xyz="0 0 0"/>
+    </joint>
+    <link name="thigh_hl_rotor">
+        <inertial>
+            <mass value="0.055"/>
+            <origin xyz="0.0 0.0 0.0"/>
+            <inertia ixx="0.000033" ixy="0.0" ixz="0.0"
+                iyy="0.000063" iyz="0.0" izz="0.000033"/>
+        </inertial>
     </link>
 
     <joint name="thigh_hl_to_knee_hl_j" type="revolute">
@@ -420,11 +558,25 @@
             <origin rpy="0 3.141592 0" xyz="0 0 -0.0975"/>
         </collision>
     </link>
+    <joint name="shank_hl_rotor_j" type="fixed">
+        <parent link="shank_hl"/>
+        <child link="shank_hl_rotor"/>
+        <origin xyz="0 0 0"/>
+    </joint>
+    <link name="shank_hl_rotor">
+        <inertial>
+            <mass value="0.055"/>
+            <origin xyz="0.0 0.0 0.0"/>
+            <inertia ixx="0.000033" ixy="0.0" ixz="0.0"
+                iyy="0.000063" iyz="0.0" izz="0.000033"/>
+        </inertial>
+    </link>
+
     <link name="toe_hl">
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <sphere radius="0.0"/>
+        <sphere radius="0.018"/>
       </geometry>
     </collision>
     <inertial>

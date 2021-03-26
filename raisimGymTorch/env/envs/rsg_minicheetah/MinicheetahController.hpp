@@ -67,7 +67,7 @@ class MinicheetahController {
 
     /// set pd gains
     Eigen::VectorXd jointPgain(gvDim_), jointDgain(gvDim_);
-    jointPgain.setZero(); jointPgain.tail(nJoints_).setConstant(50.0);
+    jointPgain.setZero(); jointPgain.tail(nJoints_).setConstant(30.0);
     jointDgain.setZero(); jointDgain.tail(nJoints_).setConstant(0.2);
     cheetah->setPdGains(jointPgain, jointDgain);
     cheetah->setGeneralizedForce(Eigen::VectorXd::Zero(gvDim_));
@@ -84,7 +84,7 @@ class MinicheetahController {
 
     /// action scaling
     actionMean_ = gc_init_.tail(nJoints_);
-    actionStd_.setConstant(0.3);
+    actionStd_.setConstant(0.1);  // 0.3
 
     /// indices of links that are only possible to make contact with ground
     footIndices_.push_back(cheetah->getBodyIdx("shank_fr"));
@@ -308,7 +308,7 @@ class MinicheetahController {
         jointPosErrorHist_.segment((historyLength_ - 3) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 2) * nJoints_, nJoints_); /// joint History 24
 
     /// Observation noise
-    bool addObsNoise = true;
+    bool addObsNoise = false;
     if(addObsNoise) {
       for(int i=0; i<obDim_; i++) {
         if(i==0) {  // body height
@@ -323,9 +323,13 @@ class MinicheetahController {
           obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.5) + normDist_(gen_) * 0.5;
         } else if(i<34) {  // joint velocity
           obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.5) + normDist_(gen_) * 0.5;
+        } else if(i<58) {  // previous, preprevious actions
+          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.02) + normDist_(gen_) * 0.02;
         } else if(((i>=58) && (i<70)) || ((i>=82) && (i<94)) || ((i>=106) && (i<118))) {  // joint error history
+          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.05) + normDist_(gen_) * 0.05;
           continue;
         } else if(((i>=70) && (i<82)) || ((i>=94) && (i<106)) || ((i>=118) && (i<130))) {  // joint velocity history
+          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.5) + normDist_(gen_) * 0.5;
           continue;
         }
 //        if(i<16) {

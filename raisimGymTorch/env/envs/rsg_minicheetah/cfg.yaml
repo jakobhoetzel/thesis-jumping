@@ -3,21 +3,21 @@ record_video: yes
 
 environment:
   render: True
-  num_envs: 100
+  num_envs: 800
   eval_every_n: 200
   num_threads: 128
-  simulation_dt: 0.002
-  control_dt: 0.016
+  simulation_dt: 0.001
+  control_dt: 0.02
   max_time: 2.0
   curriculum_factor: 0.3
   curriculum_rate: 0.997
   reward:
-    bodyAngularVelCoeff1: 1.5
+    bodyAngularVelCoeff1: 3 #1.5
     forwardVelCoeff1: 3
     airTimeCoeff: 1.2
     jointSpeedCoeff: -3.25e-4 #-3.25e-3
     footSlipCoeff: -8.e-2
-    bodyOriCoeff: -5.0
+    bodyOriCoeff: -2.0 #-5.0
     smoothnessCoeff1: -0.5 #-5.0
     smoothnessCoeff2: -1.0 #-1.6
     jointPosCoeff: -0.2
