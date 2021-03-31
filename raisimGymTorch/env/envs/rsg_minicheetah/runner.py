@@ -73,6 +73,8 @@ ppo = PPO.PPO(actor=actor,
 
 data_tags = env.get_step_data_tag()
 
+scheduler = torch.optim.lr_scheduler.MultiStepLR(ppo.optimizer, milestones=[1000, 5000, 10000], gamma=0.333333)
+
 if mode == 'retrain':
     load_param(weight_path, env, actor, critic, ppo.optimizer, saver.data_dir)
 
@@ -158,6 +160,8 @@ for update in range(1000000):
     env.curriculum_callback()
 
     end = time.time()
+
+    scheduler.step()
 
     print('----------------------------------------------------')
     print('{:>6}th iteration'.format(update))  # {:>6} means printing at least 6 character space and the string is printed from the right. {:<6} starting from the left
