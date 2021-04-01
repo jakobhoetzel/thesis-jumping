@@ -321,24 +321,24 @@ class MinicheetahController {
     if(addObsNoise) {
       for(int i=0; i<obDim_; i++) {
         if(i==0) {  // body height
-          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.02) + normDist_(gen_) * 0.05;
+          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.02) + normDist_(gen_) * 0.02;
         } else if(i<4) {  // orientation
-          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.02) + normDist_(gen_) * 0.02;
+          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.05) + normDist_(gen_) * 0.05;
         } else if(i<16) {  // joint angle
-          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.02) + normDist_(gen_) * 0.02;
+          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.05) + normDist_(gen_) * 0.05;
         } else if(i<19) {  // body linear velocity
           obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.1) + normDist_(gen_) * 0.1;
         } else if(i<22) {  // body angular velocity
-          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.2) + normDist_(gen_) * 0.2;
+          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.5) + normDist_(gen_) * 0.5;
         } else if(i<34) {  // joint velocity
-          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.2) + normDist_(gen_) * 0.2;
+          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.5) + normDist_(gen_) * 0.5;
         } else if(i<58) {  // previous, preprevious actions
-          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.05) + normDist_(gen_) * 0.05;
-        } else if(((i>=58) && (i<70)) || ((i>=82) && (i<94)) || ((i>=106) && (i<118))) {  // joint error history
           obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.02) + normDist_(gen_) * 0.02;
+        } else if(((i>=58) && (i<70)) || ((i>=82) && (i<94)) || ((i>=106) && (i<118))) {  // joint error history
+          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.05) + normDist_(gen_) * 0.05;
           continue;
         } else if(((i>=70) && (i<82)) || ((i>=94) && (i<106)) || ((i>=118) && (i<130))) {  // joint velocity history
-          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.2) + normDist_(gen_) * 0.2;
+          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.5) + normDist_(gen_) * 0.5;
           continue;
         }
 //        if(i<16) {
