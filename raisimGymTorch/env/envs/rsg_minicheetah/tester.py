@@ -41,6 +41,8 @@ else:
     print("Loaded weight from {}\n".format(weight_path))
     start = time.time()
     env.reset()
+    command = np.array([0.5, 0, 0], dtype=np.float32)
+    env.set_command(command)
     reward_ll_sum = 0
     done_sum = 0
     average_dones = 0.
@@ -72,6 +74,7 @@ else:
             print('----------------------------------------------------\n')
             start_step_id = step + 1
             reward_ll_sum = 0.0
+            env.set_command(command)
 
         frame_end = time.time()
         wait_time = cfg['environment']['control_dt'] - (frame_end-frame_start)
@@ -80,4 +83,5 @@ else:
 
     env.turn_off_visualization()
     env.reset()
+    env.set_command(command)
     print("Finished at the maximum visualization steps")

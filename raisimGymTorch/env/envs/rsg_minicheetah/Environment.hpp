@@ -78,6 +78,8 @@ class ENVIRONMENT {
     return stepData_;
   }
 
+  void setCommand(const Eigen::Ref<EigenVec>& command) { controller_.setCommand(command); }
+
   double step(const Eigen::Ref<EigenVec> &action) {
     controller_.advance(world_.get(), action);
     stepData_.setZero();

@@ -73,7 +73,7 @@ ppo = PPO.PPO(actor=actor,
 
 data_tags = env.get_step_data_tag()
 
-scheduler = torch.optim.lr_scheduler.MultiStepLR(ppo.optimizer, milestones=[1000, 5000, 10000], gamma=0.333333)
+scheduler = torch.optim.lr_scheduler.MultiStepLR(ppo.optimizer, milestones=[1000, 10000], gamma=0.333333)
 
 if mode == 'retrain':
     load_param(weight_path, env, actor, critic, ppo.optimizer, saver.data_dir)
@@ -149,7 +149,7 @@ for update in range(1000000):
 
     # take st step to get value obs
     obs = env.observe()
-    ppo.update(actor_obs=obs, value_obs=obs, log_this_iteration=update % 10 == 0, update=update)
+    ppo.update(actor_obs=obs, value_obs=obs, log_this_iteration=update % 20 == 0, update=update)
     average_ll_performance = reward_ll_sum / total_steps  # average reward per step per environment
     average_dones = done_sum / total_steps
     avg_rewards.append(average_ll_performance)

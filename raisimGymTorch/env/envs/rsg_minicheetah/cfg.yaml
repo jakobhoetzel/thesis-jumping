@@ -24,7 +24,7 @@ environment:
     jointPosCoeff: -0.2
     jointAccCoeff: -3e-3 #-3e-2
     baseMotionCoeff: -3.0
-    footClearanceCoeff: -3.0
+    footClearanceCoeff: -10.0
 
 architecture:
   policy_net: [128, 128]

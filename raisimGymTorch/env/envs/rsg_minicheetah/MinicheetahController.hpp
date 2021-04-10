@@ -64,8 +64,9 @@ class MinicheetahController {
     gc_stationay_target << gc_init_.head(7),
         0, -0.7854, 1.8326, 0, -0.7854, 1.8326, 0, -0.7854, 1.8326, 0, -0.7854, 1.8326;
 
-    linVelTarget_ << 1., 0., 0.;
+    linVelTarget_ << 0.5, 0., 0.;
     angVelTarget_ << 0., 0., 0.;
+    command_.setZero();
 
     /// set pd gains
     Eigen::VectorXd jointPgain(gvDim_), jointDgain(gvDim_);
@@ -75,7 +76,7 @@ class MinicheetahController {
     cheetah->setGeneralizedForce(Eigen::VectorXd::Zero(gvDim_));
 
     /// MUST BE DONE FOR ALL ENVIRONMENTS
-    obDim_ = 130;  //34 //130 //106
+    obDim_ = 133;  //34 //106 //130 //133
     actionDim_ = nJoints_; actionMean_.setZero(actionDim_); actionStd_.setZero(actionDim_);  // action dimension is the same as the number of joints(by applying torque)
     obDouble_.setZero(obDim_);
     preJointVel_.setZero(nJoints_);
@@ -86,7 +87,7 @@ class MinicheetahController {
 
     /// action scaling
     actionMean_ = gc_init_.tail(nJoints_);
-    actionStd_.setConstant(0.1);  // 0.3
+    actionStd_.setConstant(0.05);  // 0.3
 
     /// indices of links that are only possible to make contact with ground
     footIndices_.push_back(cheetah->getBodyIdx("shank_fr"));
@@ -139,7 +140,7 @@ class MinicheetahController {
         } else if(i<7) {
           gc_init_noise(i) = gc_init_(i) + uniDist_(gen_) * 0.2;  /// quaternion: +- 0.2
         } else {
-          gc_init_noise(i) = gc_init_(i) + uniDist_(gen_) * 0.4;  /// joint angles: +- 0.4rad
+          gc_init_noise(i) = gc_init_(i) * uniDist_(gen_) * 0.4 + uniDist_(gen_) * 0.4;  /// joint angles: +- 0.4rad
         }
       }
       double quat_sum = gc_init_noise.segment(3, 4).norm();
@@ -158,6 +159,11 @@ class MinicheetahController {
     } else {
       gc_init_noise = gc_init_; gv_init_noise = gv_init_;
     }
+
+    /// command generation
+    do {
+      command_ << 1.0 * uniDist_(gen_), 1.0 * uniDist_(gen_), 1.0 * uniDist_(gen_);
+    } while(command_.norm() < 0.4);
 
     /// Set the lowest foot on the ground.
     cheetah->setGeneralizedCoordinate(gc_init_noise);
@@ -219,8 +225,8 @@ class MinicheetahController {
 
     /// Reward functions
     // no curriculum factor is applied at the moment
-    double rewBodyAngularVel = std::exp(-1.5 * pow((angVelTarget_(2) - bodyAngularVel_(2)), 2)) * rewardCoeff.at(RewardType::ANGULARVELOCIY1);
-    double rewLinearVel = std::exp(-1.0 * (linVelTarget_.head(2) - bodyLinearVel_.head(2)).squaredNorm()) * rewardCoeff.at(RewardType::VELOCITY1);
+    double rewBodyAngularVel = std::exp(-1.5 * pow((command_(2) - bodyAngularVel_(2)), 2)) * rewardCoeff.at(RewardType::ANGULARVELOCIY1);
+    double rewLinearVel = std::exp(-1.0 * (command_.head(2) - bodyLinearVel_.head(2)).squaredNorm()) * rewardCoeff.at(RewardType::VELOCITY1);
     double rewAirTime = airtimeTotal * rewardCoeff.at(RewardType::AIRTIME);
     double rewTorque = rewardCoeff.at(RewardType::TORQUE) * cheetah->getGeneralizedForce().squaredNorm();
     double rewJointSpeed = (gv_.tail(12)).squaredNorm() * rewardCoeff.at(RewardType::JOINTSPEED);
@@ -264,6 +270,10 @@ class MinicheetahController {
 
   const Eigen::VectorXd& getStepData() {
     return stepData_;
+  }
+
+  void setCommand(const Eigen::Ref<EigenVec>& command) {
+    command_ = command.cast<double>();
   }
 
   void updateHistory() {
@@ -312,9 +322,10 @@ class MinicheetahController {
         gv_.tail(12), /// joint velocity 12
         previousAction_, /// previous action 12
         prepreviousAction_, /// preprevious action 12
-        jointPosErrorHist_.segment((historyLength_ - 9) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 6) * nJoints_, nJoints_), /// joint History 24
-        jointPosErrorHist_.segment((historyLength_ - 6) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 4) * nJoints_, nJoints_), /// joint History 24
-        jointPosErrorHist_.segment((historyLength_ - 3) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 2) * nJoints_, nJoints_); /// joint History 24
+        jointPosErrorHist_.segment((historyLength_ - 9) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 9) * nJoints_, nJoints_), /// joint History 24
+        jointPosErrorHist_.segment((historyLength_ - 6) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 6) * nJoints_, nJoints_), /// joint History 24
+        jointPosErrorHist_.segment((historyLength_ - 3) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 3) * nJoints_, nJoints_), /// joint History 24
+        command_;  /// command 3
 
     /// Observation noise
     bool addObsNoise = false;
@@ -323,29 +334,25 @@ class MinicheetahController {
         if(i==0) {  // body height
           obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.02) + normDist_(gen_) * 0.02;
         } else if(i<4) {  // orientation
-          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.05) + normDist_(gen_) * 0.05;
+//          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.05) + normDist_(gen_) * 0.05;
         } else if(i<16) {  // joint angle
-          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.05) + normDist_(gen_) * 0.05;
+//          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.05) + normDist_(gen_) * 0.05;
         } else if(i<19) {  // body linear velocity
-          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.1) + normDist_(gen_) * 0.1;
-        } else if(i<22) {  // body angular velocity
-          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.5) + normDist_(gen_) * 0.5;
-        } else if(i<34) {  // joint velocity
-          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.5) + normDist_(gen_) * 0.5;
-        } else if(i<58) {  // previous, preprevious actions
-          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.02) + normDist_(gen_) * 0.02;
-        } else if(((i>=58) && (i<70)) || ((i>=82) && (i<94)) || ((i>=106) && (i<118))) {  // joint error history
           obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.05) + normDist_(gen_) * 0.05;
+        } else if(i<22) {  // body angular velocity
+          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.1) + normDist_(gen_) * 0.1;
+        } else if(i<34) {  // joint velocity
+//          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.5) + normDist_(gen_) * 0.5;
+        } else if(i<58) {  // previous, preprevious actions
+//          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.02) + normDist_(gen_) * 0.02;
+        } else if(((i>=58) && (i<70)) || ((i>=82) && (i<94)) || ((i>=106) && (i<118))) {  // joint error history
+//          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.05) + normDist_(gen_) * 0.05;
           continue;
         } else if(((i>=70) && (i<82)) || ((i>=94) && (i<106)) || ((i>=118) && (i<130))) {  // joint velocity history
-          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.5) + normDist_(gen_) * 0.5;
+//          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.5) + normDist_(gen_) * 0.5;
           continue;
         }
-//        if(i<16) {
-//          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.01) + normDist_(gen_) * 0.01;  /// height, orientation, joint angle
-//        } else if(i<34){
-//          obDouble_(i) = obDouble_(i) * (1 + normDist_(gen_) * 0.05) + normDist_(gen_) * 0.05;  /// velocities, joint velocity
-//        }
+
       }
     }
 
@@ -401,6 +408,7 @@ class MinicheetahController {
 
   Eigen::Vector3d linVelTarget_;
   Eigen::Vector3d angVelTarget_;
+  Eigen::Vector3d command_;
 
   thread_local static std::mt19937 gen_;
   thread_local static std::normal_distribution<double> normDist_;

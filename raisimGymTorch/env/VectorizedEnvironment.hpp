@@ -121,6 +121,10 @@ class VectorizedEnvironment {
       env->setSeed(seed_inc++);
   }
 
+  void setCommand(const Eigen::Ref<EigenVec>& command) {
+    environments_[0]->setCommand(command);
+  }
+
   void close() {
     for (auto *env: environments_)
       env->close();
