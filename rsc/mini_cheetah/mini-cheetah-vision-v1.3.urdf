@@ -23,16 +23,16 @@
     <!--!!!!!!!!!!!! Front Right Leg !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!-->
     <joint name="torso_to_abduct_fr_j" type="revolute">
         <axis xyz="1 0 0"/>
-        <origin rpy="0 0 0" xyz="0.20275 -0.049 0.0"/>
+        <origin rpy="0 0 0" xyz="0.14775 -0.049 0.0"/>
         <parent link="body"/>
         <child link="abduct_fr"/>
-        <limit effort="18" lower="-1.5" upper="1.5" velocity="40"/>
-        <dynamics rotor_inertia="63e-6"/>
+        <limit effort="17" lower="-1.5" upper="1.5" velocity="40"/>
+        <dynamics rotor_inertia="2268e-6"/>
     </joint>
     <link name="abduct_fr">
         <inertial>
             <mass value="0.54"/>
-            <origin xyz="0.0 -0.036 0."/>
+            <origin xyz="0.055 -0.036 0."/>
             <inertia ixx="0.000381" ixy="0.000058" ixz="0.00000045" 
                 iyy="0.000560" iyz="0.00000095" izz="0.000444"/>
         </inertial>
@@ -40,40 +40,39 @@
             <geometry>
                 <mesh filename="meshes/mini_abad.obj"/>
             </geometry>
-            <origin rpy="3.141592 0.0 1.5708" xyz="-0.055 0.0 0.0"/>
+            <origin rpy="3.141592 0.0 1.5708" xyz="0 0.0 0.0"/>
         </visual>
         <collision>
             <geometry>
                 <cylinder radius="0.048" length="0.022"/>
             </geometry>
-            <origin rpy="3.141592 1.5708 0.0" xyz="-0.06975 0 0"/>
+            <origin rpy="3.141592 1.5708 0.0" xyz="-0.01475 0 0"/>
         </collision>
     </link>
     <joint name="abduct_fr_rotor_j" type="fixed">
         <parent link="abduct_fr"/>
         <child link="abduct_fr_rotor"/>
-        <origin xyz="-0.055 0 0"/>
+        <origin xyz="0 0 0"/>
     </joint>
     <link name="abduct_fr_rotor">
         <inertial>
             <mass value="0.055"/>
             <origin xyz="0.0 0.0 0.0"/>
-            <inertia ixx="0.000063" ixy="0.0" ixz="0.0"
-                iyy="0.000033" iyz="0.0" izz="0.000033"/>
         </inertial>
     </link>
 
     <joint name="abduct_fr_to_thigh_fr_j" type="revolute">
         <axis xyz="0 -1 0"/>
-        <origin rpy="0.0 0.0 0.0" xyz="0.0 -0.019 0.00"/>
+        <origin rpy="0.0 0.0 0.0" xyz="0.055 -0.019 0.00"/>
         <parent link="abduct_fr"/>
         <child link="thigh_fr"/>
-        <limit effort="18" lower="-5." upper="5." velocity="40"/>
+        <limit effort="17" lower="-5." upper="5." velocity="40"/>
+        <dynamics rotor_inertia="2268e-6"/>
     </joint>
     <link name="thigh_fr">
         <inertial>
             <mass value="0.634"/>
-            <origin xyz="0.0 0.033 -0.02"/>
+            <origin xyz="0.0 -0.016 -0.02"/>
             <inertia ixx="0.001983" ixy="0.000245" ixz="0.000013"
                 iyy="0.002103" iyz="0.0000015" izz="0.000408"/>
         </inertial>
@@ -99,8 +98,6 @@
         <inertial>
             <mass value="0.055"/>
             <origin xyz="0.0 0.0 0.0"/>
-            <inertia ixx="0.000033" ixy="0.0" ixz="0.0"
-                iyy="0.000063" iyz="0.0" izz="0.000033"/>
         </inertial>
     </link>
 
@@ -109,7 +106,8 @@
         <origin rpy="0.0 0 0.0" xyz="0.0 -0.049 -0.2085"/>
         <parent link="thigh_fr"/>
         <child link="shank_fr"/>
-        <limit effort="11.6" lower="-2.705259778" upper="2.705259778" velocity="40"/>
+        <limit effort="26" lower="-2.705259778" upper="2.705259778" velocity="40"/>
+        <dynamics rotor_inertia="5484e-6"/>
     </joint>
     <link name="shank_fr">
         <inertial>
@@ -139,8 +137,6 @@
         <inertial>
             <mass value="0.055"/>
             <origin xyz="0.0 0.0 0.0"/>
-            <inertia ixx="0.000033" ixy="0.0" ixz="0.0"
-                iyy="0.000063" iyz="0.0" izz="0.000033"/>
         </inertial>
     </link>
 
@@ -166,15 +162,16 @@
 <!--!!!!!!!!!!!! Front Left Leg !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!-->
     <joint name="torso_to_abduct_fl_j" type="revolute">
         <axis xyz="1 0 0"/>
-        <origin rpy="0 0 0" xyz="0.20275 0.049 0.0"/>
+        <origin rpy="0 0 0" xyz="0.14775 0.049 0.0"/>
         <parent link="body"/>
         <child link="abduct_fl"/>
-        <limit effort="18" lower="-1.5" upper="1.5" velocity="40"/>
+        <limit effort="17" lower="-1.5" upper="1.5" velocity="40"/>
+        <dynamics rotor_inertia="2268e-6"/>
     </joint>
     <link name="abduct_fl">
         <inertial>
             <mass value="0.54"/>
-            <origin xyz="0.0 0.036 0."/>
+            <origin xyz="0.055 0.036 0."/>
             <inertia ixx="0.000381" ixy="0.000058" ixz="0.00000045"
                 iyy="0.000560" iyz="0.00000095" izz="0.000444"/>
         </inertial>
@@ -182,40 +179,39 @@
             <geometry>
                 <mesh filename="meshes/mini_abad.obj"/>
             </geometry>
-            <origin rpy="0. 0. -1.5708" xyz="-0.055 0.0 0.0"/>
+            <origin rpy="0. 0. -1.5708" xyz="0 0.0 0.0"/>
         </visual>
         <collision>
             <geometry>
                 <cylinder radius="0.048" length="0.022"/>
             </geometry>
-            <origin rpy="0 1.5708 0" xyz="-0.06975 0 0"/>
+            <origin rpy="0 1.5708 0" xyz="-0.01475 0 0"/>
         </collision>
     </link>
     <joint name="abduct_fl_rotor_j" type="fixed">
         <parent link="abduct_fl"/>
         <child link="abduct_fl_rotor"/>
-        <origin xyz="-0.055 0 0"/>
+        <origin xyz="0 0 0"/>
     </joint>
     <link name="abduct_fl_rotor">
         <inertial>
             <mass value="0.055"/>
             <origin xyz="0.0 0.0 0.0"/>
-            <inertia ixx="0.000063" ixy="0.0" ixz="0.0"
-                iyy="0.000033" iyz="0.0" izz="0.000033"/>
         </inertial>
     </link>
 
     <joint name="abduct_fl_to_thigh_fl_j" type="revolute">
         <axis xyz="0 -1 0"/>
-        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.019 0.00"/>
+        <origin rpy="0.0 0.0 0.0" xyz="0.055 0.019 0.00"/>
         <parent link="abduct_fl"/>
         <child link="thigh_fl"/>
-        <limit effort="18" lower="-5." upper="5." velocity="40"/>
+        <limit effort="17" lower="-5." upper="5." velocity="40"/>
+        <dynamics rotor_inertia="2268e-6"/>
     </joint>
     <link name="thigh_fl">
         <inertial>
             <mass value="0.634"/>
-            <origin xyz="0.0 -0.033 -0.02"/>
+            <origin xyz="0.0 0.016 -0.02"/>
             <inertia ixx="0.001983" ixy="0.000245" ixz="0.000013"
                 iyy="0.002103" iyz="0.0000015" izz="0.000408"/>
         </inertial>
@@ -223,7 +219,7 @@
             <geometry>
                 <mesh filename="meshes/mini_upper_link.obj"/>
             </geometry>
-            <origin rpy="0.0 -1.5708 0.0" xyz="0.0 0.049 0.0"/>
+            <origin rpy="0.0 -1.5708 0.0" xyz="0 0.049 0.0"/>
         </visual>
         <collision>
             <geometry>
@@ -241,8 +237,6 @@
         <inertial>
             <mass value="0.055"/>
             <origin xyz="0.0 0.0 0.0"/>
-            <inertia ixx="0.000033" ixy="0.0" ixz="0.0"
-                iyy="0.000063" iyz="0.0" izz="0.000033"/>
         </inertial>
     </link>
 
@@ -251,7 +245,8 @@
         <origin rpy="0.0 0 0.0" xyz="0.0 0.049 -0.2085"/>
         <parent link="thigh_fl"/>
         <child link="shank_fl"/>
-        <limit effort="11.6" lower="-2.705259778" upper="2.705259778" velocity="40"/>
+        <limit effort="26" lower="-2.705259778" upper="2.705259778" velocity="40"/>
+        <dynamics rotor_inertia="5484e-6"/>
     </joint>
     <link name="shank_fl">
         <inertial>
@@ -281,8 +276,6 @@
         <inertial>
             <mass value="0.055"/>
             <origin xyz="0.0 0.0 0.0"/>
-            <inertia ixx="0.000033" ixy="0.0" ixz="0.0"
-                iyy="0.000063" iyz="0.0" izz="0.000033"/>
         </inertial>
     </link>
 
@@ -309,15 +302,16 @@
 <!--!!!!!!!!!!!! Hind Right Leg !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!-->
     <joint name="torso_to_abduct_hr_j" type="revolute">
         <axis xyz="1 0 0"/>
-        <origin rpy="0 0 0" xyz="-0.20275 -0.049 0.0"/>
+        <origin rpy="0 0 0" xyz="-0.14775 -0.049 0.0"/>
         <parent link="body"/>
         <child link="abduct_hr"/>
-        <limit effort="18" lower="-1.5" upper="1.5" velocity="40"/>
+        <limit effort="17" lower="-1.5" upper="1.5" velocity="40"/>
+        <dynamics rotor_inertia="2268e-6"/>
     </joint>
     <link name="abduct_hr">
         <inertial>
             <mass value="0.54"/>
-            <origin xyz="0.0 -0.036 0."/>
+            <origin xyz="-0.055 -0.036 0."/>
             <inertia ixx="0.000381" ixy="0.000058" ixz="0.00000045"
                 iyy="0.000560" iyz="0.00000095" izz="0.000444"/>
         </inertial>
@@ -325,40 +319,39 @@
             <geometry>
                 <mesh filename="meshes/mini_abad.obj"/>
             </geometry>
-            <origin rpy="0.0 0.0 1.5708" xyz="0.055 0.0 0.0"/>
+            <origin rpy="0.0 0.0 1.5708" xyz="0.0 0.0 0.0"/>
         </visual>
         <collision>
             <geometry>
                 <cylinder radius="0.048" length="0.022"/>
             </geometry>
-            <origin rpy="0 -1.5708 0" xyz="0.06975 0 0"/>
+            <origin rpy="0 -1.5708 0" xyz="0.01475 0 0"/>
         </collision>
     </link>
     <joint name="abduct_hr_rotor_j" type="fixed">
         <parent link="abduct_hr"/>
         <child link="abduct_hr_rotor"/>
-        <origin xyz="0.055 0 0"/>
+        <origin xyz="0. 0 0"/>
     </joint>
     <link name="abduct_hr_rotor">
         <inertial>
             <mass value="0.055"/>
             <origin xyz="0.0 0.0 0.0"/>
-            <inertia ixx="0.000063" ixy="0.0" ixz="0.0"
-                iyy="0.000033" iyz="0.0" izz="0.000033"/>
         </inertial>
     </link>
 
     <joint name="abduct_hr_to_thigh_hr_j" type="revolute">
         <axis xyz="0 -1 0"/>
-        <origin rpy="0.0 0 0.0" xyz="-0.0 -0.019 0.00"/>
+        <origin rpy="0.0 0 0.0" xyz="-0.055 -0.019 0.00"/>
         <parent link="abduct_hr"/>
         <child link="thigh_hr"/>
-        <limit effort="18" lower="-5." upper="5." velocity="40"/>
+        <limit effort="17" lower="-5." upper="5." velocity="40"/>
+        <dynamics rotor_inertia="2268e-6"/>
     </joint>
     <link name="thigh_hr">
         <inertial>
             <mass value="0.634"/>
-            <origin xyz="0.0 0.033 -0.02"/>
+            <origin xyz="0.0 -0.016 -0.02"/>
             <inertia ixx="0.001983" ixy="0.000245" ixz="0.000013"
                 iyy="0.002103" iyz="0.0000015" izz="0.000408"/>
         </inertial>
@@ -384,8 +377,6 @@
         <inertial>
             <mass value="0.055"/>
             <origin xyz="0.0 0.0 0.0"/>
-            <inertia ixx="0.000033" ixy="0.0" ixz="0.0"
-                iyy="0.000063" iyz="0.0" izz="0.000033"/>
         </inertial>
     </link>
 
@@ -394,7 +385,8 @@
         <origin rpy="0.0 0 0.0" xyz="0.0 -0.049 -0.2085"/>
         <parent link="thigh_hr"/>
         <child link="shank_hr"/>
-        <limit effort="11.6" lower="-2.705259778" upper="2.705259778" velocity="40"/>
+        <limit effort="26" lower="-2.705259778" upper="2.705259778" velocity="40"/>
+        <dynamics rotor_inertia="5484e-6"/>
     </joint>
     <link name="shank_hr">
         <inertial>
@@ -424,8 +416,6 @@
         <inertial>
             <mass value="0.055"/>
             <origin xyz="0.0 0.0 0.0"/>
-            <inertia ixx="0.000033" ixy="0.0" ixz="0.0"
-                iyy="0.000063" iyz="0.0" izz="0.000033"/>
         </inertial>
     </link>
 
@@ -452,15 +442,16 @@
 <!--!!!!!!!!!!!! Hind Left Leg !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!-->
     <joint name="torso_to_abduct_hl_j" type="revolute">
         <axis xyz="1 0 0"/>
-        <origin rpy="0 0 0" xyz="-0.20275 0.049 0.0"/>
+        <origin rpy="0 0 0" xyz="-0.14775 0.049 0.0"/>
         <parent link="body"/>
         <child link="abduct_hl"/>
-        <limit effort="18" lower="-1.5" upper="1.5" velocity="40"/>
+        <limit effort="17" lower="-1.5" upper="1.5" velocity="40"/>
+        <dynamics rotor_inertia="2268e-6"/>
     </joint>
     <link name="abduct_hl">
         <inertial>
             <mass value="0.54"/>
-            <origin xyz="-0.0 0.036 0."/>
+            <origin xyz="-0.055 0.036 0."/>
             <inertia ixx="0.000381" ixy="0.000058" ixz="0.00000045"
                 iyy="0.000560" iyz="0.00000095" izz="0.000444"/>
         </inertial>
@@ -468,40 +459,39 @@
             <geometry>
                 <mesh filename="meshes/mini_abad.obj"/>
             </geometry>
-            <origin rpy="3.141592 0.0 -1.5708" xyz="0.055 0.0 0.0"/>
+            <origin rpy="3.141592 0.0 -1.5708" xyz="0.0 0.0 0.0"/>
         </visual>
         <collision>
             <geometry>
                 <cylinder radius="0.048" length="0.022"/>
             </geometry>
-            <origin rpy="0 1.5708 0" xyz="0.06975 0 0"/>
+            <origin rpy="0 1.5708 0" xyz="0.01475 0 0"/>
         </collision>
     </link>
     <joint name="abduct_hl_rotor_j" type="fixed">
         <parent link="abduct_hl"/>
         <child link="abduct_hl_rotor"/>
-        <origin xyz="0.055 0 0"/>
+        <origin xyz="0.0 0 0"/>
     </joint>
     <link name="abduct_hl_rotor">
         <inertial>
             <mass value="0.055"/>
             <origin xyz="0.0 0.0 0.0"/>
-            <inertia ixx="0.000063" ixy="0.0" ixz="0.0"
-                iyy="0.000033" iyz="0.0" izz="0.000033"/>
         </inertial>
     </link>
 
     <joint name="abduct_hl_to_thigh_hl_j" type="revolute">
         <axis xyz="0 -1 0"/>
-        <origin rpy="0.0 0 0.0" xyz="-0.0 0.019 0.00"/>
+        <origin rpy="0.0 0 0.0" xyz="-0.055 0.019 0.00"/>
         <parent link="abduct_hl"/>
         <child link="thigh_hl"/>
-        <limit effort="18" lower="-5." upper="5." velocity="40"/>
-        </joint>
+        <limit effort="17" lower="-5." upper="5." velocity="40"/>
+        <dynamics rotor_inertia="2268e-6"/>
+    </joint>
     <link name="thigh_hl">
         <inertial>
             <mass value="0.634"/>
-            <origin xyz="0.0 -0.033 -0.02"/>
+            <origin xyz="0.0 0.016 -0.02"/>
             <inertia ixx="0.001983" ixy="0.000245" ixz="0.000013" 
                 iyy="0.002103" iyz="0.0000015" izz="0.000408"/>
         </inertial>
@@ -527,8 +517,6 @@
         <inertial>
             <mass value="0.055"/>
             <origin xyz="0.0 0.0 0.0"/>
-            <inertia ixx="0.000033" ixy="0.0" ixz="0.0"
-                iyy="0.000063" iyz="0.0" izz="0.000033"/>
         </inertial>
     </link>
 
@@ -537,7 +525,8 @@
         <origin rpy="0.0 0 0.0" xyz="0.0 0.049 -0.2085"/>
         <parent link="thigh_hl"/>
         <child link="shank_hl"/>
-        <limit effort="11.6" lower="-2.705259778" upper="2.705259778" velocity="40"/>
+        <limit effort="26" lower="-2.705259778" upper="2.705259778" velocity="40"/>
+        <dynamics rotor_inertia="5484e-6"/>
     </joint>
     <link name="shank_hl">
         <inertial>
@@ -567,8 +556,6 @@
         <inertial>
             <mass value="0.055"/>
             <origin xyz="0.0 0.0 0.0"/>
-            <inertia ixx="0.000033" ixy="0.0" ixz="0.0"
-                iyy="0.000063" iyz="0.0" izz="0.000033"/>
         </inertial>
     </link>
 
