@@ -215,20 +215,21 @@ class MinicheetahController {
     } while(command_.norm() < 0.4);
 
     /// Test code for mass matrix
-//    // Joint position
-//    gc_init_noise.setZero();
-////    gc_init_noise.head(7) << 0, 0, 0.4,  0, 0, 0, 1;
-//    gc_init_noise << -0.00200257, -0.0000303252, 0.224024, 1, 0.000108456, -0.000328432, 0.000116028, -0.00685323, -0.95658, 1.96116, 0.00696981, -0.956269, 1.9608, -0.00706745, -0.957039, 1.96265, 0.00703168, -0.956833, 1.96235;
-////    gc_init_noise.tail(12) << 0, 0, 0,  0, 0, 0,  0, 0, 0,  1, 1, 1;
-//    Eigen::VectorXd getGc, getGv;
-//    getGc.setZero(19); getGv.setZero(18);
-//    cheetah->getState(getGc, getGv);
-//    std::cout << "Generalized Coordinates: " << std::endl;
-//    std::cout << getGc << std::endl;
-//    cheetah->setState(gc_init_noise, gv_init_noise);
-//    world->integrate1();
-//    std::cout << "Mass matrix: " << std::endl;
-//    std::cout << cheetah->getMassMatrix().e().format(CleanFmt) << std::endl;
+    // Joint position
+    gc_init_noise.setZero(); gc_init_noise(2) = 0.4035; gc_init_noise(3) = 1;
+//    gc_init_noise.head(7) << 0, 0, 0.4,  0, 0, 0, 1;
+    gc_init_noise << -0.00200257, -0.0000303252, 0.224024, 1, 0.000108456, -0.000328432, 0.000116028, -0.00685323, -0.95658, 1.96116, 0.00696981, -0.956269, 1.9608, -0.00706745, -0.957039, 1.96265, 0.00703168, -0.956833, 1.96235;
+//    gc_init_noise.tail(12) << 0, 0, 0,  0, 0, 0,  0, 0, 0,  1, 1, 1;
+    Eigen::VectorXd getGc, getGv;
+    getGc.setZero(19); getGv.setZero(18);
+    cheetah->getState(getGc, getGv);
+    std::cout << "Generalized Coordinates: " << std::endl;
+    std::cout << getGc << std::endl;
+    cheetah->setState(gc_init_noise, gv_init_noise);
+    world->integrate1();
+    std::cout << "Mass matrix: " << std::endl;
+    std::cout << cheetah->getMassMatrix().e().format(CleanFmt) << std::endl;
+
 
     /// Set the lowest foot on the ground.
     cheetah->setGeneralizedCoordinate(gc_init_noise);

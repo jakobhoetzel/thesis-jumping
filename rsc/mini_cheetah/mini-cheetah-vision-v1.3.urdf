@@ -8,7 +8,7 @@
         </inertial>
         <visual>
             <geometry>
-                <mesh filename="meshes/mini_body.obj"/>
+                <mesh filename="meshes/mini_vision_body.dae"/>
             </geometry>
             <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
         </visual>
@@ -97,6 +97,17 @@
     <link name="thigh_fr_rotor">
         <inertial>
             <mass value="0.055"/>
+            <origin xyz="0.0 -0.049 0.0"/>
+        </inertial>
+    </link>
+    <joint name="shank_fr_rotor_j" type="fixed">
+        <parent link="thigh_fr"/>
+        <child link="shank_fr_rotor"/>
+        <origin xyz="0 0 0"/>
+    </joint>
+    <link name="shank_fr_rotor">
+        <inertial>
+            <mass value="0.055"/>
             <origin xyz="0.0 0.0 0.0"/>
         </inertial>
     </link>
@@ -127,17 +138,6 @@
             </geometry>
             <origin rpy="0 0 0" xyz="0 0 -0.0975"/>
         </collision>
-    </link>
-    <joint name="shank_fr_rotor_j" type="fixed">
-        <parent link="shank_fr"/>
-        <child link="shank_fr_rotor"/>
-        <origin xyz="0 0 0"/>
-    </joint>
-    <link name="shank_fr_rotor">
-        <inertial>
-            <mass value="0.055"/>
-            <origin xyz="0.0 0.0 0.0"/>
-        </inertial>
     </link>
 
     <link name="toe_fr">
@@ -177,9 +177,9 @@
         </inertial>
         <visual>
             <geometry>
-                <mesh filename="meshes/mini_abad.obj"/>
+                <mesh filename="meshes/mini_vision_abd.dae"/>
             </geometry>
-            <origin rpy="0. 0. -1.5708" xyz="0 0.0 0.0"/>
+            <origin rpy="3.141592 0.0 0.0" xyz="0.0 0.0 0.0"/>
         </visual>
         <collision>
             <geometry>
@@ -217,9 +217,9 @@
         </inertial>
         <visual>
             <geometry>
-                <mesh filename="meshes/mini_upper_link.obj"/>
+                <mesh filename="meshes/mini_vision_upper_leg.dae"/>
             </geometry>
-            <origin rpy="0.0 -1.5708 0.0" xyz="0 0.049 0.0"/>
+            <origin rpy="0.0 0 3.141592" xyz="0.0 0.0 0.0"/>
         </visual>
         <collision>
             <geometry>
@@ -234,6 +234,17 @@
         <origin xyz="0 0 0"/>
     </joint>
         <link name="thigh_fl_rotor">
+        <inertial>
+            <mass value="0.055"/>
+            <origin xyz="0.0 0.0 0.0"/>
+        </inertial>
+    </link>
+    <joint name="shank_fl_rotor_j" type="fixed">
+        <parent link="thigh_fl"/>
+        <child link="shank_fl_rotor"/>
+        <origin xyz="0 0.049 0"/>
+    </joint>
+    <link name="shank_fl_rotor">
         <inertial>
             <mass value="0.055"/>
             <origin xyz="0.0 0.0 0.0"/>
@@ -256,9 +267,9 @@
         </inertial>
         <visual>
             <geometry>
-                <mesh filename="meshes/mini_lower_link.obj"/>
+                <mesh filename="meshes/lower_leg.dae"/>
             </geometry>
-            <origin rpy="0.0 3.141592 0.0" xyz="0.0 0.0 0.0"/>
+            <origin rpy="0.0 0.0 3.141592" xyz="0.0 0.0 0.0"/>
         </visual>
         <collision>
             <geometry>
@@ -267,17 +278,7 @@
             <origin rpy="0 3.141592 0" xyz="0 0 -0.0975"/>
         </collision>
     </link>
-    <joint name="shank_fl_rotor_j" type="fixed">
-        <parent link="shank_fl"/>
-        <child link="shank_fl_rotor"/>
-        <origin xyz="0 0 0"/>
-    </joint>
-    <link name="shank_fl_rotor">
-        <inertial>
-            <mass value="0.055"/>
-            <origin xyz="0.0 0.0 0.0"/>
-        </inertial>
-    </link>
+
 
     <link name="toe_fl">
     <collision>
@@ -379,6 +380,17 @@
             <origin xyz="0.0 0.0 0.0"/>
         </inertial>
     </link>
+    <joint name="shank_hr_rotor_j" type="fixed">
+        <parent link="thigh_hr"/>
+        <child link="shank_hr_rotor"/>
+        <origin xyz="0 -0.049 0"/>
+    </joint>
+    <link name="shank_hr_rotor">
+        <inertial>
+            <mass value="0.055"/>
+            <origin xyz="0.0 0.0 0.0"/>
+        </inertial>
+    </link>
 
     <joint name="thigh_hr_to_knee_hr_j" type="revolute">
         <axis xyz="0 -1 0"/>
@@ -406,17 +418,6 @@
             </geometry>
             <origin rpy="0 3.141592 0" xyz="0 0 -0.0975"/>
         </collision>
-    </link>
-    <joint name="shank_hr_rotor_j" type="fixed">
-        <parent link="shank_hr"/>
-        <child link="shank_hr_rotor"/>
-        <origin xyz="0 0 0"/>
-    </joint>
-    <link name="shank_hr_rotor">
-        <inertial>
-            <mass value="0.055"/>
-            <origin xyz="0.0 0.0 0.0"/>
-        </inertial>
     </link>
 
      <link name="toe_hr">
@@ -519,6 +520,17 @@
             <origin xyz="0.0 0.0 0.0"/>
         </inertial>
     </link>
+    <joint name="shank_hl_rotor_j" type="fixed">
+        <parent link="thigh_hl"/>
+        <child link="shank_hl_rotor"/>
+        <origin xyz="0 0.049 0"/>
+    </joint>
+    <link name="shank_hl_rotor">
+        <inertial>
+            <mass value="0.055"/>
+            <origin xyz="0.0 0.0 0.0"/>
+        </inertial>
+    </link>
 
     <joint name="thigh_hl_to_knee_hl_j" type="revolute">
         <axis xyz="0 -1 0"/>
@@ -546,17 +558,6 @@
             </geometry>
             <origin rpy="0 3.141592 0" xyz="0 0 -0.0975"/>
         </collision>
-    </link>
-    <joint name="shank_hl_rotor_j" type="fixed">
-        <parent link="shank_hl"/>
-        <child link="shank_hl_rotor"/>
-        <origin xyz="0 0 0"/>
-    </joint>
-    <link name="shank_hl_rotor">
-        <inertial>
-            <mass value="0.055"/>
-            <origin xyz="0.0 0.0 0.0"/>
-        </inertial>
     </link>
 
     <link name="toe_hl">
