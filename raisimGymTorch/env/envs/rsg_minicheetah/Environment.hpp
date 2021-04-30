@@ -84,73 +84,73 @@ class ENVIRONMENT {
 //
 //    _abadRotorLocation = bodyCOM + Eigen::Vector3d({0.14775, 0.049, 0});
 //    _abadLocation = bodyCOM + Eigen::Vector3d({0.20275, 0.049, 0});
-//    abadCOM = _abadLocation + Eigen::Vector3d({0, 0.036, 0});
+//    abadCOM = _abadLocation + Eigen::Vector3d({0, 0.0, 0});
 //
 //    _hipRotorLocation = _abadLocation + Eigen::Vector3d({0, 0.019, 0});
 //    _hipLocation = _abadLocation + Eigen::Vector3d({0, 0.068, 0});
-//    hipCOM = _hipLocation + Eigen::Vector3d({0, -0.033, -0.02});
+//    hipCOM = _hipLocation + Eigen::Vector3d({0, -0.017, -0.02});
 //
 //    _kneeRotorLocation = _hipLocation + Eigen::Vector3d({0, 0., 0});
 //    _kneeLocation = _hipLocation + Eigen::Vector3d({0, 0., -0.2085});
 //    kneeCOM = _kneeLocation + Eigen::Vector3d({0, 0, -0.061});
 //
 ////    cheetah->getFramePosition(cheetah->getFrameIdxByName("torso_to_abduct_fl_j"), urdf_abdaCOM);
-//    urdf_abadCOM = bodyCOM + urdf_abad_joint + Eigen::Vector3d({0.055, 0.036, 0.});
+//    urdf_abadCOM = bodyCOM + urdf_abad_joint + Eigen::Vector3d({0.055, 0., 0.});
 //
 ////    cheetah->getFramePosition(cheetah->getFrameIdxByName("abduct_fl_to_thigh_fl_j"), urdf_hipCOM);
-//    urdf_hipCOM = bodyCOM + urdf_abad_joint + urdf_hip_joint + Eigen::Vector3d({0.0, 0.016, -0.02});
+//    urdf_hipCOM = bodyCOM + urdf_abad_joint + urdf_hip_joint + Eigen::Vector3d({0.0, 0.032, -0.02});
 //
 ////    cheetah->getFramePosition(cheetah->getFrameIdxByName("thigh_fl_to_knee_fl_j"), urdf_kneeCOM);
 //    urdf_kneeCOM = bodyCOM + urdf_abad_joint + urdf_hip_joint + urdf_knee_joint + Eigen::Vector3d({0.0, 0.0, -0.061});
 //
 //    // debug sphere
-//    auto debugSphere_abadRotorLocation = server_->addVisualSphere("debug_sphere_abadRotorLocation", 0.15);
+//    auto debugSphere_abadRotorLocation = server_->addVisualSphere("debug_sphere_abadRotorLocation", 0.1);
 //    debugSphere_abadRotorLocation->setColor(1,0,0,1);
 //    debugSphere_abadRotorLocation->setPosition(_abadRotorLocation);
 //
-////    auto debugSphere_abadLocation = server_->addVisualSphere("debug_sphere_abadLocation", 0.15);
+////    auto debugSphere_abadLocation = server_->addVisualSphere("debug_sphere_abadLocation", 0.1);
 ////    debugSphere_abadLocation->setColor(0,1,0,1);
 ////    debugSphere_abadLocation->setPosition(_abadLocation);
 //
-//    auto debugSphereabadCOM = server_->addVisualSphere("debug_sphereabadCOM", 0.15);
+//    auto debugSphereabadCOM = server_->addVisualSphere("debug_sphereabadCOM", 0.1);
 //    debugSphereabadCOM->setColor(0,0,1,1);
 //    debugSphereabadCOM->setPosition(abadCOM);
 //
 //
-//    auto debugSphere_hipRotorLocation = server_->addVisualSphere("debug_sphere_hipRotorLocation", 0.15);
+//    auto debugSphere_hipRotorLocation = server_->addVisualSphere("debug_sphere_hipRotorLocation", 0.1);
 //    debugSphere_hipRotorLocation->setColor(1,0,0,1);
 //    debugSphere_hipRotorLocation->setPosition(_hipRotorLocation);
 //
-////    auto debugSphere_hipLocation = server_->addVisualSphere("debug_sphere_hipLocation", 0.15);
+////    auto debugSphere_hipLocation = server_->addVisualSphere("debug_sphere_hipLocation", 0.1);
 ////    debugSphere_hipLocation->setColor(0,1,0,1);
 ////    debugSphere_hipLocation->setPosition(_hipLocation);
 //
-//    auto debugSpherehipCOM = server_->addVisualSphere("debug_spherehipCOM", 0.15);
+//    auto debugSpherehipCOM = server_->addVisualSphere("debug_spherehipCOM", 0.1);
 //    debugSpherehipCOM->setColor(0,0,1,1);
 //    debugSpherehipCOM->setPosition(hipCOM);
 //
 //
-//    auto debugSphere_kneeRotorLocation = server_->addVisualSphere("debug_sphere_kneeRotorLocation", 0.15);
+//    auto debugSphere_kneeRotorLocation = server_->addVisualSphere("debug_sphere_kneeRotorLocation", 0.1);
 //    debugSphere_kneeRotorLocation->setColor(1,0,0,1);
 //    debugSphere_kneeRotorLocation->setPosition(_kneeRotorLocation);
 //
-////    auto debugSphere_kneeLocation = server_->addVisualSphere("debug_sphere_kneeLocation", 0.15);
+////    auto debugSphere_kneeLocation = server_->addVisualSphere("debug_sphere_kneeLocation", 0.1);
 ////    debugSphere_kneeLocation->setColor(0,1,0,1);
 ////    debugSphere_kneeLocation->setPosition(_kneeLocation);
 //
-//    auto debugSpherekneeCOM = server_->addVisualSphere("debug_spherekneeCOM", 0.15);
+//    auto debugSpherekneeCOM = server_->addVisualSphere("debug_spherekneeCOM", 0.1);
 //    debugSpherekneeCOM->setColor(0,0,1,1);
 //    debugSpherekneeCOM->setPosition(kneeCOM);
 //
-//    auto debugSphere_urdf_abadCOM = server_->addVisualSphere("debug_sphere_urdf_abadCOM", 0.15);
+//    auto debugSphere_urdf_abadCOM = server_->addVisualSphere("debug_sphere_urdf_abadCOM", 0.1);
 //    debugSphere_urdf_abadCOM->setColor(0,1,0,1);
 //    debugSphere_urdf_abadCOM->setPosition(urdf_abadCOM);
 //
-//    auto debugSphere_urdf_hipCOM = server_->addVisualSphere("debug_sphere_urdf_hipCOM", 0.15);
+//    auto debugSphere_urdf_hipCOM = server_->addVisualSphere("debug_sphere_urdf_hipCOM", 0.1);
 //    debugSphere_urdf_hipCOM->setColor(0,1,0,1);
 //    debugSphere_urdf_hipCOM->setPosition(urdf_hipCOM);
 //
-//    auto debugSphere_urdf_kneeCOM = server_->addVisualSphere("debug_sphere_urdf_kneeCOM", 0.15);
+//    auto debugSphere_urdf_kneeCOM = server_->addVisualSphere("debug_sphere_urdf_kneeCOM", 0.1);
 //    debugSphere_urdf_kneeCOM->setColor(0,1,0,1);
 //    debugSphere_urdf_kneeCOM->setPosition(urdf_kneeCOM);
   }
