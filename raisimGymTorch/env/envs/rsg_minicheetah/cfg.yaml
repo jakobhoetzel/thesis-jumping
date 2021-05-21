@@ -3,11 +3,11 @@ record_video: yes
 
 environment:
   render: True
-  num_envs: 1
+  num_envs: 800
   eval_every_n: 1000
   num_threads: 128
   simulation_dt: 0.001
-  control_dt: 0.05
+  control_dt: 0.02
   max_time: 2.0
   curriculum_factor: 0.3
   curriculum_rate: 0.997
