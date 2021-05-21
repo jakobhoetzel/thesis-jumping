@@ -51,16 +51,12 @@ class MinicheetahController {
     gc_stationay_target.setZero(gcDim_);
     footPos_.resize(4); footVel_.resize(4);
     pTarget_.setZero(gcDim_); vTarget_.setZero(gvDim_); pTarget12_.setZero(nJoints_);
-    gcMax_.setZero(gcDim_), gcMin_.setZero(gcDim_), gvMax_.setZero(gvDim_), gvMin_.setZero(gvDim_);
-    gcMax_.setConstant(-10000), gcMin_.setConstant(10000), gvMax_.setConstant(-10000), gvMin_.setConstant(10000);
-    gTorque.setZero(nJoints_), torqueMax_.setZero(nJoints_), torqueMin_.setZero(nJoints_);
-    torqueMax_.setConstant(-10000), torqueMin_.setConstant(10000);
 
     /// this is nominal configuration of minicheetah
     gc_init_ << 0, 0, 0.25, //0.07,  // gc_init_.segment(0, 3): x, y, z position  //0.28
         1.0, 0.0, 0.0, 0.0,  // gc_init_.segment(3, 4): quaternion
 //        0, -0.8, 1.8, 0, -0.8, 1.6, 0, -0.8, 1.6, 0, -0.8, 1.6;  // stand up
-        0, -0.7854, 1.8326, 0, -0.7854, 1.8326, 0, -0.7854, 1.8326, 0, -0.7854, 1.8326;  // stand up
+        0, -0.9, 1.8, 0, -0.9, 1.8, 0, -0.9, 1.8, 0, -0.9, 1.8;  // new stand up 0514
 //        -0.6, -1, 2.7, 0.6, -1, 2.7, -0.6, -1, 2.7, 0.6, -1, 2.7;
 //        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
 //        -0.62057, -1.039, 2.7, 0.6206, -1.039, 2.7, -0.6245, -1.034, 2.7, 0.62436, -1.034, 2.7;  // intended initial pose
@@ -68,7 +64,7 @@ class MinicheetahController {
 //        -0.8659, -0.5307, 1.9672, 0.8661, -0.5302, 1.9666, -1.1019, -0.7014, 1.8063, 1.1017, -0.701, 1.8066;
 //        -0.726685, -0.947298, 2.7, 0.726636, -0.947339, 2.7, -0.727, -0.94654, 2.65542, 0.727415, -0.946541, 2.65542;  // unintended initial pose
     gc_stationay_target << gc_init_.head(7),
-        0, -0.7854, 1.8326, 0, -0.7854, 1.8326, 0, -0.7854, 1.8326, 0, -0.7854, 1.8326;
+        0, -0.9, 1.8, 0, -0.9, 1.8, 0, -0.9, 1.8, 0, -0.9, 1.8;
 
     linVelTarget_ << 0.5, 0., 0.;
     angVelTarget_ << 0., 0., 0.;
@@ -189,7 +185,12 @@ class MinicheetahController {
         } else if(i<7) {
           gc_init_noise(i) = gc_init_(i) + uniDist_(gen_) * 0.2;  /// quaternion: +- 0.2
         } else {
-          gc_init_noise(i) = gc_init_(i) * uniDist_(gen_) * 0.4 + uniDist_(gen_) * 0.4;  /// joint angles: +- 0.4rad
+          if(i%3 == 1)
+            gc_init_noise(i) = gc_init_(i) + uniDist_(gen_) * 0.2;  /// HAA joint angles: +- 0.2rad
+          if(i%3 == 2)
+            gc_init_noise(i) = (gc_init_(i) - 0.1) + uniDist_(gen_) * 0.2;  /// HFE joint angles: +- 0.2rad
+          else
+            gc_init_noise(i) = (gc_init_(i) + 0.2) + uniDist_(gen_) * 0.2;  /// knee joint angles: +- 0.2rad
         }
       }
       double quat_sum = gc_init_noise.segment(3, 4).norm();
@@ -198,11 +199,11 @@ class MinicheetahController {
       /// Generalized Velocities randomization.
       for (int i = 0; i < gvDim_; i++) {
         if(i<3) {
-          gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 0.5;  /// XYZ velocity: +- 0.5m/s
+          gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 0.3;  /// XYZ velocity: +- 0.3m/s
         } else if(i<6) {
-          gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 1.0;  /// rpy: +- 1.0rad/s
+          gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 0.5;  /// rpy: +- 0.5rad/s
         } else {
-          gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 3.0;  /// joint speed: +- 3.0rad/s
+          gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 1.0;  /// joint speed: +- 1.0rad/s
         }
       }
     } else {
@@ -210,15 +211,21 @@ class MinicheetahController {
     }
 
     /// command generation
-    do {
-      command_ << 1.0 * uniDist_(gen_), 1.0 * uniDist_(gen_), 1.0 * uniDist_(gen_);
-    } while(command_.norm() < 0.4);
+    double p = uniDist_(gen_);
+    if(fabs(p) < 0.1) {
+      command_.setZero();
+    }
+    else {
+      do {
+        command_ << 1.5 * uniDist_(gen_), 1.0 * uniDist_(gen_), 1.0 * uniDist_(gen_);
+      } while (command_.norm() < 0.3);
+    }
 
     /// Test code for mass matrix
 //    // Joint position
 //    gc_init_noise.setZero(); gc_init_noise(2) = 0.4035; gc_init_noise(3) = 1;
 ////    gc_init_noise.head(7) << 0, 0, 0.4,  0, 0, 0, 1;
-////    gc_init_noise << -0.000273539, 0, 0.198284, 0.999949, 0.000145574, -0.00792975, 0.000121866, -0.0865144, -0.96245, 2.05633, 0.0856435, -0.962604, 2.0563, -0.0983707, -0.970998, 2.08712, 0.0983299, -0.970751, 2.08679;
+//    gc_init_noise << -0.000273539, 0, 0.198284, 0.999949, 0.000145574, -0.00792975, 0.000121866, -0.0865144, -0.96245, 2.05633, 0.0856435, -0.962604, 2.0563, -0.0983707, -0.970998, 2.08712, 0.0983299, -0.970751, 2.08679;
 ////    gc_init_noise.tail(12) << 0, 0, 0,  0, 0, 0,  0, 0, 0,  1, 1, 1;
 //    Eigen::VectorXd getGc, getGv;
 //    getGc.setZero(19); getGv.setZero(18);
@@ -262,7 +269,7 @@ class MinicheetahController {
   void getReward(raisim::World *world, const std::map<RewardType, float>& rewardCoeff, double simulation_dt, double curriculumFactor) {
     auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world->getObject("robot"));
 
-    double desiredFootZPosition = 0.07;
+    double desiredFootZPosition = 0.1;
     preJointVel_ = gv_.tail(nJoints_);
     updateObservation(world);  // update obDouble, and so on.
 
@@ -283,10 +290,10 @@ class MinicheetahController {
       else
         airTime_[i] = std::max(0., airTime_[i]) + simulation_dt;
 
-      if (airTime_[i] < 0.5 && airTime_[i] > 0.)
-        airtimeTotal += std::min(airTime_[i], 0.3);
-      else if (airTime_[i] > -0.5 && airTime_[i] < 0.)
-        airtimeTotal += std::min(-airTime_[i], 0.3);
+      if (airTime_[i] < 0.4 && airTime_[i] > 0.)
+        airtimeTotal += std::min(airTime_[i], 0.2);
+      else if (airTime_[i] > -0.4 && airTime_[i] < 0.)
+        airtimeTotal += std::min(-airTime_[i], 0.2);
     }
 
     /// Reward functions
@@ -469,7 +476,7 @@ class MinicheetahController {
   std::vector<raisim::Vec<3>> footPos_, footVel_;
   std::vector<size_t> footFrameIndices_;
   int obDim_=0, actionDim_=0;
-  int historyLength_ = 18;
+  int historyLength_ = 6;
   Eigen::VectorXd stepData_;
   Eigen::VectorXd airTime_;
   std::vector<std::string> stepDataTag_;
@@ -478,8 +485,6 @@ class MinicheetahController {
   Eigen::Vector3d linVelTarget_;
   Eigen::Vector3d angVelTarget_;
   Eigen::Vector3d command_;
-
-  Eigen::VectorXd gcMax_, gcMin_, gvMax_, gvMin_, gTorque, torqueMax_, torqueMin_;
 
   thread_local static std::mt19937 gen_;
   thread_local static std::normal_distribution<double> normDist_;
