@@ -39,6 +39,8 @@ class MinicheetahController {
 
   bool create(raisim::World *world) { // called only once
     auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world->getObject("robot"));
+    stateLog.open("state.csv");
+    actionLog.open("action.csv");
 
     /// get robot data
     gcDim_ = cheetah->getGeneralizedCoordinateDim();
@@ -131,6 +133,13 @@ class MinicheetahController {
 
     cheetah->setPdTarget(pTarget_, vTarget_);  // Set vTarget as 0 because we don't know vTarget. It works quite well.
 
+    for(int i;i<action.size();i++){
+      actionLog<<action[i];
+      actionLog<<",";
+    }
+    std::cout<<"action";
+    actionLog<<"\n";
+
     /// Value test
 //    static int testIter = 0;
 //    testIter++;
@@ -216,10 +225,12 @@ class MinicheetahController {
 
     /// Test code for mass matrix
 //    // Joint position
-//    gc_init_noise.setZero(); gc_init_noise(2) = 0.4035; gc_init_noise(3) = 1;
+//    gc_init_noise.setZero(); gc_init_noise(2) = 1.4035; gc_init_noise(3) = 1;
 ////    gc_init_noise.head(7) << 0, 0, 0.4,  0, 0, 0, 1;
 ////    gc_init_noise << -0.000273539, 0, 0.198284, 0.999949, 0.000145574, -0.00792975, 0.000121866, -0.0865144, -0.96245, 2.05633, 0.0856435, -0.962604, 2.0563, -0.0983707, -0.970998, 2.08712, 0.0983299, -0.970751, 2.08679;
 ////    gc_init_noise.tail(12) << 0, 0, 0,  0, 0, 0,  0, 0, 0,  1, 1, 1;
+//    gc_init_noise.tail(12) << -0.11757,-0.933909,1.51893,-0.00764697,-0.871324,1.66019,0.155266,-0.799108,1.62521,-0.27996,-0.837968, 1.67148;
+//
 //    Eigen::VectorXd getGc, getGv;
 //    getGc.setZero(19); getGv.setZero(18);
 //    cheetah->getState(getGc, getGv);
@@ -396,6 +407,13 @@ class MinicheetahController {
         jointPosErrorHist_.segment((historyLength_ - 1) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 1) * nJoints_, nJoints_), /// joint History 24
         command_;  /// command 3
 
+        for(int i;i<obDouble_.size();i++){
+          stateLog<<obDouble_[i];
+          stateLog<<",";
+        }
+        std::cout<<"ob";
+        stateLog<<"\n";
+
     /// Observation noise
     bool addObsNoise = false;
     if(addObsNoise) {
@@ -480,6 +498,9 @@ class MinicheetahController {
   Eigen::Vector3d command_;
 
   Eigen::VectorXd gcMax_, gcMin_, gvMax_, gvMin_, gTorque, torqueMax_, torqueMin_;
+
+  std::ofstream stateLog;
+  std::ofstream actionLog;
 
   thread_local static std::mt19937 gen_;
   thread_local static std::normal_distribution<double> normDist_;
