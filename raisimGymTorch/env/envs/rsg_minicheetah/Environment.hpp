@@ -197,6 +197,10 @@ class ENVIRONMENT {
     ob = controller_.getObservation().cast<float>();
   }
 
+  void unObsState(Eigen::Ref<EigenVec> ob) {
+    ob = controller_.getUnobservableStates().cast<float>();
+  }
+
   bool isTerminalState(float &terminalReward) {
     if(controller_.isTerminalState(world_.get())) {
       terminalReward = terminalRewardCoeff_;
@@ -219,6 +223,8 @@ class ENVIRONMENT {
   void setControlTimeStep(double dt) { control_dt_ = dt; }
 
   int getObDim() { return controller_.getObDim(); }
+
+  int getUnObsDim() { return controller_.getUnObsDim(); }
 
   int getActionDim() { return controller_.getActionDim(); }
 

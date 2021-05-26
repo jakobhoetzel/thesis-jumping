@@ -79,11 +79,12 @@ class MinicheetahController {
 
     /// MUST BE DONE FOR ALL ENVIRONMENTS
     obDim_ = 198;  //34 //106 //130 //133
+    unObsDim_ = 7;  //34 //106 //130 //133
     actionDim_ = nJoints_; actionMean_.setZero(actionDim_); actionStd_.setZero(actionDim_);  // action dimension is the same as the number of joints(by applying torque)
-    obDouble_.setZero(obDim_);
+    obDouble_.setZero(obDim_); unobservableStates_.setZero(unObsDim_);
     preJointVel_.setZero(nJoints_);
     previousAction_.setZero(actionDim_); prepreviousAction_.setZero(actionDim_);
-    airTime_.setZero(4);
+    airTime_.setZero(4); stanceTime_.setZero(4);
     jointPosErrorHist_.setZero(nJoints_ * historyLength_); jointVelHist_.setZero(nJoints_ * historyLength_);
     historyTempMem_.setZero(nJoints_ * historyLength_);
 
@@ -214,11 +215,13 @@ class MinicheetahController {
     double p = uniDist_(gen_);
     if(fabs(p) < 0.1) {
       command_.setZero();
+      standingMode_ = true;
     }
     else {
       do {
-        command_ << 1.5 * uniDist_(gen_), 1.0 * uniDist_(gen_), 1.0 * uniDist_(gen_);
+        command_ << 1.0 * uniDist_(gen_), 1.0 * uniDist_(gen_), 1.0 * uniDist_(gen_);
       } while (command_.norm() < 0.3);
+      standingMode_ = false;
     }
 
     /// Test code for mass matrix
@@ -262,6 +265,7 @@ class MinicheetahController {
     previousAction_ << pTarget12_; prepreviousAction_ << pTarget12_;
 
     for(int i=0; i<4; i++) airTime_[i] = 0;
+    for(int i=0; i<4; i++) stanceTime_[i] = 0;
 
     return true;
   }
@@ -285,15 +289,24 @@ class MinicheetahController {
     /// A variable for airtime reward calculation
     double airtimeTotal = 0;
     for(size_t i=0; i<4; i++) {
-      if (footContactState_[i])
-        airTime_[i] = std::min(0., airTime_[i]) - simulation_dt;
-      else
+      if (footContactState_[i]) {
+        stanceTime_[i] = std::max(0., stanceTime_[i]) + simulation_dt;
+        airTime_[i] = 0;
+      }
+      else {
         airTime_[i] = std::max(0., airTime_[i]) + simulation_dt;
+        stanceTime_[i] = 0;
+      }
 
-      if (airTime_[i] < 0.4 && airTime_[i] > 0.)
-        airtimeTotal += std::min(airTime_[i], 0.2);
-      else if (airTime_[i] > -0.4 && airTime_[i] < 0.)
-        airtimeTotal += std::min(-airTime_[i], 0.2);
+      if (standingMode_) {
+        airtimeTotal += std::min(std::max(stanceTime_[i] - airTime_[i], -0.3), 0.3);
+      }
+      else {
+        if (airTime_[i] < 0.3 && airTime_[i] > 0.)
+          airtimeTotal += std::min(airTime_[i], 0.2);
+        else if (stanceTime_[i] > -0.3 && stanceTime_[i] < 0.)
+          airtimeTotal += std::min(stanceTime_[i], 0.2);
+      }
     }
 
     /// Reward functions
@@ -395,12 +408,12 @@ class MinicheetahController {
         gv_.tail(12), /// joint velocity 12
         previousAction_, /// previous action 12
         prepreviousAction_, /// preprevious action 12
+        jointPosErrorHist_.segment((historyLength_ - 12) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 12) * nJoints_, nJoints_), /// joint History 24
+        jointPosErrorHist_.segment((historyLength_ - 10) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 10) * nJoints_, nJoints_), /// joint History 24
+        jointPosErrorHist_.segment((historyLength_ - 8) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 8) * nJoints_, nJoints_), /// joint History 24
         jointPosErrorHist_.segment((historyLength_ - 6) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 6) * nJoints_, nJoints_), /// joint History 24
-        jointPosErrorHist_.segment((historyLength_ - 5) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 5) * nJoints_, nJoints_), /// joint History 24
         jointPosErrorHist_.segment((historyLength_ - 4) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 4) * nJoints_, nJoints_), /// joint History 24
-        jointPosErrorHist_.segment((historyLength_ - 3) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 3) * nJoints_, nJoints_), /// joint History 24
         jointPosErrorHist_.segment((historyLength_ - 2) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 2) * nJoints_, nJoints_), /// joint History 24
-        jointPosErrorHist_.segment((historyLength_ - 1) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 1) * nJoints_, nJoints_), /// joint History 24
         command_;  /// command 3
 
     /// Observation noise
@@ -435,6 +448,13 @@ class MinicheetahController {
     return obDouble_;
   }
 
+  const Eigen::VectorXd& getUnobservableStates() {
+    unobservableStates_ << gc_[2],  /// body height. 1
+        bodyLinearVel_, bodyAngularVel_;  /// body linear&angular velocity. 3, 3
+
+    return unobservableStates_;
+  }
+
   /// If the contact body is not feet
   bool isTerminalState(raisim::World *world) {
     auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world->getObject("robot"));
@@ -447,6 +467,10 @@ class MinicheetahController {
 
   int getObDim() {
     return obDim_;
+  }
+
+  int getUnObsDim() {
+    return unObsDim_;
   }
 
   int getActionDim() {
@@ -475,16 +499,18 @@ class MinicheetahController {
   std::array<bool, 4> footContactState_;
   std::vector<raisim::Vec<3>> footPos_, footVel_;
   std::vector<size_t> footFrameIndices_;
-  int obDim_=0, actionDim_=0;
-  int historyLength_ = 6;
+  int obDim_=0, actionDim_=0, unObsDim_;
+  int historyLength_ = 12;
   Eigen::VectorXd stepData_;
-  Eigen::VectorXd airTime_;
+  Eigen::VectorXd airTime_, stanceTime_;
   std::vector<std::string> stepDataTag_;
   Eigen::VectorXd jointPosErrorHist_, jointVelHist_, historyTempMem_, preJointVel_;
+  Eigen::VectorXd unobservableStates_;
 
   Eigen::Vector3d linVelTarget_;
   Eigen::Vector3d angVelTarget_;
   Eigen::Vector3d command_;
+  bool standingMode_;
 
   thread_local static std::mt19937 gen_;
   thread_local static std::normal_distribution<double> normDist_;
