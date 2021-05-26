@@ -75,7 +75,7 @@
         <parent link="body"/>
         <child link="abduct_fr"/>
         <limit effort="17" lower="-1.5" upper="1.5" velocity="40"/>
-        <dynamics rotor_inertia="2268e-6"/>
+        <dynamics rotor_inertia="2268e-6" damping=".01"/>
     </joint>
     <link name="abduct_fr">
         <inertial>
@@ -116,7 +116,7 @@
         <parent link="abduct_fr"/>
         <child link="thigh_fr"/>
         <limit effort="17" lower="-5." upper="5." velocity="40"/>
-        <dynamics rotor_inertia="2268e-6"/>
+        <dynamics rotor_inertia="2268e-6" damping=".01"/>
     </joint>
     <link name="thigh_fr">
         <inertial>
@@ -157,7 +157,7 @@
         <parent link="thigh_fr"/>
         <child link="shank_fr"/>
         <limit effort="26" lower="-2.705259778" upper="2.705259778" velocity="40"/>
-        <dynamics rotor_inertia="5484e-6"/>
+        <dynamics rotor_inertia="5484e-6" damping=".01555"/>
     </joint>
     <link name="shank_fr">
         <inertial>
@@ -205,7 +205,7 @@
         <parent link="body"/>
         <child link="abduct_fl"/>
         <limit effort="17" lower="-1.5" upper="1.5" velocity="40"/>
-        <dynamics rotor_inertia="2268e-6"/>
+        <dynamics rotor_inertia="2268e-6" damping=".01"/>
     </joint>
     <link name="abduct_fl">
         <inertial>
@@ -246,7 +246,7 @@
         <parent link="abduct_fl"/>
         <child link="thigh_fl"/>
         <limit effort="17" lower="-5." upper="5." velocity="40"/>
-        <dynamics rotor_inertia="2268e-6"/>
+        <dynamics rotor_inertia="2268e-6" damping=".01"/>
     </joint>
     <link name="thigh_fl">
         <inertial>
@@ -287,7 +287,7 @@
         <parent link="thigh_fl"/>
         <child link="shank_fl"/>
         <limit effort="26" lower="-2.705259778" upper="2.705259778" velocity="40"/>
-        <dynamics rotor_inertia="5484e-6"/>
+        <dynamics rotor_inertia="5484e-6" damping=".01555"/>
     </joint>
     <link name="shank_fl">
         <inertial>
@@ -337,7 +337,7 @@
         <parent link="body"/>
         <child link="abduct_hr"/>
         <limit effort="17" lower="-1.5" upper="1.5" velocity="40"/>
-        <dynamics rotor_inertia="2268e-6"/>
+        <dynamics rotor_inertia="2268e-6" damping=".01"/>
     </joint>
     <link name="abduct_hr">
         <inertial>
@@ -378,7 +378,7 @@
         <parent link="abduct_hr"/>
         <child link="thigh_hr"/>
         <limit effort="17" lower="-5." upper="5." velocity="40"/>
-        <dynamics rotor_inertia="2268e-6"/>
+        <dynamics rotor_inertia="2268e-6" damping=".01"/>
     </joint>
     <link name="thigh_hr">
         <inertial>
@@ -419,7 +419,7 @@
         <parent link="thigh_hr"/>
         <child link="shank_hr"/>
         <limit effort="26" lower="-2.705259778" upper="2.705259778" velocity="40"/>
-        <dynamics rotor_inertia="5484e-6"/>
+        <dynamics rotor_inertia="5484e-6" damping=".01555"/>
     </joint>
     <link name="shank_hr">
         <inertial>
@@ -468,7 +468,7 @@
         <parent link="body"/>
         <child link="abduct_hl"/>
         <limit effort="17" lower="-1.5" upper="1.5" velocity="40"/>
-        <dynamics rotor_inertia="2268e-6"/>
+        <dynamics rotor_inertia="2268e-6" damping=".01"/>
     </joint>
     <link name="abduct_hl">
         <inertial>
@@ -509,7 +509,7 @@
         <parent link="abduct_hl"/>
         <child link="thigh_hl"/>
         <limit effort="17" lower="-5." upper="5." velocity="40"/>
-        <dynamics rotor_inertia="2268e-6"/>
+        <dynamics rotor_inertia="2268e-6" damping=".01"/>
     </joint>
     <link name="thigh_hl">
         <inertial>
@@ -550,7 +550,7 @@
         <parent link="thigh_hl"/>
         <child link="shank_hl"/>
         <limit effort="26" lower="-2.705259778" upper="2.705259778" velocity="40"/>
-        <dynamics rotor_inertia="5484e-6"/>
+        <dynamics rotor_inertia="5484e-6" damping=".0.01555"/>
     </joint>
     <link name="shank_hl">
         <inertial>
