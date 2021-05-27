@@ -66,6 +66,30 @@ class Critic:
         return self.architecture.input_shape
 
 
+class StateEstimator:
+    def __init__(self, architecture, device='cpu'):
+        super(StateEstimator, self).__init__()
+        self.architecture = architecture
+        self.architecture.to(device)
+
+    def predict(self, obs):
+        return self.architecture.architecture(obs).detach()
+
+    def evaluate(self, obs):
+        return self.architecture.architecture(obs)
+
+    def parameters(self):
+        return [*self.architecture.parameters()]
+
+    @property
+    def input_shape(self):
+        return self.architecture.input_shape
+
+    @property
+    def output_shape(self):
+        return self.architecture.output_shape
+
+
 class MLP(nn.Module):
     def __init__(self, shape, actionvation_fn, input_size, output_size):
         super(MLP, self).__init__()

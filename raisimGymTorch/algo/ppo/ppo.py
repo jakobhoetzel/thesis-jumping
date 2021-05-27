@@ -13,6 +13,7 @@ class PPO:
     def __init__(self,
                  actor,
                  critic,
+                 estimator,
                  num_envs,
                  num_transitions_per_env,
                  num_learning_epochs,
@@ -21,6 +22,7 @@ class PPO:
                  gamma=0.998,
                  lam=0.95,
                  value_loss_coef=0.5,
+                 estimator_loss_coef=0.5,
                  entropy_coef=0.0,
                  learning_rate=5e-4,
                  max_grad_norm=0.5,
@@ -32,7 +34,8 @@ class PPO:
         # PPO components
         self.actor = actor
         self.critic = critic
-        self.storage = RolloutStorage(num_envs, num_transitions_per_env, actor.obs_shape, critic.obs_shape, actor.action_shape, device)
+        self.estimator = estimator
+        self.storage = RolloutStorage(num_envs, num_transitions_per_env, actor.obs_shape, critic.obs_shape, actor.action_shape, estimator.input_shape, estimator.output_shape, device)
 
         if shuffle_batch:
             self.batch_sampler = self.storage.mini_batch_generator_shuffle
@@ -40,7 +43,7 @@ class PPO:
             self.batch_sampler = self.storage.mini_batch_generator_inorder
 
         # self.optimizer = optim.Adam([*self.actor.parameters(), *self.critic.parameters()], lr=learning_rate)
-        self.optimizer = AdamP([*self.actor.parameters(), *self.critic.parameters()], lr=learning_rate)
+        self.optimizer = AdamP([*self.actor.parameters(), *self.critic.parameters(), *self.estimator.parameters()], lr=learning_rate)
         self.device = device
 
         # env parameters
@@ -52,6 +55,7 @@ class PPO:
         self.num_learning_epochs = num_learning_epochs
         self.num_mini_batches = num_mini_batches
         self.value_loss_coef = value_loss_coef
+        self.estimator_loss_coef = estimator_loss_coef
         self.entropy_coef = entropy_coef
         self.gamma = gamma
         self.lam = lam
@@ -75,9 +79,9 @@ class PPO:
         # self.actions = np.clip(self.actions.numpy(), self.env.action_space.low, self.env.action_space.high)
         return self.actions.cpu().numpy()
 
-    def step(self, value_obs, rews, dones):
+    def step(self, value_obs, est_in, unObsState, rews, dones):
         values = self.critic.predict(torch.from_numpy(value_obs).to(self.device))
-        self.storage.add_transitions(self.actor_obs, value_obs, self.actions, rews, dones, values,
+        self.storage.add_transitions(self.actor_obs, value_obs, self.actions, est_in, unObsState, rews, dones, values,
                                      self.actions_log_prob)
 
     def update(self, actor_obs, value_obs, log_this_iteration, update):
@@ -103,11 +107,13 @@ class PPO:
         mean_value_loss = 0
         mean_surrogate_loss = 0
         for epoch in range(self.num_learning_epochs):
-            for actor_obs_batch, critic_obs_batch, actions_batch, target_values_batch, advantages_batch, returns_batch, old_actions_log_prob_batch \
+            for actor_obs_batch, critic_obs_batch, actions_batch, target_values_batch, est_in_batch, unObsState_batch, \
+                advantages_batch, returns_batch, old_actions_log_prob_batch \
                     in self.batch_sampler(self.num_mini_batches):
 
                 actions_log_prob_batch, entropy_batch = self.actor.evaluate(actor_obs_batch, actions_batch)
                 value_batch = self.critic.evaluate(critic_obs_batch)
+                estimation_batch = self.estimator.evaluate(est_in_batch)
 
                 # Surrogate loss
                 ratio = torch.exp(actions_log_prob_batch - torch.squeeze(old_actions_log_prob_batch))
@@ -126,7 +132,10 @@ class PPO:
                 else:
                     value_loss = (returns_batch - value_batch).pow(2).mean()
 
-                loss = surrogate_loss + self.value_loss_coef * value_loss - self.entropy_coef * entropy_batch.mean()
+                estimator_loss = (unObsState_batch - estimation_batch).pow(2).mean()
+
+                loss = surrogate_loss + self.value_loss_coef * value_loss + self.estimator_loss_coef * estimator_loss\
+                       - self.entropy_coef * entropy_batch.mean()
 
                 # Gradient step
                 self.optimizer.zero_grad()

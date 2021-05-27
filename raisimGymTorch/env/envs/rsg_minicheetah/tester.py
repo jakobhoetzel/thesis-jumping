@@ -8,6 +8,12 @@ import raisimGymTorch.algo.ppo.module as ppo_module
 import numpy as np
 import torch
 import argparse
+import pygame
+
+# pygame for logitech gamepad
+pygame.display.init()
+pygame.joystick.init()
+pygame.joystick.Joystick(0).init()
 
 
 # configuration
@@ -19,8 +25,13 @@ args = parser.parse_args()
 task_path = os.path.dirname(os.path.realpath(__file__))
 home_path = task_path + "/../../../.."
 
+# weight directory
+weight_path = args.weight
+iteration_number = weight_path.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
+weight_dir = weight_path.rsplit('/', 1)[0] + '/'
+
 # config
-cfg = YAML().load(open(task_path + "/cfg.yaml", 'r'))
+cfg = YAML().load(open(weight_dir + "/cfg.yaml", 'r'))
 
 # create environment from the configuration file
 cfg['environment']['num_envs'] = 1
@@ -31,9 +42,6 @@ env = VecEnv(rsg_minicheetah.RaisimGymEnv(home_path + "/rsc", dump(cfg['environm
 ob_dim = env.num_obs
 act_dim = env.num_acts
 
-weight_path = args.weight
-iteration_number = weight_path.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
-weight_dir = weight_path.rsplit('/', 1)[0] + '/'
 
 if weight_path == "":
     print("Can't find trained weight, please provide a trained weight with --weight switch\n")
@@ -41,8 +49,7 @@ else:
     print("Loaded weight from {}\n".format(weight_path))
     start = time.time()
     env.reset()
-    command = np.array([0.5, 0, 0], dtype=np.float32)
-    env.set_command(command)
+    # command = np.array([0.5, 0, 0], dtype=np.float32)
     reward_ll_sum = 0
     done_sum = 0
     average_dones = 0.
@@ -62,6 +69,14 @@ else:
 
     for step in range(max_steps):
         frame_start = time.time()
+
+        if (step % 10 == 0):
+            command_Vx = -pygame.joystick.Joystick(0).get_axis(1)
+            command_Vy = - pygame.joystick.Joystick(0).get_axis(0)
+            command_yaw = -pygame.joystick.Joystick(0).get_axis(3)
+            command = np.array([command_Vx, command_Vy, command_yaw], dtype=np.float32)
+            env.set_command(command)
+
         obs = env.observe(False)
         action_ll = loaded_graph.architecture(torch.from_numpy(obs).cpu())
         reward_ll, dones = env.step(action_ll.cpu().detach().numpy())
@@ -74,7 +89,6 @@ else:
             print('----------------------------------------------------\n')
             start_step_id = step + 1
             reward_ll_sum = 0.0
-            env.set_command(command)
 
         frame_end = time.time()
         wait_time = cfg['environment']['control_dt'] - (frame_end-frame_start)
@@ -83,5 +97,4 @@ else:
 
     env.turn_off_visualization()
     env.reset()
-    env.set_command(command)
     print("Finished at the maximum visualization steps")

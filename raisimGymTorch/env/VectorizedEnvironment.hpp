@@ -63,6 +63,12 @@ class VectorizedEnvironment {
       environments_[i]->observe(ob.row(i));
   }
 
+  void unObsState(Eigen::Ref<EigenRowMajorMat> &ob) {
+#pragma omp parallel for
+    for (int i = 0; i < num_envs_; i++)
+      environments_[i]->unObsState(ob.row(i));
+  }
+
   std::vector<std::string> getStepDataTag() {
     return environments_[0]->getStepDataTag();
   }
@@ -148,6 +154,7 @@ class VectorizedEnvironment {
   }
 
   int getObDim() { return environments_[0]->getObDim(); }
+  int getUnObsDim() { return environments_[0]->getUnObsDim(); }
   int getActionDim() { return environments_[0]->getActionDim(); }
   int getNumOfEnvs() { return num_envs_; }
 

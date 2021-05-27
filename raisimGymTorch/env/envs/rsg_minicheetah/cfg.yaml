@@ -7,7 +7,7 @@ environment:
   eval_every_n: 1000
   num_threads: 128
   simulation_dt: 0.001
-  control_dt: 0.02
+  control_dt: 0.005
   max_time: 2.0
   curriculum_factor: 0.3
   curriculum_rate: 0.997
@@ -27,5 +27,6 @@ environment:
     footClearanceCoeff: -13.0 #-10.0
 
 architecture:
-  policy_net: [128, 128]
-  value_net: [128, 128]
+  policy_net: [256, 128]
+  value_net: [256, 128]
+  estimator_net: [256, 64]
