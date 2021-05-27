@@ -89,7 +89,7 @@ class PPO:
 
         # Learning step
         self.storage.compute_returns(last_values.to(self.device), self.gamma, self.lam)
-        mean_value_loss, mean_surrogate_loss, infos = self._train_step()
+        mean_value_loss, mean_surrogate_loss, mean_estimation_loss, infos = self._train_step()
         self.storage.clear()
 
         if log_this_iteration:
@@ -101,11 +101,13 @@ class PPO:
 
         self.writer.add_scalar('Loss/value_function', variables['mean_value_loss'], variables['it'])
         self.writer.add_scalar('Loss/surrogate', variables['mean_surrogate_loss'], variables['it'])
+        self.writer.add_scalar('Loss/estimation', variables['mean_estimation_loss'], variables['it'])
         self.writer.add_scalar('Policy/mean_noise_std', mean_std.item(), variables['it'])
 
     def _train_step(self):
         mean_value_loss = 0
         mean_surrogate_loss = 0
+        mean_estimation_loss = 0
         for epoch in range(self.num_learning_epochs):
             for actor_obs_batch, critic_obs_batch, actions_batch, target_values_batch, est_in_batch, unObsState_batch, \
                 advantages_batch, returns_batch, old_actions_log_prob_batch \
@@ -145,9 +147,11 @@ class PPO:
 
                 mean_value_loss += value_loss.item()
                 mean_surrogate_loss += surrogate_loss.item()
+                mean_estimation_loss += estimator_loss.item()
 
         num_updates = self.num_learning_epochs * self.num_mini_batches
         mean_value_loss /= num_updates
         mean_surrogate_loss /= num_updates
+        mean_estimation_loss /= num_updates
 
-        return mean_value_loss, mean_surrogate_loss, locals()
+        return mean_value_loss, mean_surrogate_loss, mean_estimation_loss, locals()
