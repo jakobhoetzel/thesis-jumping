@@ -65,7 +65,7 @@ class ENVIRONMENT {
   }
 
   void init() {
-    delayDividedBySimdt = 0;// int((control_dt_ / simulation_dt_ + 1e-10)*uniDist_(gen_));
+    delayDividedBySimdt = 0;// int((control_dt_ / simulation_dt_ + 1e-10)*0.5*(uniDist_(gen_)+1));
     /// Test code for checking RotorLocation /
 //    auto *cheetah = reinterpret_cast<raisim::ArticulatedSystem *>(world_->getObject("robot"));
 //
