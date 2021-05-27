@@ -31,7 +31,7 @@ def tensorboard_launcher(directory_path):
     webbrowser.open_new(url)
 
 
-def load_param(weight_path, env, actor, critic, optimizer, data_dir):
+def load_param(weight_path, env, actor, critic, estimator, optimizer, data_dir):
     if weight_path == "":
         raise Exception("\nCan't find the pre-trained weight, please provide a pre-trained weight with --weight switch\n")
     print("\nRetraining from the checkpoint:", weight_path+"\n")
@@ -57,4 +57,5 @@ def load_param(weight_path, env, actor, critic, optimizer, data_dir):
     actor.architecture.load_state_dict(checkpoint['actor_architecture_state_dict'])
     actor.distribution.load_state_dict(checkpoint['actor_distribution_state_dict'])
     critic.architecture.load_state_dict(checkpoint['critic_architecture_state_dict'])
+    estimator.architecture.load_state_dict(checkpoint['estimator_architecture_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
