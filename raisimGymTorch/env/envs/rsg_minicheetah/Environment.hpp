@@ -65,7 +65,7 @@ class ENVIRONMENT {
   }
 
   void init() {
-    delayDevidedBySimdt = 0;// int((control_dt_ / simulation_dt_ + 1e-10)*uniDist_(gen_));
+    delayDividedBySimdt = 0;// int((control_dt_ / simulation_dt_ + 1e-10)*uniDist_(gen_));
     /// Test code for checking RotorLocation /
 //    auto *cheetah = reinterpret_cast<raisim::ArticulatedSystem *>(world_->getObject("robot"));
 //
@@ -176,7 +176,7 @@ class ENVIRONMENT {
     int loopCount = int(control_dt_ / simulation_dt_ + 1e-10);
 
     for (int i = 0; i < int(control_dt_ / simulation_dt_ + 1e-10); i++) {
-      if(i == delayDevidedBySimdt){
+      if(i == delayDividedBySimdt){
         controller_.advance(world_.get(), action);
       }
       if (server_) server_->lockVisualizationServerMutex();
@@ -257,7 +257,7 @@ class ENVIRONMENT {
   double curriculumFactor_ = 0.3, curriculumRate_ = 0.998;
   double simulation_dt_ = 0.002;  // 0.002
   double control_dt_ = 0.016;  // 0.016
-  int delayDevidedBySimdt;
+  int delayDividedBySimdt;
   std::unique_ptr<raisim::RaisimServer> server_;
   Eigen::VectorXd stepData_;
   thread_local static std::mt19937 gen_;
