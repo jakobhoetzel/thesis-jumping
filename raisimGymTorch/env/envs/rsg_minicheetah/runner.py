@@ -80,7 +80,7 @@ data_tags = env.get_step_data_tag()
 scheduler = torch.optim.lr_scheduler.MultiStepLR(ppo.optimizer, milestones=[1000, 10000], gamma=0.333333)
 
 if mode == 'retrain':
-    load_param(weight_path, env, actor, critic, ppo.optimizer, saver.data_dir)
+    load_param(weight_path, env, actor, critic, stateEstimator, ppo.optimizer, saver.data_dir)
 
 for update in range(1000000):
     start = time.time()
@@ -95,6 +95,7 @@ for update in range(1000000):
             'actor_architecture_state_dict': actor.architecture.state_dict(),
             'actor_distribution_state_dict': actor.distribution.state_dict(),
             'critic_architecture_state_dict': critic.architecture.state_dict(),
+            'estimator_architecture_state_dict': stateEstimator.architecture.state_dict(),
             'optimizer_state_dict': ppo.optimizer.state_dict(),
         }, saver.data_dir+"/full_"+str(update)+'.pt')
         actor.save_deterministic_graph(saver.data_dir + "/actor_" + str(update) + ".pt", torch.rand(1, ob_dim + unObs_dim).cpu())
