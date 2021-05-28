@@ -66,8 +66,6 @@ class MinicheetahController {
     gc_stationay_target << gc_init_.head(7),
         0, -0.9, 1.8, 0, -0.9, 1.8, 0, -0.9, 1.8, 0, -0.9, 1.8;
 
-    linVelTarget_ << 0.5, 0., 0.;
-    angVelTarget_ << 0., 0., 0.;
     command_.setZero();
 
     /// set pd gains
@@ -78,8 +76,9 @@ class MinicheetahController {
     cheetah->setGeneralizedForce(Eigen::VectorXd::Zero(gvDim_));
 
     /// MUST BE DONE FOR ALL ENVIRONMENTS
-    obDim_ = 198;  //34 //106 //130 //133
-    unObsDim_ = 7;  //34 //106 //130 //133
+    obDim_ = 130;  //34 //106 //130 //133 //198
+    unObsDim_ = 3;
+    historyLength_ = 6;
     actionDim_ = nJoints_; actionMean_.setZero(actionDim_); actionStd_.setZero(actionDim_);  // action dimension is the same as the number of joints(by applying torque)
     obDouble_.setZero(obDim_); unobservableStates_.setZero(unObsDim_);
     preJointVel_.setZero(nJoints_);
@@ -90,7 +89,7 @@ class MinicheetahController {
 
     /// action scaling
     actionMean_ = gc_init_.tail(nJoints_);
-    actionStd_.setConstant(0.05);  // 0.3
+    actionStd_.setConstant(0.1);  // 0.3
 
     /// indices of links that are only possible to make contact with ground
     footIndices_.push_back(cheetah->getBodyIdx("shank_fr"));
@@ -401,16 +400,17 @@ class MinicheetahController {
   }
 
   const Eigen::VectorXd& getObservation() {
-    obDouble_ << //gc_[2], /// body height. 1
+    obDouble_ << gc_[2], /// body height. 1
         rot_.e().row(2).transpose(), /// body orientation(z-axis in world frame expressed in body frame). 3
         gc_.tail(12), /// joint angles 12
-//        bodyLinearVel_, bodyAngularVel_, /// body linear&angular velocity. 3, 3
+//        bodyLinearVel_, /// body linear velocity. 3
+        bodyAngularVel_, /// body angular velocity. 3
         gv_.tail(12), /// joint velocity 12
         previousAction_, /// previous action 12
         prepreviousAction_, /// preprevious action 12
-        jointPosErrorHist_.segment((historyLength_ - 12) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 12) * nJoints_, nJoints_), /// joint History 24
-        jointPosErrorHist_.segment((historyLength_ - 10) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 10) * nJoints_, nJoints_), /// joint History 24
-        jointPosErrorHist_.segment((historyLength_ - 8) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 8) * nJoints_, nJoints_), /// joint History 24
+//        jointPosErrorHist_.segment((historyLength_ - 12) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 12) * nJoints_, nJoints_), /// joint History 24
+//        jointPosErrorHist_.segment((historyLength_ - 10) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 10) * nJoints_, nJoints_), /// joint History 24
+//        jointPosErrorHist_.segment((historyLength_ - 8) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 8) * nJoints_, nJoints_), /// joint History 24
         jointPosErrorHist_.segment((historyLength_ - 6) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 6) * nJoints_, nJoints_), /// joint History 24
         jointPosErrorHist_.segment((historyLength_ - 4) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 4) * nJoints_, nJoints_), /// joint History 24
         jointPosErrorHist_.segment((historyLength_ - 2) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 2) * nJoints_, nJoints_), /// joint History 24
@@ -449,8 +449,9 @@ class MinicheetahController {
   }
 
   const Eigen::VectorXd& getUnobservableStates() {
-    unobservableStates_ << gc_[2],  /// body height. 1
-        bodyLinearVel_, bodyAngularVel_;  /// body linear&angular velocity. 3, 3
+    unobservableStates_ << //gc_[2],  /// body height. 1
+        bodyLinearVel_;  /// body linear velocity. 3
+//        bodyAngularVel_;  /// body angular velocity. 3
 
     return unobservableStates_;
   }
@@ -500,15 +501,13 @@ class MinicheetahController {
   std::vector<raisim::Vec<3>> footPos_, footVel_;
   std::vector<size_t> footFrameIndices_;
   int obDim_=0, actionDim_=0, unObsDim_;
-  int historyLength_ = 12;
+  int historyLength_;
   Eigen::VectorXd stepData_;
   Eigen::VectorXd airTime_, stanceTime_;
   std::vector<std::string> stepDataTag_;
   Eigen::VectorXd jointPosErrorHist_, jointVelHist_, historyTempMem_, preJointVel_;
   Eigen::VectorXd unobservableStates_;
 
-  Eigen::Vector3d linVelTarget_;
-  Eigen::Vector3d angVelTarget_;
   Eigen::Vector3d command_;
   bool standingMode_;
 

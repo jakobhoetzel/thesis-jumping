@@ -7,24 +7,24 @@ environment:
   eval_every_n: 1000
   num_threads: 128
   simulation_dt: 0.001
-  control_dt: 0.005
+  control_dt: 0.01
   max_time: 2.0
   curriculum_factor: 0.3
   curriculum_rate: 0.997
   reward:
-    bodyAngularVelCoeff1: 5 #1.5
-    forwardVelCoeff1: 5 #3
-    airTimeCoeff: 1.5 # 1.2
-    torqueCoeff: -2.e-4 #-2.e-5
-    jointSpeedCoeff: -3.25e-4 #-3.25e-3
+    bodyAngularVelCoeff1: 1.5 #1.5
+    forwardVelCoeff1: 1 #3
+    airTimeCoeff: 0.3 # 1.2
+    torqueCoeff: -6.e-4 #-2.e-5
+    jointSpeedCoeff: -6e-4 #-3.25e-3
     footSlipCoeff: -8.e-2
     bodyOriCoeff: -3.0 #-5.0
-    smoothnessCoeff1: -2. #-5.0
-    smoothnessCoeff2: -1.6 #-1.6
-    jointPosCoeff: -0.2
-    jointAccCoeff: -3e-3 #-3e-2
-    baseMotionCoeff: -3.0
-    footClearanceCoeff: -13.0 #-10.0
+    smoothnessCoeff1: -1.5 #-5.0
+    smoothnessCoeff2: -0.8 #-1.6
+    jointPosCoeff: -0.5
+    jointAccCoeff: -1e-2 #-3e-2
+    baseMotionCoeff: -0.5
+    footClearanceCoeff: -2.0 #-10.0
 
 architecture:
   policy_net: [256, 128]
