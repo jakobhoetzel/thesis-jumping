@@ -23,7 +23,7 @@ environment:
     smoothnessCoeff2: -0.8 #-1.6
     jointPosCoeff: -0.5
     jointAccCoeff: -1e-2 #-3e-2
-    baseMotionCoeff: -0.5
+    baseMotionCoeff: -1.
     footClearanceCoeff: -2.0 #-10.0
 
 architecture:
