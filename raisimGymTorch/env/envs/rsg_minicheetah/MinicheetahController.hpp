@@ -70,8 +70,8 @@ class MinicheetahController {
 
     /// set pd gains
     Eigen::VectorXd jointPgain(gvDim_), jointDgain(gvDim_);
-    jointPgain.setZero(); jointPgain.tail(nJoints_).setConstant(30.0);
-    jointDgain.setZero(); jointDgain.tail(nJoints_).setConstant(0.2);
+    jointPgain.setZero(); jointPgain.tail(nJoints_).setConstant(20.0);
+    jointDgain.setZero(); jointDgain.tail(nJoints_).setConstant(0.4);
     cheetah->setPdGains(jointPgain, jointDgain);
     cheetah->setGeneralizedForce(Eigen::VectorXd::Zero(gvDim_));
 
@@ -199,11 +199,11 @@ class MinicheetahController {
       /// Generalized Velocities randomization.
       for (int i = 0; i < gvDim_; i++) {
         if(i<3) {
-          gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 0.3;  /// XYZ velocity: +- 0.3m/s
+          gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 0.5;  /// XYZ velocity: +- 0.3m/s
         } else if(i<6) {
           gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 0.5;  /// rpy: +- 0.5rad/s
         } else {
-          gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 1.0;  /// joint speed: +- 1.0rad/s
+          gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 1.5;  /// joint speed: +- 1.0rad/s
         }
       }
     } else {
