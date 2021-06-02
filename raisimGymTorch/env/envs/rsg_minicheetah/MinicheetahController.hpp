@@ -176,40 +176,6 @@ class MinicheetahController {
   bool reset(raisim::World *world) {
     auto *cheetah = reinterpret_cast<raisim::ArticulatedSystem *>(world->getObject("robot"));
 
-    bool init_noise = true;
-    if (init_noise) {
-      /// Generalized Coordinates randomization.
-      for (int i = 0; i < gcDim_; i++) {
-        if(i<3) {
-          continue;  /// XYZ position: no noise.
-        } else if(i<7) {
-          gc_init_noise(i) = gc_init_(i) + uniDist_(gen_) * 0.2;  /// quaternion: +- 0.2
-        } else {
-          if(i%3 == 1)
-            gc_init_noise(i) = gc_init_(i) + uniDist_(gen_) * 0.2;  /// HAA joint angles: +- 0.2rad
-          if(i%3 == 2)
-            gc_init_noise(i) = (gc_init_(i) - 0.1) + uniDist_(gen_) * 0.2;  /// HFE joint angles: +- 0.2rad
-          else
-            gc_init_noise(i) = (gc_init_(i) + 0.2) + uniDist_(gen_) * 0.2;  /// knee joint angles: +- 0.2rad
-        }
-      }
-      double quat_sum = gc_init_noise.segment(3, 4).norm();
-      gc_init_noise.segment(3, 4) /= quat_sum;
-
-      /// Generalized Velocities randomization.
-      for (int i = 0; i < gvDim_; i++) {
-        if(i<3) {
-          gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 0.3;  /// XYZ velocity: +- 0.3m/s
-        } else if(i<6) {
-          gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 0.5;  /// rpy: +- 0.5rad/s
-        } else {
-          gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 1.0;  /// joint speed: +- 1.0rad/s
-        }
-      }
-    } else {
-      gc_init_noise = gc_init_; gv_init_noise = gv_init_;
-    }
-
     /// command generation
     double p = uniDist_(gen_);
     if(fabs(p) < 0.1) {
@@ -221,6 +187,46 @@ class MinicheetahController {
         command_ << 1.0 * uniDist_(gen_), 1.0 * uniDist_(gen_), 1.0 * uniDist_(gen_);
       } while (command_.norm() < 0.3);
       standingMode_ = false;
+    }
+
+    bool keep_state = fabs(uniDist_(gen_)) < 0.5; /// keep state and only change command
+    if (keep_state){
+      return true;
+    }
+    else {
+      bool init_noise = true;
+      if (init_noise) {
+        /// Generalized Coordinates randomization.
+        for (int i = 0; i < gcDim_; i++) {
+          if (i < 3) {
+            continue;  /// XYZ position: no noise.
+          } else if (i < 7) {
+            gc_init_noise(i) = gc_init_(i) + uniDist_(gen_) * 0.2;  /// quaternion: +- 0.2
+          } else {
+            if (i % 3 == 1)
+              gc_init_noise(i) = gc_init_(i) + uniDist_(gen_) * 0.2;  /// HAA joint angles: +- 0.2rad
+            if (i % 3 == 2)
+              gc_init_noise(i) = (gc_init_(i) - 0.1) + uniDist_(gen_) * 0.2;  /// HFE joint angles: +- 0.2rad
+            else
+              gc_init_noise(i) = (gc_init_(i) + 0.2) + uniDist_(gen_) * 0.2;  /// knee joint angles: +- 0.2rad
+          }
+        }
+        double quat_sum = gc_init_noise.segment(3, 4).norm();
+        gc_init_noise.segment(3, 4) /= quat_sum;
+
+        /// Generalized Velocities randomization.
+        for (int i = 0; i < gvDim_; i++) {
+          if (i < 3) {
+            gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 0.3;  /// XYZ velocity: +- 0.3m/s
+          } else if (i < 6) {
+            gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 0.5;  /// rpy: +- 0.5rad/s
+          } else {
+            gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 1.0;  /// joint speed: +- 1.0rad/s
+          }
+        }
+      } else {
+        gc_init_noise = gc_init_; gv_init_noise = gv_init_;
+      }
     }
 
     /// Test code for mass matrix
@@ -277,12 +283,14 @@ class MinicheetahController {
     updateObservation(world);  // update obDouble, and so on.
 
     /// A variable for foot slip reward and foot clearance reward
-    double footTangentialForSlip = 0, footColearanceTangential = 0;
+    double footTangentialForSlip = 0, footClearanceTangential = 0;
     for(int i = 0; i < 4; i++) {
       if (footContactState_[i]) {
         footTangentialForSlip += footVel_[i].e().head(2).squaredNorm();
+      } else {
+        footClearanceTangential +=
+                std::pow((footPos_[i].e()(2) - desiredFootZPosition), 2) * footVel_[i].e().head(2).squaredNorm();
       }
-      footColearanceTangential += std::pow((footPos_[i].e()(2) - desiredFootZPosition), 2) * footVel_[i].e().head(2).squaredNorm();
     }
 
     /// A variable for airtime reward calculation
@@ -322,7 +330,7 @@ class MinicheetahController {
     double rewJointPosition = (gc_.tail(nJoints_) - gc_init_.tail(nJoints_)).squaredNorm() * rewardCoeff.at(RewardType::JOINTPOS);
     double rewJointAcc = (gv_.tail(12) - preJointVel_).squaredNorm() * rewardCoeff.at(RewardType::JOINTACC);
     double rewBaseMotion = (0.8 * bodyLinearVel_[2] * bodyLinearVel_[2] + 0.2 * fabs(bodyAngularVel_[0]) + 0.2 * fabs(bodyAngularVel_[1])) * rewardCoeff.at(RewardType::BASEMOTION);
-    double rewFootClearance = footColearanceTangential * rewardCoeff.at(RewardType::FOOTCLEARANCE);
+    double rewFootClearance = footClearanceTangential * rewardCoeff.at(RewardType::FOOTCLEARANCE);
 
     stepData_[0] = rewBodyAngularVel;  /// positive reward
     stepData_[1] = rewLinearVel;  /// positive reward
