@@ -70,7 +70,7 @@ class MinicheetahController {
 
     /// set pd gains
     Eigen::VectorXd jointPgain(gvDim_), jointDgain(gvDim_);
-    jointPgain.setZero(); jointPgain.tail(nJoints_).setConstant(20.0);
+    jointPgain.setZero(); jointPgain.tail(nJoints_).setConstant(17.0);
     jointDgain.setZero(); jointDgain.tail(nJoints_).setConstant(0.4);
     cheetah->setPdGains(jointPgain, jointDgain);
     cheetah->setGeneralizedForce(Eigen::VectorXd::Zero(gvDim_));
@@ -303,8 +303,8 @@ class MinicheetahController {
       else {
         if (airTime_[i] < 0.3 && airTime_[i] > 0.)
           airtimeTotal += std::min(airTime_[i], 0.2);
-        else if (stanceTime_[i] > -0.3 && stanceTime_[i] < 0.)
-          airtimeTotal += std::min(stanceTime_[i], 0.2);
+        else if (stanceTime_[i] < 0.2 && stanceTime_[i] > 0.)
+          airtimeTotal += std::min(stanceTime_[i], 0.1);
       }
     }
 
