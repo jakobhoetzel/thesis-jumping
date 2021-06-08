@@ -58,7 +58,9 @@ stateEstimator = ppo_module.StateEstimator(ppo_module.MLP(cfg['architecture']['e
                                            device)
 
 saver = ConfigurationSaver(log_dir=home_path + "/raisimGymTorch/data/"+task_name,  # save environment and configuration data.
-                           save_items=[task_path + "/cfg.yaml", task_path + "/Environment.hpp", task_path + "/MinicheetahController.hpp", task_path + "/runner.py"])
+                           save_items=[task_path + "/cfg.yaml", task_path + "/Environment.hpp", task_path + "/MinicheetahController.hpp",
+                                       task_path + "/runner.py", task_path + "/../../../algo/ppo/module.py",
+                                       task_path + "/../../../algo/ppo/ppo.py", task_path + "/../../../algo/ppo/storage.py"])
 tensorboard_launcher(saver.data_dir+"/..")  # press refresh (F5) after the first ppo update
 
 ppo = PPO.PPO(actor=actor,
@@ -69,6 +71,7 @@ ppo = PPO.PPO(actor=actor,
               num_learning_epochs=4,
               gamma=0.99,
               lam=0.95,
+              learning_rate=5e-4,
               num_mini_batches=4,
               device=device,
               log_dir=saver.data_dir,
@@ -77,7 +80,7 @@ ppo = PPO.PPO(actor=actor,
 
 data_tags = env.get_step_data_tag()
 
-scheduler = torch.optim.lr_scheduler.MultiStepLR(ppo.optimizer, milestones=[1000, 10000], gamma=0.333333)
+scheduler = torch.optim.lr_scheduler.MultiStepLR(ppo.optimizer, milestones=[800, 10000], gamma=0.333333)
 
 if mode == 'retrain':
     load_param(weight_path, env, actor, critic, stateEstimator, ppo.optimizer, saver.data_dir)
@@ -174,7 +177,7 @@ for update in range(1000000):
     avg_rewards.append(average_ll_performance)
 
 
-    actor.distribution.enforce_minimum_std((torch.ones(12)*0.2).to(device))
+    actor.distribution.enforce_minimum_std((torch.ones(12)*0.25).to(device))
 
     env.curriculum_callback()
 

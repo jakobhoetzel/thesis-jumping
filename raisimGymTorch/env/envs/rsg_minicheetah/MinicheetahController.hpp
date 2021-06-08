@@ -76,8 +76,8 @@ class MinicheetahController {
     cheetah->setGeneralizedForce(Eigen::VectorXd::Zero(gvDim_));
 
     /// MUST BE DONE FOR ALL ENVIRONMENTS
-    obDim_ = 130;  //34 //106 //130 //133 //198
-    unObsDim_ = 3;
+    obDim_ = 129;  //34 //106 //130 //133 //198
+    unObsDim_ = 4;
     historyLength_ = 6;
     actionDim_ = nJoints_; actionMean_.setZero(actionDim_); actionStd_.setZero(actionDim_);  // action dimension is the same as the number of joints(by applying torque)
     obDouble_.setZero(obDim_); unobservableStates_.setZero(unObsDim_);
@@ -178,18 +178,18 @@ class MinicheetahController {
 
     /// command generation
     double p = uniDist_(gen_);
-    if(fabs(p) < 0.1) {
+    if(fabs(p) < 0.15) {
       command_.setZero();
       standingMode_ = true;
     }
     else {
       do {
         command_ << 1.0 * uniDist_(gen_), 1.0 * uniDist_(gen_), 1.0 * uniDist_(gen_);
-      } while (command_.norm() < 0.3);
+      } while (command_.norm() < 0.2);
       standingMode_ = false;
     }
 
-    bool keep_state = fabs(uniDist_(gen_)) < 0.5; /// keep state and only change command
+    bool keep_state = fabs(uniDist_(gen_)) < 0.25; /// keep state and only change command
     if (keep_state){
       return true;
     }
@@ -217,11 +217,11 @@ class MinicheetahController {
       /// Generalized Velocities randomization.
       for (int i = 0; i < gvDim_; i++) {
         if (i < 3) {
-          gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 0.5;  /// XYZ velocity: +- 0.3m/s
+          gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 0.5;  /// XYZ velocity: +- 0.5m/s
         } else if (i < 6) {
-          gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 0.5;  /// rpy: +- 0.5rad/s
+          gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 0.7;  /// rpy: +- 0.7rad/s
         } else {
-          gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 1.5;  /// joint speed: +- 1.0rad/s
+          gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 2.5;  /// joint speed: +- 2.5rad/s
         }
       }
     } else {
@@ -310,10 +310,10 @@ class MinicheetahController {
         airtimeTotal += std::min(std::max(stanceTime_[i] - airTime_[i], -0.3), 0.3);
       }
       else {
-        if (airTime_[i] < 0.3 && airTime_[i] > 0.)
-          airtimeTotal += std::min(airTime_[i], 0.2);
+        if (airTime_[i] < 0.2 && airTime_[i] > 0.)
+          airtimeTotal += std::min(airTime_[i], 0.15);
         else if (stanceTime_[i] < 0.2 && stanceTime_[i] > 0.)
-          airtimeTotal += std::min(stanceTime_[i], 0.1);
+          airtimeTotal += std::min(stanceTime_[i], 0.15);
       }
     }
 
@@ -409,7 +409,7 @@ class MinicheetahController {
   }
 
   const Eigen::VectorXd& getObservation() {
-    obDouble_ << gc_[2], /// body height. 1
+    obDouble_ << //gc_[2], /// body height. 1
         rot_.e().row(2).transpose(), /// body orientation(z-axis in world frame expressed in body frame). 3
         gc_.tail(12), /// joint angles 12
 //        bodyLinearVel_, /// body linear velocity. 3
@@ -458,7 +458,7 @@ class MinicheetahController {
   }
 
   const Eigen::VectorXd& getUnobservableStates() {
-    unobservableStates_ << //gc_[2],  /// body height. 1
+    unobservableStates_ << gc_[2],  /// body height. 1
         bodyLinearVel_;  /// body linear velocity. 3
 //        bodyAngularVel_;  /// body angular velocity. 3
 

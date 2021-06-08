@@ -156,7 +156,6 @@ class ENVIRONMENT {
   }
 
   void reset() {
-    delayDividedBySimdt = 0;// int((control_dt_ / simulation_dt_ + 1e-10)*0.5*(uniDist_(gen_)+1));
     controller_.reset(world_.get());
   }
 
@@ -174,6 +173,7 @@ class ENVIRONMENT {
 //    controller_.advance(world_.get(), action); ///make sure default pd target is not nan
     stepData_.setZero();
     int loopCount = int(control_dt_ / simulation_dt_ + 1e-10);
+    delayDividedBySimdt = int((control_dt_ / simulation_dt_ + 1e-10)*0.5*(uniDist_(gen_)+1));
 
     for (int i = 0; i < int(control_dt_ / simulation_dt_ + 1e-10); i++) {
       if(i == delayDividedBySimdt){
