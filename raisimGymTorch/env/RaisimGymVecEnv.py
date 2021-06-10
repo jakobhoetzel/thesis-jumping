@@ -109,8 +109,8 @@ class RaisimGymVecEnv:
     def close(self):
         self.wrapper.close()
 
-    def curriculum_callback(self):
-        self.wrapper.curriculumUpdate()
+    def curriculum_callback(self, iter):
+        self.wrapper.curriculumUpdate(iter)
 
     def get_step_data_tag(self):
         return self.wrapper.getStepDataTag()

@@ -9,8 +9,11 @@ environment:
   simulation_dt: 0.001
   control_dt: 0.01
   max_time: 2.0
-  curriculum_factor: 0.3
-  curriculum_rate: 0.997
+  rew_curriculum_factor: 0.5
+  rew_curriculum_rate: 0.9998
+  com_curriculum_factor1: 0.001
+  com_curriculum_factor2: 15000
+  com_curriculum_factor3: 1
   reward:
     bodyAngularVelCoeff1: 1.5 #1.5
     forwardVelCoeff1: 1 #3

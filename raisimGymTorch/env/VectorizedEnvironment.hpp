@@ -159,9 +159,9 @@ class VectorizedEnvironment {
   int getNumOfEnvs() { return num_envs_; }
 
   ////// optional methods //////
-  void curriculumUpdate() {
+  void curriculumUpdate(int iter) {
     for (auto *env: environments_)
-      env->curriculumUpdate();
+      env->curriculumUpdate(iter);
   };
 
   void printTest() { environments_[0]->printTest();}

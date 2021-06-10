@@ -173,7 +173,7 @@ class MinicheetahController {
     return true;
   }
 
-  bool reset(raisim::World *world) {
+  bool reset(raisim::World *world, double comCurriculumFactor) {
     auto *cheetah = reinterpret_cast<raisim::ArticulatedSystem *>(world->getObject("robot"));
 
     /// command generation
@@ -184,7 +184,7 @@ class MinicheetahController {
     }
     else {
       do {
-        command_ << 1.0 * uniDist_(gen_), 1.0 * uniDist_(gen_), 1.0 * uniDist_(gen_);
+        command_ << comCurriculumFactor * uniDist_(gen_), 1.0 * uniDist_(gen_), 1.0 * uniDist_(gen_);
       } while (command_.norm() < 0.2);
       standingMode_ = false;
     }
@@ -276,7 +276,7 @@ class MinicheetahController {
     return true;
   }
 
-  void getReward(raisim::World *world, const std::map<RewardType, float>& rewardCoeff, double simulation_dt, double curriculumFactor) {
+  void getReward(raisim::World *world, const std::map<RewardType, float>& rewardCoeff, double simulation_dt, double rewCurriculumFactor) {
     auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world->getObject("robot"));
 
     double desiredFootZPosition = 0.1;

@@ -34,8 +34,11 @@ class ENVIRONMENT {
     controller_.create(world_.get());
     READ_YAML(double, simulation_dt_, cfg["simulation_dt"])
     READ_YAML(double, control_dt_, cfg["control_dt"])
-    READ_YAML(double, curriculumFactor_, cfg["curriculum_factor"])
-    READ_YAML(double, curriculumRate_, cfg["curriculum_rate"])
+    READ_YAML(double, rewCurriculumFactor_, cfg["rew_curriculum_factor"])
+    READ_YAML(double, rewCurriculumRate_, cfg["rew_curriculum_rate"])
+    READ_YAML(double, comCurriculumFactor1_, cfg["com_curriculum_factor1"])
+    READ_YAML(double, comCurriculumFactor2_, cfg["com_curriculum_factor2"])
+    READ_YAML(double, comCurriculumFactor3_, cfg["com_curriculum_factor3"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::ANGULARVELOCIY1], cfg["reward"]["bodyAngularVelCoeff1"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::VELOCITY1], cfg["reward"]["forwardVelCoeff1"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::JOINTSPEED], cfg["reward"]["jointSpeedCoeff"])
@@ -156,7 +159,7 @@ class ENVIRONMENT {
   }
 
   void reset() {
-    controller_.reset(world_.get());
+    controller_.reset(world_.get(), comCurriculumFactorT_);
   }
 
   const std::vector<std::string>& getStepDataTag() {
@@ -182,7 +185,7 @@ class ENVIRONMENT {
       if (server_) server_->lockVisualizationServerMutex();
       world_->integrate();  // What does integration do? A. Simulate robot states and motions for the next simulation time.
       if (server_) server_->unlockVisualizationServerMutex();
-      controller_.getReward(world_.get(), rewardCoeff_, simulation_dt_, curriculumFactor_);
+      controller_.getReward(world_.get(), rewardCoeff_, simulation_dt_, rewCurriculumFactor_);
       stepData_ += controller_.getStepData();
     }
 
@@ -214,8 +217,12 @@ class ENVIRONMENT {
     return false;
   }
   /////// optional methods ///////
-  void curriculumUpdate() {curriculumFactor_ = pow(curriculumFactor_, curriculumRate_);};
-  float getCurriculumFactor() {return float(curriculumFactor_);};
+  void curriculumUpdate(int iter) {
+    rewCurriculumFactor_ = pow(rewCurriculumFactor_, rewCurriculumRate_);
+    comCurriculumFactorT_ = 1 + comCurriculumFactor3_ / (1 + std::exp(-comCurriculumFactor1_ * (iter - comCurriculumFactor2_)));
+    comCurriculumFactorT_ = std::fmax(1., comCurriculumFactorT_);
+  };
+  float getCurriculumFactor() {return float(rewCurriculumFactor_);};
   void close() { if (server_) server_->killServer(); };
   void setSeed(int seed) { controller_.setSeed(seed); };
   ////////////////////////////////
@@ -254,9 +261,10 @@ class ENVIRONMENT {
   double terminalRewardCoeff_ = -10.;
   MinicheetahController controller_;
   std::unique_ptr<raisim::World> world_;
-  double curriculumFactor_ = 0.3, curriculumRate_ = 0.998;
-  double simulation_dt_ = 0.002;  // 0.002
-  double control_dt_ = 0.016;  // 0.016
+  double rewCurriculumFactor_, rewCurriculumRate_;
+  double comCurriculumFactorT_ = 1., comCurriculumFactor1_, comCurriculumFactor2_, comCurriculumFactor3_;
+  double simulation_dt_;
+  double control_dt_;
   int delayDividedBySimdt;
   std::unique_ptr<raisim::RaisimServer> server_;
   Eigen::VectorXd stepData_;
