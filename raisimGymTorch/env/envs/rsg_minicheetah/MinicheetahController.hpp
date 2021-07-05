@@ -127,49 +127,6 @@ class MinicheetahController {
 
     cheetah->setPdTarget(pTarget_, vTarget_);  // Set vTarget as 0 because we don't know vTarget. It works quite well.
 
-    /// Value test
-//    static int testIter = 0;
-//    testIter++;
-
-    /// Torque test
-//    if(testIter > 100) {
-//      gTorque = cheetah->getGeneralizedForce().e().tail(12);
-//      std::cout << "Torque Test: " << std::endl;
-//    std::cout << cheetah->getGeneralizedForce().e().tail(12).transpose().format(CleanFmt) << std::endl;
-//      for (int i = 0; i < nJoints_; i++) {
-//        if (torqueMax_(i) < gTorque(i)) torqueMax_(i) = gTorque(i);
-//        if (torqueMin_(i) > gTorque(i)) torqueMin_(i) = gTorque(i);
-//      }
-//      std::cout << "Torque Max: " << std::endl << torqueMax_.format(CleanFmt) << std::endl;
-//      std::cout << "Torque Min: " << std::endl << torqueMin_.format(CleanFmt) << std::endl;
-//    }
-
-    /// joint position, velocity test
-//    if(testIter > 100) {
-//      for (int i = 0; i < 4; i++) {
-//        for (int j = 0; j < 3; j++) {
-//          if (gcMax_.tail(12)(3 * i + j) < gc_.tail(12)(3 * i + j))
-//            gcMax_.tail(12)(3 * i + j) = gc_.tail(12)(3 * i + j);
-//          if (gcMin_.tail(12)(3 * i + j) > gc_.tail(12)(3 * i + j))
-//            gcMin_.tail(12)(3 * i + j) = gc_.tail(12)(3 * i + j);
-//          if (gvMax_.tail(12)(3 * i + j) < gv_.tail(12)(3 * i + j))
-//            gvMax_.tail(12)(3 * i + j) = gv_.tail(12)(3 * i + j);
-//          if (gvMin_.tail(12)(3 * i + j) > gv_.tail(12)(3 * i + j))
-//            gvMin_.tail(12)(3 * i + j) = gv_.tail(12)(3 * i + j);
-//        }
-//      }
-//
-//      std::cout << "gc Test: " << std::endl;
-//      std::cout << gc_.tail(12).format(CleanFmt) << std::endl;
-//      std::cout << "gv Test: " << std::endl;
-//      std::cout << gv_.tail(12).format(CleanFmt) << std::endl;
-//
-//      std::cout << "Joint Max position: " << std::endl << gcMax_.tail(12).format(CleanFmt) << std::endl;
-//      std::cout << "Joint Min position: " << std::endl << gcMin_.tail(12).format(CleanFmt) << std::endl;
-//      std::cout << "Joint Max velocity: " << std::endl << gvMax_.tail(12).format(CleanFmt) << std::endl;
-//      std::cout << "Joint Min velocity: " << std::endl << gvMin_.tail(12).format(CleanFmt) << std::endl;
-//    }
-
     return true;
   }
 
@@ -185,6 +142,9 @@ class MinicheetahController {
     else {
       do {
         command_ << comCurriculumFactor * uniDist_(gen_), 1.0 * uniDist_(gen_), 1.0 * uniDist_(gen_);
+        if (command_(0) < 0) {
+          command_(0) *= 0.5;
+        }
       } while (command_.norm() < 0.2);
       standingMode_ = false;
     }
@@ -214,37 +174,23 @@ class MinicheetahController {
         double quat_sum = gc_init_noise.segment(3, 4).norm();
         gc_init_noise.segment(3, 4) /= quat_sum;
 
-      /// Generalized Velocities randomization.
-      for (int i = 0; i < gvDim_; i++) {
-        if (i < 3) {
-          gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 0.5;  /// XYZ velocity: +- 0.5m/s
-        } else if (i < 6) {
-          gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 0.7;  /// rpy: +- 0.7rad/s
-        } else {
-          gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 2.5;  /// joint speed: +- 2.5rad/s
+        /// Generalized Velocities randomization.
+        for (int i = 0; i < gvDim_; i++) {
+          if (i < 3) {
+            gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 0.5;  /// XYZ velocity: +- 0.5m/s
+          } else if (i < 6) {
+            gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 0.7;  /// rpy: +- 0.7rad/s
+          } else {
+            gv_init_noise(i) = gv_init_(i) + uniDist_(gen_) * 2.5;  /// joint speed: +- 2.5rad/s
+          }
+
+          if (standingMode_) gv_init_noise(i) *= 2;
         }
-      }
-    } else {
-      gc_init_noise = gc_init_;
-      gv_init_noise = gv_init_;
+      } else {
+        gc_init_noise = gc_init_;
+        gv_init_noise = gv_init_;
       }
     }
-
-    /// Test code for mass matrix
-//    // Joint position
-//    gc_init_noise.setZero(); gc_init_noise(2) = 0.4035; gc_init_noise(3) = 1;
-////    gc_init_noise.head(7) << 0, 0, 0.4,  0, 0, 0, 1;
-//    gc_init_noise << -0.000273539, 0, 0.198284, 0.999949, 0.000145574, -0.00792975, 0.000121866, -0.0865144, -0.96245, 2.05633, 0.0856435, -0.962604, 2.0563, -0.0983707, -0.970998, 2.08712, 0.0983299, -0.970751, 2.08679;
-////    gc_init_noise.tail(12) << 0, 0, 0,  0, 0, 0,  0, 0, 0,  1, 1, 1;
-//    Eigen::VectorXd getGc, getGv;
-//    getGc.setZero(19); getGv.setZero(18);
-//    cheetah->getState(getGc, getGv);
-//    std::cout << "Generalized Coordinates: " << std::endl;
-//    std::cout << getGc << std::endl;
-//    cheetah->setState(gc_init_noise, gv_init_noise);
-//    world->integrate1();
-//    std::cout << "Mass matrix: " << std::endl;
-//    std::cout << cheetah->getMassMatrix().e().format(CleanFmt) << std::endl;
 
 
     /// Set the lowest foot on the ground.
@@ -279,7 +225,7 @@ class MinicheetahController {
   void getReward(raisim::World *world, const std::map<RewardType, float>& rewardCoeff, double simulation_dt, double rewCurriculumFactor) {
     auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world->getObject("robot"));
 
-    double desiredFootZPosition = 0.1;
+    double desiredFootZPosition = 0.08;
     preJointVel_ = gv_.tail(nJoints_);
     updateObservation(world);  // update obDouble, and so on.
 
@@ -290,7 +236,7 @@ class MinicheetahController {
         footTangentialForSlip += footVel_[i].e().head(2).squaredNorm();
       } else {
         footClearanceTangential +=
-                std::pow((footPos_[i].e()(2) - desiredFootZPosition), 2) * footVel_[i].e().head(2).squaredNorm();
+            std::pow((footPos_[i].e()(2) - desiredFootZPosition), 2) * footVel_[i].e().head(2).norm();
       }
     }
 
@@ -313,7 +259,7 @@ class MinicheetahController {
         if (airTime_[i] < 0.2 && airTime_[i] > 0.)
           airtimeTotal += std::min(airTime_[i], 0.15);
         else if (stanceTime_[i] < 0.2 && stanceTime_[i] > 0.)
-          airtimeTotal += std::min(stanceTime_[i], 0.15);
+          airtimeTotal += std::min(stanceTime_[i], 0.15)  / std::max(1., bodyLinearVel_.head(2).norm() / 1.5);
       }
     }
 
@@ -410,7 +356,7 @@ class MinicheetahController {
 
   const Eigen::VectorXd& getObservation() {
     obDouble_ << //gc_[2], /// body height. 1
-        rot_.e().row(2).transpose(), /// body orientation(z-axis in world frame expressed in body frame). 3
+              rot_.e().row(2).transpose(), /// body orientation(z-axis in world frame expressed in body frame). 3
         gc_.tail(12), /// joint angles 12
 //        bodyLinearVel_, /// body linear velocity. 3
         bodyAngularVel_, /// body angular velocity. 3
@@ -496,7 +442,7 @@ class MinicheetahController {
 //    std::cout << "Observation Test for debugging!" << std::endl;
 //    std::cout << "Observation: " << std::endl;
 //    std::cout << getObservation() << std::endl;
-}
+  }
 
  private:
   int gcDim_, gvDim_, nJoints_;
