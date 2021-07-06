@@ -2,9 +2,9 @@
 <robot name="mini_cheetah" xmlns:xacro="http://ros.org/wiki/xacro">
     <link name="body">
         <inertial>
-            <mass value="5.208"/>
+            <mass value="4.832"/>
             <origin xyz="0.0 0.0 0.0"/>
-            <inertia ixx="0.01775928" ixy="0" ixz="0" iyy="0.067342415" iyz="0" izz="0.075798186"/>
+            <inertia ixx="0.01647712" ixy="0" ixz="0" iyy="0.06248052" iyz="0" izz="0.070325813"/>
         </inertial>
         <visual>
             <geometry>
@@ -28,7 +28,7 @@
         <inertial>
             <mass value="0.055"/>
             <origin xyz="0.0 0.0 0.0"/>
-            <inertia ixx="0.000063" ixy="0.0" ixz="0.0" iyy="0.000033" iyz="0.0" izz="0.000033"/>
+            <inertia ixx="0.000141" ixy="0.0" ixz="0.0" iyy="0.000033" iyz="0.0" izz="0.000033"/>
         </inertial>
     </link>
     <joint name="abduct_fl_rotor_j" type="fixed">
@@ -40,7 +40,7 @@
         <inertial>
             <mass value="0.055"/>
             <origin xyz="0.0 0.0 0.0"/>
-            <inertia ixx="0.000063" ixy="0.0" ixz="0.0" iyy="0.000033" iyz="0.0" izz="0.000033"/>
+            <inertia ixx="0.000141" ixy="0.0" ixz="0.0" iyy="0.000033" iyz="0.0" izz="0.000033"/>
         </inertial>
     </link>
     <joint name="abduct_hr_rotor_j" type="fixed">
@@ -52,7 +52,7 @@
         <inertial>
             <mass value="0.055"/>
             <origin xyz="0.0 0.0 0.0"/>
-            <inertia ixx="0.000063" ixy="0.0" ixz="0.0" iyy="0.000033" iyz="0.0" izz="0.000033"/>
+            <inertia ixx="0.000141" ixy="0.0" ixz="0.0" iyy="0.000033" iyz="0.0" izz="0.000033"/>
         </inertial>
     </link>
     <joint name="abduct_hl_rotor_j" type="fixed">
@@ -64,7 +64,7 @@
         <inertial>
             <mass value="0.055"/>
             <origin xyz="0.0 0.0 0.0"/>
-            <inertia ixx="0.000063" ixy="0.0" ixz="0.0" iyy="0.000033" iyz="0.0" izz="0.000033"/>
+            <inertia ixx="0.000141" ixy="0.0" ixz="0.0" iyy="0.000033" iyz="0.0" izz="0.000033"/>
         </inertial>
     </link>
 
@@ -75,7 +75,7 @@
         <parent link="body"/>
         <child link="abduct_fr"/>
         <limit effort="17" lower="-1.5" upper="1.5" velocity="40"/>
-        <dynamics rotor_inertia="2268e-6" damping=".01"/>
+        <dynamics rotor_inertia="5076e-6" damping=".01"/>
     </joint>
     <link name="abduct_fr">
         <inertial>
@@ -106,7 +106,7 @@
         <inertial>
             <mass value="0.055"/>
             <origin xyz="0.0 0.0 0.0"/>
-            <inertia ixx="0.000033" ixy="0.0" ixz="0.0" iyy="0.000063" iyz="0.0" izz="0.000033"/>
+            <inertia ixx="0.000033" ixy="0.0" ixz="0.0" iyy="0.000141" iyz="0.0" izz="0.000033"/>
         </inertial>
     </link>
 
@@ -116,7 +116,7 @@
         <parent link="abduct_fr"/>
         <child link="thigh_fr"/>
         <limit effort="17" lower="-5." upper="5." velocity="40"/>
-        <dynamics rotor_inertia="2268e-6" damping=".01"/>
+        <dynamics rotor_inertia="5076e-6" damping=".01"/>
     </joint>
     <link name="thigh_fr">
         <inertial>
@@ -147,7 +147,7 @@
         <inertial>
             <mass value="0.055"/>
             <origin xyz="0.0 0.0 0.0"/>
-            <inertia ixx="0.000033" ixy="0.0" ixz="0.0" iyy="0.000063" iyz="0.0" izz="0.000033"/>
+            <inertia ixx="0.000033" ixy="0.0" ixz="0.0" iyy="0.000141" iyz="0.0" izz="0.000033"/>
         </inertial>
     </link>
 
@@ -157,13 +157,13 @@
         <parent link="thigh_fr"/>
         <child link="shank_fr"/>
         <limit effort="26" lower="-2.705259778" upper="2.705259778" velocity="40"/>
-        <dynamics rotor_inertia="5484e-6" damping=".01555"/>
+        <dynamics rotor_inertia="12274e-6" damping=".0.01555"/>
     </joint>
     <link name="shank_fr">
         <inertial>
-            <mass value="0.064"/>
+            <mass value="0.158"/>
             <origin xyz="0.0 0.0 -0.061"/>
-            <inertia ixx="0.000245" ixy="0" ixz="0.0" iyy="0.000248" iyz="0" izz="0.000006"/>
+            <inertia ixx="0.000605" ixy="0" ixz="0.0" iyy="0.000612" iyz="0" izz="0.000015"/>
         </inertial>
         <visual>
             <geometry>
@@ -205,7 +205,7 @@
         <parent link="body"/>
         <child link="abduct_fl"/>
         <limit effort="17" lower="-1.5" upper="1.5" velocity="40"/>
-        <dynamics rotor_inertia="2268e-6" damping=".01"/>
+        <dynamics rotor_inertia="5076e-6" damping=".01"/>
     </joint>
     <link name="abduct_fl">
         <inertial>
@@ -236,7 +236,7 @@
         <inertial>
             <mass value="0.055"/>
             <origin xyz="0.0 0.0 0.0"/>
-            <inertia ixx="0.000033" ixy="0.0" ixz="0.0" iyy="0.000063" iyz="0.0" izz="0.000033"/>
+            <inertia ixx="0.000033" ixy="0.0" ixz="0.0" iyy="0.000141" iyz="0.0" izz="0.000033"/>
         </inertial>
     </link>
 
@@ -246,7 +246,7 @@
         <parent link="abduct_fl"/>
         <child link="thigh_fl"/>
         <limit effort="17" lower="-5." upper="5." velocity="40"/>
-        <dynamics rotor_inertia="2268e-6" damping=".01"/>
+        <dynamics rotor_inertia="5076e-6" damping=".01"/>
     </joint>
     <link name="thigh_fl">
         <inertial>
@@ -277,7 +277,7 @@
         <inertial>
             <mass value="0.055"/>
             <origin xyz="0.0 0.0 0.0"/>
-            <inertia ixx="0.000033" ixy="0.0" ixz="0.0" iyy="0.000063" iyz="0.0" izz="0.000033"/>
+            <inertia ixx="0.000033" ixy="0.0" ixz="0.0" iyy="0.000141" iyz="0.0" izz="0.000033"/>
         </inertial>
     </link>
 
@@ -287,13 +287,13 @@
         <parent link="thigh_fl"/>
         <child link="shank_fl"/>
         <limit effort="26" lower="-2.705259778" upper="2.705259778" velocity="40"/>
-        <dynamics rotor_inertia="5484e-6" damping=".01555"/>
+        <dynamics rotor_inertia="12274e-6" damping=".0.01555"/>
     </joint>
     <link name="shank_fl">
         <inertial>
-            <mass value="0.064"/>
+            <mass value="0.158"/>
             <origin xyz="0.0 0.0 -0.061"/>
-            <inertia ixx="0.000245" ixy="0" ixz="0.0" iyy="0.000248" iyz="0" izz="0.000006"/>
+            <inertia ixx="0.000605" ixy="0" ixz="0.0" iyy="0.000612" iyz="0" izz="0.000015"/>
         </inertial>
         <visual>
             <geometry>
@@ -337,7 +337,7 @@
         <parent link="body"/>
         <child link="abduct_hr"/>
         <limit effort="17" lower="-1.5" upper="1.5" velocity="40"/>
-        <dynamics rotor_inertia="2268e-6" damping=".01"/>
+        <dynamics rotor_inertia="5076e-6" damping=".01"/>
     </joint>
     <link name="abduct_hr">
         <inertial>
@@ -368,7 +368,7 @@
         <inertial>
             <mass value="0.055"/>
             <origin xyz="0.0 0.0 0.0"/>
-            <inertia ixx="0.000033" ixy="0.0" ixz="0.0" iyy="0.000063" iyz="0.0" izz="0.000033"/>
+            <inertia ixx="0.000033" ixy="0.0" ixz="0.0" iyy="0.000141" iyz="0.0" izz="0.000033"/>
         </inertial>
     </link>
 
@@ -378,7 +378,7 @@
         <parent link="abduct_hr"/>
         <child link="thigh_hr"/>
         <limit effort="17" lower="-5." upper="5." velocity="40"/>
-        <dynamics rotor_inertia="2268e-6" damping=".01"/>
+        <dynamics rotor_inertia="5076e-6" damping=".01"/>
     </joint>
     <link name="thigh_hr">
         <inertial>
@@ -409,7 +409,7 @@
         <inertial>
             <mass value="0.055"/>
             <origin xyz="0.0 0.0 0.0"/>
-            <inertia ixx="0.000033" ixy="0.0" ixz="0.0" iyy="0.000063" iyz="0.0" izz="0.000033"/>
+            <inertia ixx="0.000033" ixy="0.0" ixz="0.0" iyy="0.000141" iyz="0.0" izz="0.000033"/>
         </inertial>
     </link>
 
@@ -419,13 +419,13 @@
         <parent link="thigh_hr"/>
         <child link="shank_hr"/>
         <limit effort="26" lower="-2.705259778" upper="2.705259778" velocity="40"/>
-        <dynamics rotor_inertia="5484e-6" damping=".01555"/>
+        <dynamics rotor_inertia="12274e-6" damping=".0.01555"/>
     </joint>
     <link name="shank_hr">
         <inertial>
-            <mass value="0.064"/>
+            <mass value="0.158"/>
             <origin xyz="0.0 0.0 -0.061"/>
-            <inertia ixx="0.000245" ixy="0" ixz="0.0" iyy="0.000248" iyz="0" izz="0.000006"/>
+            <inertia ixx="0.000605" ixy="0" ixz="0.0" iyy="0.000612" iyz="0" izz="0.000015"/>
         </inertial>
         <visual>
             <geometry>
@@ -468,7 +468,7 @@
         <parent link="body"/>
         <child link="abduct_hl"/>
         <limit effort="17" lower="-1.5" upper="1.5" velocity="40"/>
-        <dynamics rotor_inertia="2268e-6" damping=".01"/>
+        <dynamics rotor_inertia="5076e-6" damping=".01"/>
     </joint>
     <link name="abduct_hl">
         <inertial>
@@ -499,7 +499,7 @@
         <inertial>
             <mass value="0.055"/>
             <origin xyz="0.0 0.0 0.0"/>
-            <inertia ixx="0.000033" ixy="0.0" ixz="0.0" iyy="0.000063" iyz="0.0" izz="0.000033"/>
+            <inertia ixx="0.000033" ixy="0.0" ixz="0.0" iyy="0.000141" iyz="0.0" izz="0.000033"/>
         </inertial>
     </link>
 
@@ -509,7 +509,7 @@
         <parent link="abduct_hl"/>
         <child link="thigh_hl"/>
         <limit effort="17" lower="-5." upper="5." velocity="40"/>
-        <dynamics rotor_inertia="2268e-6" damping=".01"/>
+        <dynamics rotor_inertia="5076e-6" damping=".01"/>
     </joint>
     <link name="thigh_hl">
         <inertial>
@@ -540,7 +540,7 @@
         <inertial>
             <mass value="0.055"/>
             <origin xyz="0.0 0.0 0.0"/>
-            <inertia ixx="0.000033" ixy="0.0" ixz="0.0" iyy="0.000063" iyz="0.0" izz="0.000033"/>
+            <inertia ixx="0.000033" ixy="0.0" ixz="0.0" iyy="0.000141" iyz="0.0" izz="0.000033"/>
         </inertial>
     </link>
 
@@ -550,13 +550,13 @@
         <parent link="thigh_hl"/>
         <child link="shank_hl"/>
         <limit effort="26" lower="-2.705259778" upper="2.705259778" velocity="40"/>
-        <dynamics rotor_inertia="5484e-6" damping=".0.01555"/>
+        <dynamics rotor_inertia="12274e-6" damping=".0.01555"/>
     </joint>
     <link name="shank_hl">
         <inertial>
-            <mass value="0.064"/>
+            <mass value="0.158"/>
             <origin xyz="0.0 0.0 -0.061"/>
-            <inertia ixx="0.000245" ixy="0" ixz="0.0" iyy="0.000248" iyz="0" izz="0.000006"/>
+            <inertia ixx="0.000605" ixy="0" ixz="0.0" iyy="0.000612" iyz="0" izz="0.000015"/>
         </inertial>
         <visual>
             <geometry>
