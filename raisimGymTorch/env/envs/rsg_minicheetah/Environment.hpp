@@ -26,10 +26,11 @@ class ENVIRONMENT {
       visualizable_(visualizable) {
     /// add objects
     world_ = std::make_unique<raisim::World>();
-    auto* robot = world_->addArticulatedSystem(resourceDir + "/mini_cheetah/mini-cheetah-vision-v1.4.urdf");
+    auto* robot = world_->addArticulatedSystem(resourceDir + "/mini_cheetah/mini-cheetah-vision-v1.5.urdf");
     robot->setName("robot");
     robot->setControlMode(raisim::ControlMode::PD_PLUS_FEEDFORWARD_TORQUE);
     world_->addGround();
+    world_->setDefaultMaterial(0.4, 0, 0);
 
     controller_.create(world_.get());
     READ_YAML(double, simulation_dt_, cfg["simulation_dt"])
@@ -72,6 +73,7 @@ class ENVIRONMENT {
 
   void reset() {
     controller_.reset(world_.get(), comCurriculumFactorT_);
+    controller_.collisionRandomization(world_.get());
   }
 
   const std::vector<std::string>& getStepDataTag() {
@@ -88,7 +90,7 @@ class ENVIRONMENT {
 //    controller_.advance(world_.get(), action); ///make sure default pd target is not nan
     stepData_.setZero();
     int loopCount = int(control_dt_ / simulation_dt_ + 1e-10);
-    delayDividedBySimdt = int((control_dt_ / simulation_dt_ + 1e-10)*0.5*(uniDist_(gen_)+1));
+    delayDividedBySimdt = int((0.01 / simulation_dt_)*0.5*(uniDist_(gen_)+1));
 
     for (int i = 0; i < int(control_dt_ / simulation_dt_ + 1e-10); i++) {
       if(i == delayDividedBySimdt){
