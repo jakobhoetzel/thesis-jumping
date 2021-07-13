@@ -34,12 +34,12 @@ class RandomHeightMapGenerator {
     std::vector<double> heightVec;
     heightVec.resize(heightMapSampleSize_*heightMapSampleSize_);
     std::unique_ptr<raisim::TerrainGenerator> genPtr;
-    double targetRoughness = 1.;
+    double targetRoughness = 0.3;
 
     switch (groundType) {
       case GroundType::HEIGHT_MAP:
         terrainProperties_.frequency = 0.8;
-        terrainProperties_.zScale = targetRoughness * curriculumFactor;
+        terrainProperties_.zScale = targetRoughness * curriculumFactor * 1.4;
         terrainProperties_.xSize = 8.0;
         terrainProperties_.ySize = 8.0;
         terrainProperties_.xSamples = 60;
@@ -65,7 +65,7 @@ class RandomHeightMapGenerator {
         terrainProperties_.fractalLacunarity = 3.0;
         terrainProperties_.fractalGain = 0.45;
         terrainProperties_.seed = terrain_seed_++;
-        terrainProperties_.stepSize = 0.1 * curriculumFactor;
+        terrainProperties_.stepSize = 0.04 * curriculumFactor;
         genPtr = std::make_unique<raisim::TerrainGenerator>(terrainProperties_);
         heightVec = genPtr->generatePerlinFractalTerrain();
 
@@ -77,10 +77,10 @@ class RandomHeightMapGenerator {
         heightVec.resize(120*120);
         for(int xBlock = 0; xBlock < 15; xBlock++) {
           for(int yBlock = 0; yBlock < 15; yBlock++) {
-            double height = 0.1 * uniDist(gen) * curriculumFactor;
+            double height = 0.04 * uniDist(gen) * curriculumFactor;
             for(int i=0; i<8; i++) {
               for(int j=0; j<8; j++) {
-                heightVec[120 * (8*xBlock+i) + (8*yBlock+j)] = height + xBlock * 0.15 * curriculumFactor;
+                heightVec[120 * (8*xBlock+i) + (8*yBlock+j)] = height + xBlock * 0.05 * curriculumFactor;
               }
             }
           }
@@ -98,13 +98,13 @@ class RandomHeightMapGenerator {
           if (curriculumFactor2 > 0) {
             for (int xBlock = 0; xBlock < 25; xBlock++) {
               for (int i = 0; i < 2 * 3000 / 25; i++) {
-                heightVec[xBlock * 2 * 3000 / 25 + i] = xBlock * 0.18 * curriculumFactor;
+                heightVec[xBlock * 2 * 3000 / 25 + i] = xBlock * 0.08 * curriculumFactor;
               }
             }
           } else {
             for (int xBlock = 0; xBlock < 25; xBlock++) {
               for (int i = 0; i < 2 * 3000 / 25; i++) {
-                heightVec[xBlock * 2 * 3000 / 25 + i] = xBlock * 0.18 * (-curriculumFactor2) * curriculumFactor;
+                heightVec[xBlock * 2 * 3000 / 25 + i] = xBlock * 0.08 * (-curriculumFactor2) * curriculumFactor;
               }
             }
           }

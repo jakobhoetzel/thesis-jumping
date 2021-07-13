@@ -54,7 +54,7 @@ class MinicheetahController {
 
     /// this is nominal configuration of minicheetah
     gc_init_ << 0, 0, 0.25, //0.07,  // gc_init_.segment(0, 3): x, y, z position  //0.28
-        1.0, 0.0, 0.0, 0.0,  // gc_init_.segment(3, 4): quaternion
+        0.707106, 0.0, 0.0, 0.707106,  // gc_init_.segment(3, 4): quaternion
 //        0, -0.8, 1.8, 0, -0.8, 1.6, 0, -0.8, 1.6, 0, -0.8, 1.6;  // stand up
         0, -0.9, 1.8, 0, -0.9, 1.8, 0, -0.9, 1.8, 0, -0.9, 1.8;  // new stand up 0514
 //        -0.6, -1, 2.7, 0.6, -1, 2.7, -0.6, -1, 2.7, 0.6, -1, 2.7;
@@ -103,7 +103,7 @@ class MinicheetahController {
 
     stepDataTag_ = {"rewBodyAngularVel", "rewLinearVel", "rewAirTime", "rewTorque", "rewJointSpeed", "rewFootSlip",
                     "rewBodyOri", "rewSmoothness1", "rewSmoothness2", "rewJointPosition", "rewJointAcc", "rewBaseMotion",
-                    "rewFootClearance", "negativeRewardSum", "positiveRewardSum"};
+                    "negativeRewardSum", "positiveRewardSum"};
     stepData_.resize(stepDataTag_.size());
 
     updateObservation(world);
@@ -139,7 +139,7 @@ class MinicheetahController {
     return true;
   }
 
-  bool reset(raisim::World *world, double comCurriculumFactor) {
+  bool reset(raisim::World *world, double comCurriculumFactor, raisim::HeightMap* heightMap_) {
     auto *cheetah = reinterpret_cast<raisim::ArticulatedSystem *>(world->getObject("robot"));
 
     /// command generation
@@ -179,6 +179,9 @@ class MinicheetahController {
             else
               gc_init_noise(i) = gc_init_(i) + uniDist_(gen_) * 0.2;  /// knee joint angles: +- 0.2rad
           }
+        }
+        if (uniDist_(gen_) < 0) {  // 50% descending because [-1, 1]
+          gc_init_noise(6) *= -1;  // walking down the stairs
         }
         double quat_sum = gc_init_noise.segment(3, 4).norm();
         gc_init_noise.segment(3, 4) /= quat_sum;
@@ -220,8 +223,8 @@ class MinicheetahController {
     double maxNecessaryShift = -1e20; // some arbitrary high negative value
     for(auto& foot: footFrameIndices_) {
       cheetah->getFramePosition(foot, footPosition);
-//      double terrainHeightMinusFootPosition = heightMap_->getHeight(footPosition(0), footPosition(1)) - footPosition(2);
-      double terrainHeightMinusFootPosition = 0.0 - footPosition(2);
+      double terrainHeightMinusFootPosition = heightMap_->getHeight(footPosition(0), footPosition(1)) - footPosition(2);
+//      double terrainHeightMinusFootPosition = 0.0 - footPosition(2);
       maxNecessaryShift = maxNecessaryShift > terrainHeightMinusFootPosition ? maxNecessaryShift : terrainHeightMinusFootPosition;
     }
     gc_init_noise(2) += maxNecessaryShift;
@@ -271,7 +274,7 @@ class MinicheetahController {
   void getReward(raisim::World *world, const std::map<RewardType, float>& rewardCoeff, double simulation_dt, double rewCurriculumFactor) {
     auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world->getObject("robot"));
 
-    double desiredFootZPosition = 0.1;
+//    double desiredFootZPosition = 0.1;
     preJointVel_ = gv_.tail(nJoints_);
     updateObservation(world);  // update obDouble, and so on.
 
@@ -280,12 +283,13 @@ class MinicheetahController {
     for(int i = 0; i < 4; i++) {
       if (footContactState_[i]) {
         footTangentialForSlip += footVel_[i].e().head(2).squaredNorm();
-      } else {
-        if (!standingMode_) {
-          footClearanceTangential +=
-              std::pow((footPos_[i].e()(2) - desiredFootZPosition), 2) * sqrt(footVel_[i].e().head(2).norm());
-        }
       }
+//      else {
+//        if (!standingMode_) {
+//          footClearanceTangential +=
+//              std::pow((footPos_[i].e()(2) - desiredFootZPosition), 2) * sqrt(footVel_[i].e().head(2).norm());
+//        }
+//      }
     }
 
     /// A variable for airtime reward calculation
@@ -326,7 +330,7 @@ class MinicheetahController {
 //    rewJointPosition /= std::max(1., pow(bodyLinearVel_.head(2).norm(), 1/4));
     double rewJointAcc = (gv_.tail(12) - preJointVel_).squaredNorm() * rewardCoeff.at(RewardType::JOINTACC);
     double rewBaseMotion = (0.8 * bodyLinearVel_[2] * bodyLinearVel_[2] + 0.2 * fabs(bodyAngularVel_[0]) + 0.2 * fabs(bodyAngularVel_[1])) * rewardCoeff.at(RewardType::BASEMOTION);
-    double rewFootClearance = footClearanceTangential * rewardCoeff.at(RewardType::FOOTCLEARANCE);
+//    double rewFootClearance = footClearanceTangential * rewardCoeff.at(RewardType::FOOTCLEARANCE);
 
     stepData_[0] = rewBodyAngularVel;  /// positive reward
     stepData_[1] = rewLinearVel;  /// positive reward
@@ -340,13 +344,13 @@ class MinicheetahController {
     stepData_[9] = rewJointPosition;
     stepData_[10] = rewJointAcc;
     stepData_[11] = rewBaseMotion;
-    stepData_[12] = rewFootClearance;
+//    stepData_[12] = rewFootClearance;
 
     double negativeRewardSum = stepData_.segment(3, stepDataTag_.size()-5).sum();
     double positiveRewardSum = stepData_.head(3).sum();
 
-    stepData_[13] = negativeRewardSum;
-    stepData_[14] = positiveRewardSum;
+    stepData_[12] = negativeRewardSum;
+    stepData_[13] = positiveRewardSum;
   }
 
   double rewKernel(double x) {
