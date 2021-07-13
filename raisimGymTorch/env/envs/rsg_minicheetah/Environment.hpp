@@ -30,7 +30,8 @@ class ENVIRONMENT {
     robot->setName("robot");
     robot->setControlMode(raisim::ControlMode::PD_PLUS_FEEDFORWARD_TORQUE);
     world_->addGround();
-    world_->setDefaultMaterial(0.4, 0, 0);
+    double mu = 0.4 + 0.2 * (uniDist_(gen_) + 1);  // [0.4, 0.8]
+    world_->setDefaultMaterial(mu, 0, 0);
 
     controller_.create(world_.get());
     READ_YAML(double, simulation_dt_, cfg["simulation_dt"])
@@ -74,6 +75,9 @@ class ENVIRONMENT {
   void reset() {
     controller_.reset(world_.get(), comCurriculumFactorT_);
     controller_.collisionRandomization(world_.get());
+
+    double mu = 0.4 + 0.2 * (uniDist_(gen_) + 1);  // [0.4, 0.8]
+    world_->setDefaultMaterial(mu, 0, 0);
   }
 
   const std::vector<std::string>& getStepDataTag() {
@@ -90,7 +94,8 @@ class ENVIRONMENT {
 //    controller_.advance(world_.get(), action); ///make sure default pd target is not nan
     stepData_.setZero();
     int loopCount = int(control_dt_ / simulation_dt_ + 1e-10);
-    delayDividedBySimdt = int((0.01 / simulation_dt_)*0.5*(uniDist_(gen_)+1));
+//    delayDividedBySimdt = int((0.01 / simulation_dt_)*0.5*(uniDist_(gen_)+1));
+    delayDividedBySimdt = int((0.01 / simulation_dt_) - 1e-10);
 
     for (int i = 0; i < int(control_dt_ / simulation_dt_ + 1e-10); i++) {
       if(i == delayDividedBySimdt){

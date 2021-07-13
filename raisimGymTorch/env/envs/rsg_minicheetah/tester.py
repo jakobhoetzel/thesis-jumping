@@ -79,8 +79,8 @@ else:
             if (command_Vx < 0):
                 command_Vx *= 0.5
             command_Vy = - pygame.joystick.Joystick(0).get_axis(0)
-            command_yaw = -1.5 * pygame.joystick.Joystick(0).get_axis(3)
-            command_yaw /= max(1., max(2., abs(command_Vx) / abs(command_yaw)))
+            command_yaw = -2 * pygame.joystick.Joystick(0).get_axis(3)
+            # command_yaw /= max(1., min(2., abs(command_Vx) / abs(command_yaw)))
             command = np.array([command_Vx, command_Vy, command_yaw], dtype=np.float32)
             env.set_command(command)
 
