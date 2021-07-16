@@ -15,7 +15,6 @@
 #include "../../Yaml.hpp"
 #include "../../BasicEigenTypes.hpp"
 #include "MinicheetahController.hpp"
-#include "RandomHeightMapGenerator.hpp"
 
 namespace raisim {
 
@@ -34,9 +33,6 @@ class ENVIRONMENT {
     double mu = 0.4 + 0.2 * (uniDist_(gen_) + 1);  // [0.4, 0.8]
     world_->setDefaultMaterial(mu, 0, 0);
 
-    heightMap_ = terrainGenerator_.generateTerrain(world_.get(), RandomHeightMapGenerator::GroundType(groundType_), 0.0, false, gen_, uniDist_);
-
-
     controller_.create(world_.get());
     READ_YAML(double, simulation_dt_, cfg["simulation_dt"])
     READ_YAML(double, control_dt_, cfg["control_dt"])
@@ -45,7 +41,6 @@ class ENVIRONMENT {
     READ_YAML(double, comCurriculumFactor1_, cfg["com_curriculum_factor1"])
     READ_YAML(double, comCurriculumFactor2_, cfg["com_curriculum_factor2"])
     READ_YAML(double, comCurriculumFactor3_, cfg["com_curriculum_factor3"])
-    READ_YAML(double, terCurriculumFactor_, cfg["ter_curriculum_factor"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::ANGULARVELOCIY1], cfg["reward"]["bodyAngularVelCoeff1"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::VELOCITY1], cfg["reward"]["forwardVelCoeff1"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::JOINTSPEED], cfg["reward"]["jointSpeedCoeff"])
@@ -78,7 +73,7 @@ class ENVIRONMENT {
   }
 
   void reset() {
-    controller_.reset(world_.get(), comCurriculumFactorT_, heightMap_);
+    controller_.reset(world_.get(), comCurriculumFactorT_);
     controller_.collisionRandomization(world_.get());
 
     double mu = 0.4 + 0.2 * (uniDist_(gen_) + 1);  // [0.4, 0.8]
@@ -145,19 +140,10 @@ class ENVIRONMENT {
     rewCurriculumFactor_ = pow(rewCurriculumFactor_, rewCurriculumRate_);
     comCurriculumFactorT_ = 1 + comCurriculumFactor3_ / (1 + std::exp(-comCurriculumFactor1_ * (iter - comCurriculumFactor2_)));
     comCurriculumFactorT_ = std::fmax(1., comCurriculumFactorT_);
-
-    groundType_ = (groundType_+1) % 4;
-    world_->removeObject(heightMap_);
-    double terrain_curriculum = 1 * std::min(1., iter / terCurriculumFactor_);
-    heightMap_ = terrainGenerator_.generateTerrain(world_.get(), RandomHeightMapGenerator::GroundType(groundType_), terrain_curriculum, false, gen_, uniDist_);
   };
   float getCurriculumFactor() {return float(rewCurriculumFactor_);};
   void close() { if (server_) server_->killServer(); };
-  void setSeed(int seed) {
-    controller_.setSeed(seed);
-    terrainGenerator_.setSeed(seed);
-    groundType_ = seed % 4;
-  };
+  void setSeed(int seed) { controller_.setSeed(seed); };
   ////////////////////////////////
 
   void setSimulationTimeStep(double dt) {
@@ -196,15 +182,11 @@ class ENVIRONMENT {
   std::unique_ptr<raisim::World> world_;
   double rewCurriculumFactor_, rewCurriculumRate_;
   double comCurriculumFactorT_ = 1., comCurriculumFactor1_, comCurriculumFactor2_, comCurriculumFactor3_;
-  double terCurriculumFactor_;
   double simulation_dt_;
   double control_dt_;
-  int groundType_ = 0;
   int delayDividedBySimdt;
   std::unique_ptr<raisim::RaisimServer> server_;
   Eigen::VectorXd stepData_;
-  RandomHeightMapGenerator terrainGenerator_;
-  raisim::HeightMap* heightMap_;
   thread_local static std::mt19937 gen_;
   thread_local static std::normal_distribution<double> normDist_;
   thread_local static std::uniform_real_distribution<double> uniDist_;
