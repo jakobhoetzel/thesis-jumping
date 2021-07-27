@@ -40,7 +40,6 @@ env = VecEnv(rsg_minicheetah.RaisimGymEnv(home_path + "/rsc", dump(cfg['environm
 
 # shortcuts
 ob_dim = env.num_obs
-unObs_dim = env.num_unObs
 act_dim = env.num_acts
 
 
@@ -59,12 +58,8 @@ else:
     start_step_id = 0
 
     print("Visualizing and evaluating the policy: ", weight_path)
-    actor = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + unObs_dim, act_dim)
+    actor = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim, act_dim)
     actor.load_state_dict(torch.load(weight_path)['actor_architecture_state_dict'])
-    print('actor of {} parameters'.format(sum(p.numel() for p in actor.parameters())))
-
-    estimator = ppo_module.MLP(cfg['architecture']['estimator_net'], torch.nn.LeakyReLU,ob_dim,unObs_dim)
-    estimator.load_state_dict(torch.load(weight_path)['estimator_architecture_state_dict'])
 
     env.load_scaling(weight_dir, int(iteration_number))
     env.turn_on_visualization()
@@ -86,10 +81,7 @@ else:
             env.set_command(command)
 
         obs = env.observe(False)
-        unObsState = env.unObsState()
-        est_out = estimator.architecture(torch.from_numpy(obs).cpu())
-        concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
-        action_ll = actor.architecture(torch.from_numpy(concatenated_obs_actor).cpu())
+        action_ll = actor.architecture(torch.from_numpy(obs).cpu())
         reward_ll, dones = env.step(action_ll.cpu().detach().numpy())
 
         reward_ll_sum = reward_ll_sum + reward_ll[0]

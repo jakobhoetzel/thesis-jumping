@@ -30,8 +30,8 @@ class ENVIRONMENT {
     robot->setName("robot");
     robot->setControlMode(raisim::ControlMode::PD_PLUS_FEEDFORWARD_TORQUE);
     world_->addGround();
-    double mu = 0.4 + 0.2 * (uniDist_(gen_) + 1);  // [0.4, 0.8]
-    world_->setDefaultMaterial(mu, 0, 0);
+    mu_ = 0.4 + 0.3 * (uniDist_(gen_) + 1);  // [0.4, 1.0]
+    world_->setDefaultMaterial(mu_, 0, 0);
 
     controller_.create(world_.get());
     READ_YAML(double, simulation_dt_, cfg["simulation_dt"])
@@ -113,10 +113,8 @@ class ENVIRONMENT {
 
     stepData_ /= loopCount;
 
-    double negativeRewardSum = stepData_.tail(2)(0);
-    double positiveRewardSum = stepData_.tail(2)(1);
-    double rewardSum = std::exp(0.2 * negativeRewardSum) * positiveRewardSum;
-    return rewardSum;
+    double totalRewardSum = stepData_.tail(3)(2);
+    return totalRewardSum;
   }
 
   void observe(Eigen::Ref<EigenVec> ob) {
@@ -124,7 +122,7 @@ class ENVIRONMENT {
   }
 
   void unObsState(Eigen::Ref<EigenVec> ob) {
-    ob = controller_.getUnobservableStates().cast<float>();
+    ob = controller_.getUnobservableStates(mu_).cast<float>();
   }
 
   bool isTerminalState(float &terminalReward) {
@@ -184,6 +182,7 @@ class ENVIRONMENT {
   double comCurriculumFactorT_ = 1., comCurriculumFactor1_, comCurriculumFactor2_, comCurriculumFactor3_;
   double simulation_dt_;
   double control_dt_;
+  double mu_;
   int delayDividedBySimdt;
   std::unique_ptr<raisim::RaisimServer> server_;
   Eigen::VectorXd stepData_;
