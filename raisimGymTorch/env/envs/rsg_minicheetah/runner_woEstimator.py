@@ -85,7 +85,7 @@ scheduler = torch.optim.lr_scheduler.MultiStepLR(ppo.optimizer, milestones=[2000
 if mode == 'retrain':
     load_param(weight_path, env, actor, critic, ppo.optimizer, saver.data_dir)
 
-max_iteration = 400000 + 1
+max_iteration = 5000 + 1
 
 for update in range(max_iteration):
     start = time.time()

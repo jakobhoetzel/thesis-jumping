@@ -76,7 +76,7 @@ else:
         frame_start = time.time()
 
         if (step % 10 == 0):
-            command_Vx = -4.5 * pygame.joystick.Joystick(0).get_axis(1)
+            command_Vx = -4. * pygame.joystick.Joystick(0).get_axis(1)
             if (command_Vx < 0):
                 command_Vx *= 0.5
             command_Vy = - pygame.joystick.Joystick(0).get_axis(0)

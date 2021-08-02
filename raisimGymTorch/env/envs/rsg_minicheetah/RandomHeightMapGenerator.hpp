@@ -14,9 +14,10 @@ class RandomHeightMapGenerator {
 
   enum class GroundType : int {
     HEIGHT_MAP = 0,
-    HEIGHT_MAP_DISCRETE = 1,
+    HEIGHT_MAP_DISCRETE = 4,
     STEPS = 2,
-    STAIRS = 3
+    STAIRS = 3,
+    Slope = 1
   };
 
   RandomHeightMapGenerator() = default;
@@ -31,19 +32,19 @@ class RandomHeightMapGenerator {
                                      bool createHoles,
                                      std::mt19937& gen,
                                      std::uniform_real_distribution<double>& uniDist) {
-    std::vector<double> heightVec;
+    std::vector<double> heightVec, heightVec1, heightVec2;
     heightVec.resize(heightMapSampleSize_*heightMapSampleSize_);
     std::unique_ptr<raisim::TerrainGenerator> genPtr;
-    double targetRoughness = 0.3;
+    double targetRoughness = 0.08;
 
     switch (groundType) {
-      case GroundType::HEIGHT_MAP:
+      case GroundType::HEIGHT_MAP: {
         terrainProperties_.frequency = 0.8;
         terrainProperties_.zScale = targetRoughness * curriculumFactor * 1.4;
-        terrainProperties_.xSize = 8.0;
-        terrainProperties_.ySize = 8.0;
-        terrainProperties_.xSamples = 60;
-        terrainProperties_.ySamples = 60;
+        terrainProperties_.xSize = 6.0;
+        terrainProperties_.ySize = 6.0;
+        terrainProperties_.xSamples = 40;
+        terrainProperties_.ySamples = 40;
         terrainProperties_.fractalOctaves = 5;
         terrainProperties_.fractalLacunarity = 3.0;
         terrainProperties_.fractalGain = 0.45;
@@ -51,10 +52,13 @@ class RandomHeightMapGenerator {
         terrainProperties_.stepSize = 0.;
         genPtr = std::make_unique<raisim::TerrainGenerator>(terrainProperties_);
         heightVec = genPtr->generatePerlinFractalTerrain();
-        return world->addHeightMap(60, 60, 8.0, 8.0, 0., 0., heightVec);
+
+        return world->addHeightMap(terrainProperties_.xSamples, terrainProperties_.ySamples, terrainProperties_.xSize, terrainProperties_.ySize, 0., 0., heightVec);
         break;
+      }
 
       case GroundType::HEIGHT_MAP_DISCRETE:
+      {
         terrainProperties_.frequency = 0.3;
         terrainProperties_.zScale = targetRoughness * curriculumFactor * 1.2;
         terrainProperties_.xSize = 8.0;
@@ -71,9 +75,9 @@ class RandomHeightMapGenerator {
 
         return world->addHeightMap(80, 80, 8.0, 8.0, 0., 0., heightVec);
         break;
-
+      }
       case GroundType::STEPS:
-
+      {
         heightVec.resize(120*120);
         for(int xBlock = 0; xBlock < 15; xBlock++) {
           for(int yBlock = 0; yBlock < 15; yBlock++) {
@@ -88,8 +92,10 @@ class RandomHeightMapGenerator {
 
         return world->addHeightMap(120, 120, 8.0, 8.0, 0., 0., heightVec);
         break;
+      }
 
       case GroundType::STAIRS:
+      {
         heightVec.resize(2*3000);
         double curriculumFactor2 = uniDist(gen);  // 50% highest step height, 50% random height
         bool is_train = true;
@@ -117,12 +123,58 @@ class RandomHeightMapGenerator {
           }
         }
         double y_size = uniDist(gen) * 2.5 + 9.5;  // [7m, 12m] / 25 = [28cm, 48cm]
-//        std::cout << "curriculum factor: " << curriculumFactor2 << std::endl;
-//        std::cout << "y_size: " << y_size << std::endl;
+        //        std::cout << "curriculum factor: " << curriculumFactor2 << std::endl;
+        //        std::cout << "y_size: " << y_size << std::endl;
 
         return world->addHeightMap(2, 3000, 7.25, y_size, 0., 0., heightVec);
         break;
 
+      }
+
+      case GroundType::Slope:
+      {
+        double curriculumFactor2 = uniDist(gen);
+        double min_height=0;
+        terrainProperties_.frequency = 0.8;
+        terrainProperties_.zScale = targetRoughness * curriculumFactor * 1.4;
+        terrainProperties_.xSize = 8.0;
+        terrainProperties_.ySize = 8.0;
+        terrainProperties_.xSamples = 40;
+        terrainProperties_.ySamples = 40;
+        terrainProperties_.fractalOctaves = 5;
+        terrainProperties_.fractalLacunarity = 3.0;
+        terrainProperties_.fractalGain = 0.45;
+        terrainProperties_.seed = terrain_seed_++;
+        terrainProperties_.stepSize = 0.;
+        genPtr = std::make_unique<raisim::TerrainGenerator>(terrainProperties_);
+        heightVec1 = genPtr->generatePerlinFractalTerrain();
+
+        if (curriculumFactor2 > 0){
+          for (int xBlock = 0; xBlock < terrainProperties_.xSamples; xBlock++) {
+            for (int i = 0; i < terrainProperties_.ySamples; i++) {
+              heightVec1[xBlock * terrainProperties_.ySamples + i] += xBlock * tan(15/360.*2*M_PI)*(terrainProperties_.xSize/terrainProperties_.xSamples) * curriculumFactor* curriculumFactor2;
+              min_height=fmin(min_height,heightVec1[xBlock * terrainProperties_.ySamples + i]);
+            }
+          }
+        }
+        else {
+          for (int xBlock = 0; xBlock < terrainProperties_.xSamples; xBlock++) {
+            for (int i = 0; i < terrainProperties_.ySamples; i++) {
+              heightVec1[xBlock * terrainProperties_.ySamples + i] += xBlock * tan(15/360.*2*M_PI)*(terrainProperties_.xSize/terrainProperties_.xSamples) * curriculumFactor* curriculumFactor2;
+              min_height=fmin(min_height,heightVec1[xBlock * terrainProperties_.ySamples + i]);
+            }
+          }
+        }
+
+        for (int xBlock = 0; xBlock < terrainProperties_.xSamples; xBlock++) {
+          for (int i = 0; i < terrainProperties_.ySamples; i++) {
+            heightVec1[xBlock * terrainProperties_.ySamples + i] -= min_height;
+          }
+        }
+
+        return world->addHeightMap(terrainProperties_.xSamples, terrainProperties_.ySamples, terrainProperties_.xSize, terrainProperties_.ySize, 0., 0., heightVec1);
+        break;
+      }
     }
     return nullptr;
   }

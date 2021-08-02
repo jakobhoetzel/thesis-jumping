@@ -76,7 +76,7 @@ class MinicheetahController {
 
     /// MUST BE DONE FOR ALL ENVIRONMENTS
     obDim_ = 141;  //34 //106 //130 //133 //198
-    unObsDim_ = 3;  //4
+    unObsDim_ = 12;  //4
     historyLength_ = 6;
     actionDim_ = nJoints_; actionMean_.setZero(actionDim_); actionStd_.setZero(actionDim_);  // action dimension is the same as the number of joints(by applying torque)
     obDouble_.setZero(obDim_); unobservableStates_.setZero(unObsDim_);
@@ -456,9 +456,10 @@ class MinicheetahController {
 
   const Eigen::VectorXd& getUnobservableStates(double mu_) {
     unobservableStates_ << //gc_[2],  /// body height. 1
-        bodyLinearVel_;  /// body linear velocity. 3
-//        mu_;  /// friction coefficient 1
-//        footPos_[0].e()(2), footPos_[1].e()(2), footPos_[2].e()(2), footPos_[3].e()(2);  /// foot z position 4
+        bodyLinearVel_,  /// body linear velocity. 3
+        mu_,  /// friction coefficient 1
+        footPos_[0].e()(2), footPos_[1].e()(2), footPos_[2].e()(2), footPos_[3].e()(2),  /// foot z position 4
+        footContactState_[0], footContactState_[1], footContactState_[2], footContactState_[3];  /// foot contact state/probability 4
 //        bodyAngularVel_;  /// body angular velocity. 3
 
     return unobservableStates_;
