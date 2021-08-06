@@ -54,7 +54,7 @@ class MinicheetahController {
 
     /// this is nominal configuration of minicheetah
     gc_init_ << 0, 0, 0.25, //0.07,  // gc_init_.segment(0, 3): x, y, z position  //0.28
-        1.0, 0.0, 0.0, 0.0,  // gc_init_.segment(3, 4): quaternion
+        0.707106, 0.0, 0.0, 0.707106,  // gc_init_.segment(3, 4): quaternion
 //        0, -0.8, 1.8, 0, -0.8, 1.6, 0, -0.8, 1.6, 0, -0.8, 1.6;  // stand up
         0, -0.9, 1.8, 0, -0.9, 1.8, 0, -0.9, 1.8, 0, -0.9, 1.8;  // new stand up 0514
 //        -0.6, -1, 2.7, 0.6, -1, 2.7, -0.6, -1, 2.7, 0.6, -1, 2.7;
@@ -76,7 +76,7 @@ class MinicheetahController {
 
     /// MUST BE DONE FOR ALL ENVIRONMENTS
     obDim_ = 141;  //34 //106 //130 //133 //198
-    unObsDim_ = 12;  //4
+    unObsDim_ = 8;  //4
     historyLength_ = 6;
     actionDim_ = nJoints_; actionMean_.setZero(actionDim_); actionStd_.setZero(actionDim_);  // action dimension is the same as the number of joints(by applying torque)
     obDouble_.setZero(obDim_); unobservableStates_.setZero(unObsDim_);
@@ -139,7 +139,7 @@ class MinicheetahController {
     return true;
   }
 
-  bool reset(raisim::World *world, double comCurriculumFactor) {
+  bool reset(raisim::World *world, double comCurriculumFactor, raisim::HeightMap* heightMap_) {
     auto *cheetah = reinterpret_cast<raisim::ArticulatedSystem *>(world->getObject("robot"));
 
     /// pd gain randomization
@@ -163,9 +163,10 @@ class MinicheetahController {
       standingMode_ = false;
     }
 
-    bool keep_state = fabs(uniDist_(gen_)) < 0.25; /// keep state and only change command
+    bool keep_state = fabs(uniDist_(gen_)) < 0.25; /// keep state and only change command. 25%
     if (keep_state){
-      return true;
+      gc_init_noise.tail(17) = gc_.tail(17);  // body z, quaterniton, joint position. X and Y positions are set to zero.
+      gv_init_noise = gv_;
     }
     else {
       bool init_noise = true;
@@ -211,9 +212,7 @@ class MinicheetahController {
       }
     }
 
-//    double jFrictionHAAHFE = 0.1 * (uniDist_(gen_) + 1);  // [0, 0.2]
     double jFrictionHAAHFE = 0.15 * (uniDist_(gen_) + 1);  // [0, 0.3]
-//    double jFrictionKFE = 0.2 * (uniDist_(gen_) + 1);  // [0, 0.4]
     double jFrictionKFE = 0.3 * (uniDist_(gen_) + 1) + 0.1;  // [0.1, 0.7]
     jointFrictions_ << jFrictionHAAHFE, jFrictionHAAHFE, jFrictionKFE, jFrictionHAAHFE, jFrictionHAAHFE, jFrictionKFE,
         jFrictionHAAHFE, jFrictionHAAHFE, jFrictionKFE, jFrictionHAAHFE, jFrictionHAAHFE, jFrictionKFE;
@@ -225,13 +224,15 @@ class MinicheetahController {
     double maxNecessaryShift = -1e20; // some arbitrary high negative value
     for(auto& foot: footFrameIndices_) {
       cheetah->getFramePosition(foot, footPosition);
-//      double terrainHeightMinusFootPosition = heightMap_->getHeight(footPosition(0), footPosition(1)) - footPosition(2);
-      double terrainHeightMinusFootPosition = 0.0 - footPosition(2);
+      double terrainHeightMinusFootPosition = heightMap_->getHeight(footPosition(0), footPosition(1)) - footPosition(2);
+//      double terrainHeightMinusFootPosition = 0.0 - footPosition(2);
       maxNecessaryShift = maxNecessaryShift > terrainHeightMinusFootPosition ? maxNecessaryShift : terrainHeightMinusFootPosition;
     }
     gc_init_noise(2) += maxNecessaryShift;
     cheetah->setState(gc_init_noise, gv_init_noise);  // initialize the environment
     updateObservation(world);  // initialize the robot
+
+    if(keep_state) return true;  // if keep_state, keep history remained.
 
     preJointVel_.setZero();
     historyTempMem_.setZero();
@@ -273,7 +274,7 @@ class MinicheetahController {
     cheetah->setCollisionObjectShapeParameters(foot_hl_idx, rand_radius);
   }
 
-  void getReward(raisim::World *world, const std::map<RewardType, float>& rewardCoeff, double simulation_dt, double rewCurriculumFactor) {
+  void getReward(raisim::World *world, const std::map<RewardType, float>& rewardCoeff, double simulation_dt, double rewCurriculumFactor, raisim::HeightMap* heightMap_) {
     auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world->getObject("robot"));
 
     double desiredFootZPosition = 0.09;
@@ -288,7 +289,7 @@ class MinicheetahController {
       } else {
         if (!standingMode_) {
           footClearanceTangential +=
-              std::pow((footPos_[i].e()(2) - desiredFootZPosition), 2) * sqrt(footVel_[i].e().head(2).norm());
+              std::pow((footPos_[i].e()(2) - heightMap_->getHeight(footPos_[i].e()(0), footPos_[i].e()(1)) - desiredFootZPosition), 2) * sqrt(footVel_[i].e().head(2).norm());
         }
       }
     }
@@ -454,12 +455,14 @@ class MinicheetahController {
     return obDouble_;
   }
 
-  const Eigen::VectorXd& getUnobservableStates(double mu_) {
+  const Eigen::VectorXd& getUnobservableStates(double mu_, raisim::HeightMap* heightMap_) {
     unobservableStates_ << //gc_[2],  /// body height. 1
         bodyLinearVel_,  /// body linear velocity. 3
         mu_,  /// friction coefficient 1
-        footPos_[0].e()(2), footPos_[1].e()(2), footPos_[2].e()(2), footPos_[3].e()(2),  /// foot z position 4
-        footContactState_[0], footContactState_[1], footContactState_[2], footContactState_[3];  /// foot contact state/probability 4
+        (footPos_[0].e()(2) - heightMap_->getHeight(footPos_[0].e()(0), footPos_[0].e()(1))), (footPos_[1].e()(2) - heightMap_->getHeight(footPos_[1].e()(0), footPos_[1].e()(1))),
+        (footPos_[2].e()(2) - heightMap_->getHeight(footPos_[2].e()(0), footPos_[2].e()(1))), (footPos_[3].e()(2) - heightMap_->getHeight(footPos_[3].e()(0), footPos_[3].e()(1)));
+        /// foot z position 4
+//        footContactState_[0], footContactState_[1], footContactState_[2], footContactState_[3];  /// foot contact state/probability 4
 //        bodyAngularVel_;  /// body angular velocity. 3
 
     return unobservableStates_;

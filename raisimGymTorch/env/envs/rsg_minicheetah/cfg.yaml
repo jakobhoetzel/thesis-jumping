@@ -13,7 +13,7 @@ environment:
   rew_curriculum_rate: 0.9998
   com_curriculum_factor1: 0.002
   com_curriculum_factor2: 2000
-  com_curriculum_factor3: 3.0
+  com_curriculum_factor3: 2.5
   ter_curriculum_factor: 3000
   reward:
     bodyAngularVelCoeff1: 3 #1.5

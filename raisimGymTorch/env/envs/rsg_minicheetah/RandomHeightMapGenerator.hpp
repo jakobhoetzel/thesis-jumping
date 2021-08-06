@@ -35,16 +35,16 @@ class RandomHeightMapGenerator {
     std::vector<double> heightVec, heightVec1, heightVec2;
     heightVec.resize(heightMapSampleSize_*heightMapSampleSize_);
     std::unique_ptr<raisim::TerrainGenerator> genPtr;
-    double targetRoughness = 0.08;
+    double targetRoughness = 0.15;
 
     switch (groundType) {
       case GroundType::HEIGHT_MAP: {
         terrainProperties_.frequency = 0.8;
         terrainProperties_.zScale = targetRoughness * curriculumFactor * 1.4;
-        terrainProperties_.xSize = 6.0;
-        terrainProperties_.ySize = 6.0;
-        terrainProperties_.xSamples = 40;
-        terrainProperties_.ySamples = 40;
+        terrainProperties_.xSize = 20.0;
+        terrainProperties_.ySize = 20.0;
+        terrainProperties_.xSamples = 50;
+        terrainProperties_.ySamples = 50;
         terrainProperties_.fractalOctaves = 5;
         terrainProperties_.fractalLacunarity = 3.0;
         terrainProperties_.fractalGain = 0.45;
@@ -137,10 +137,10 @@ class RandomHeightMapGenerator {
         double min_height=0;
         terrainProperties_.frequency = 0.8;
         terrainProperties_.zScale = targetRoughness * curriculumFactor * 1.4;
-        terrainProperties_.xSize = 8.0;
-        terrainProperties_.ySize = 8.0;
-        terrainProperties_.xSamples = 40;
-        terrainProperties_.ySamples = 40;
+        terrainProperties_.xSize = 20.0;
+        terrainProperties_.ySize = 20.0;
+        terrainProperties_.xSamples = 50;
+        terrainProperties_.ySamples = 50;
         terrainProperties_.fractalOctaves = 5;
         terrainProperties_.fractalLacunarity = 3.0;
         terrainProperties_.fractalGain = 0.45;
@@ -152,7 +152,7 @@ class RandomHeightMapGenerator {
         if (curriculumFactor2 > 0){
           for (int xBlock = 0; xBlock < terrainProperties_.xSamples; xBlock++) {
             for (int i = 0; i < terrainProperties_.ySamples; i++) {
-              heightVec1[xBlock * terrainProperties_.ySamples + i] += xBlock * tan(15/360.*2*M_PI)*(terrainProperties_.xSize/terrainProperties_.xSamples) * curriculumFactor* curriculumFactor2;
+              heightVec1[xBlock * terrainProperties_.ySamples + i] += xBlock * tan(10/360.*2*M_PI)*(terrainProperties_.xSize/terrainProperties_.xSamples) * curriculumFactor* curriculumFactor2;
               min_height=fmin(min_height,heightVec1[xBlock * terrainProperties_.ySamples + i]);
             }
           }
@@ -160,7 +160,7 @@ class RandomHeightMapGenerator {
         else {
           for (int xBlock = 0; xBlock < terrainProperties_.xSamples; xBlock++) {
             for (int i = 0; i < terrainProperties_.ySamples; i++) {
-              heightVec1[xBlock * terrainProperties_.ySamples + i] += xBlock * tan(15/360.*2*M_PI)*(terrainProperties_.xSize/terrainProperties_.xSamples) * curriculumFactor* curriculumFactor2;
+              heightVec1[xBlock * terrainProperties_.ySamples + i] += xBlock * tan(10/360.*2*M_PI)*(terrainProperties_.xSize/terrainProperties_.xSamples) * curriculumFactor* curriculumFactor2;
               min_height=fmin(min_height,heightVec1[xBlock * terrainProperties_.ySamples + i]);
             }
           }
