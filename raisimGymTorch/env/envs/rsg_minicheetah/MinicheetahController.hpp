@@ -224,8 +224,15 @@ class MinicheetahController {
     double maxNecessaryShift = -1e20; // some arbitrary high negative value
     for(auto& foot: footFrameIndices_) {
       cheetah->getFramePosition(foot, footPosition);
-      double terrainHeightMinusFootPosition = heightMap_->getHeight(footPosition(0), footPosition(1)) - footPosition(2);
-//      double terrainHeightMinusFootPosition = 0.0 - footPosition(2);
+
+      double terrainHeightMinusFootPosition = 0.;
+      if(isHeightMap_){
+        terrainHeightMinusFootPosition = heightMap_->getHeight(footPosition(0), footPosition(1)) - footPosition(2);
+      }
+      else {
+        terrainHeightMinusFootPosition = 0.0 - footPosition(2);
+      }
+
       maxNecessaryShift = maxNecessaryShift > terrainHeightMinusFootPosition ? maxNecessaryShift : terrainHeightMinusFootPosition;
     }
     gc_init_noise(2) += maxNecessaryShift;
@@ -288,8 +295,14 @@ class MinicheetahController {
         footTangentialForSlip += footVel_[i].e().head(2).squaredNorm();
       } else {
         if (!standingMode_) {
-          footClearanceTangential +=
-              std::pow((footPos_[i].e()(2) - heightMap_->getHeight(footPos_[i].e()(0), footPos_[i].e()(1)) - desiredFootZPosition), 2) * sqrt(footVel_[i].e().head(2).norm());
+          if(isHeightMap_) {
+            footClearanceTangential +=
+                std::pow((footPos_[i].e()(2) - heightMap_->getHeight(footPos_[i].e()(0), footPos_[i].e()(1)) - desiredFootZPosition), 2) * sqrt(footVel_[i].e().head(2).norm());
+          }
+          else {
+            footClearanceTangential +=
+                std::pow((footPos_[i].e()(2) - desiredFootZPosition), 2) * sqrt(footVel_[i].e().head(2).norm());
+          }
         }
       }
     }
@@ -456,14 +469,22 @@ class MinicheetahController {
   }
 
   const Eigen::VectorXd& getUnobservableStates(double mu_, raisim::HeightMap* heightMap_) {
-    unobservableStates_ << //gc_[2],  /// body height. 1
-        bodyLinearVel_,  /// body linear velocity. 3
-        mu_,  /// friction coefficient 1
-        (footPos_[0].e()(2) - heightMap_->getHeight(footPos_[0].e()(0), footPos_[0].e()(1))), (footPos_[1].e()(2) - heightMap_->getHeight(footPos_[1].e()(0), footPos_[1].e()(1))),
-        (footPos_[2].e()(2) - heightMap_->getHeight(footPos_[2].e()(0), footPos_[2].e()(1))), (footPos_[3].e()(2) - heightMap_->getHeight(footPos_[3].e()(0), footPos_[3].e()(1)));
-        /// foot z position 4
-//        footContactState_[0], footContactState_[1], footContactState_[2], footContactState_[3];  /// foot contact state/probability 4
-//        bodyAngularVel_;  /// body angular velocity. 3
+    if(isHeightMap_) {
+      unobservableStates_ <<
+      bodyLinearVel_,  /// body linear velocity. 3
+      mu_,  /// friction coefficient 1
+      (footPos_[0].e()(2) - heightMap_->getHeight(footPos_[0].e()(0), footPos_[0].e()(1))), (footPos_[1].e()(2) - heightMap_->getHeight(footPos_[1].e()(0), footPos_[1].e()(1))),
+      (footPos_[2].e()(2) - heightMap_->getHeight(footPos_[2].e()(0), footPos_[2].e()(1))), (footPos_[3].e()(2) - heightMap_->getHeight(footPos_[3].e()(0), footPos_[3].e()(1)));
+      /// foot z position 4
+      //        footContactState_[0], footContactState_[1], footContactState_[2], footContactState_[3];  /// foot contact state/probability 4
+    }
+    else {
+      unobservableStates_ <<
+      bodyLinearVel_,  /// body linear velocity. 3
+      mu_,  /// friction coefficient 1
+      footPos_[0].e()(2), footPos_[1].e()(2), footPos_[2].e()(2), footPos_[3].e()(2);  /// foot z position 4
+      //        footContactState_[0], footContactState_[1], footContactState_[2], footContactState_[3];  /// foot contact state/probability 4
+    }
 
     return unobservableStates_;
   }
@@ -489,6 +510,8 @@ class MinicheetahController {
   int getActionDim() {
     return actionDim_;
   }
+
+  void setIsHeightMap(bool isHeightMap) { isHeightMap_ = isHeightMap;}
 
   void printTest() {
 //    std::cout << "Test1: Observation before normalization." << std::endl;
@@ -524,6 +547,7 @@ class MinicheetahController {
 
   Eigen::Vector3d command_;
   bool standingMode_;
+  bool isHeightMap_;
 
   thread_local static std::mt19937 gen_;
   thread_local static std::normal_distribution<double> normDist_;

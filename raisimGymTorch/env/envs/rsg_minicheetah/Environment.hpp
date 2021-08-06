@@ -31,11 +31,8 @@ class ENVIRONMENT {
     robot->setName("robot");
     robot->setControlMode(raisim::ControlMode::PD_PLUS_FEEDFORWARD_TORQUE);
     world_->addGround();
-    mu_ = 0.4 + 0.3 * (uniDist_(gen_) + 1);  // [0.4, 1.0]  // should be corrected in reset method.
+    mu_ = 0.4 + 0.3 * (uniDist_(gen_) + 1);  // [0.4, 1.0]  // should be corrected also in reset method.
     world_->setDefaultMaterial(mu_, 0, 0);
-
-    heightMap_ = terrainGenerator_.generateTerrain(world_.get(), RandomHeightMapGenerator::GroundType(groundType_), 0.0, false, gen_, uniDist_);
-
 
     controller_.create(world_.get());
     READ_YAML(double, simulation_dt_, cfg["simulation_dt"])
@@ -59,6 +56,12 @@ class ENVIRONMENT {
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::JOINTACC], cfg["reward"]["jointAccCoeff"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::BASEMOTION], cfg["reward"]["baseMotionCoeff"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::FOOTCLEARANCE], cfg["reward"]["footClearanceCoeff"])
+
+    isHeightMap_ = cfg["isHeightMap"].template As<bool>();
+    controller_.setIsHeightMap(isHeightMap_);
+    if (isHeightMap_){
+      heightMap_ = terrainGenerator_.generateTerrain(world_.get(), RandomHeightMapGenerator::GroundType(groundType_), 0.0, false, gen_, uniDist_);
+    }
 
     stepData_.resize(controller_.getStepDataTag().size());
 
@@ -144,10 +147,12 @@ class ENVIRONMENT {
     comCurriculumFactorT_ = 1 + comCurriculumFactor3_ / (1 + std::exp(-comCurriculumFactor1_ * (iter - comCurriculumFactor2_)));
     comCurriculumFactorT_ = std::fmax(1., comCurriculumFactorT_);
 
-    groundType_ = (groundType_+1) % 2;
-    world_->removeObject(heightMap_);
-    double terrain_curriculum = 1 * std::min(1., iter / terCurriculumFactor_);
-    heightMap_ = terrainGenerator_.generateTerrain(world_.get(), RandomHeightMapGenerator::GroundType(groundType_), terrain_curriculum, false, gen_, uniDist_);
+    if(isHeightMap_) {
+      groundType_ = (groundType_+1) % 2;
+      world_->removeObject(heightMap_);
+      double terrain_curriculum = 1 * std::min(1., iter / terCurriculumFactor_);
+      heightMap_ = terrainGenerator_.generateTerrain(world_.get(), RandomHeightMapGenerator::GroundType(groundType_), terrain_curriculum, false, gen_, uniDist_);
+    }
   };
   float getCurriculumFactor() {return float(rewCurriculumFactor_);};
   void close() { if (server_) server_->killServer(); };
@@ -189,6 +194,7 @@ class ENVIRONMENT {
  private:
   std::map<MinicheetahController::RewardType, float> rewardCoeff_;
   bool visualizable_ = false;
+  bool isHeightMap_;
   double terminalRewardCoeff_ = -10.;
   MinicheetahController controller_;
   std::unique_ptr<raisim::World> world_;
