@@ -79,13 +79,13 @@ ppo = PPO.PPO(actor=actor,
 
 data_tags = env.get_step_data_tag()
 
-scheduler = torch.optim.lr_scheduler.MultiStepLR(ppo.optimizer, milestones=[2000], gamma=0.333333)
+scheduler = torch.optim.lr_scheduler.MultiStepLR(ppo.optimizer, milestones=[1000], gamma=0.333333)
 # scheduler = torch.optim.lr_scheduler.MultiStepLR(ppo.optimizer, milestones=[800], gamma=1)
 
 if mode == 'retrain':
     load_param(weight_path, env, actor, critic, ppo.optimizer, saver.data_dir)
 
-max_iteration = 5000 + 1
+max_iteration = 2500 + 1
 
 for update in range(max_iteration):
     start = time.time()
@@ -150,7 +150,7 @@ for update in range(max_iteration):
 
     data_std = np.sqrt((data_square_sum - data_size * data_mean * data_mean) / (data_size - 1 + 1e-16))
 
-    if update % 50 == 0:
+    if update % 20 == 0:
         for data_id in range(len(data_tags)):
             ppo.writer.add_scalar(data_tags[data_id]+'/mean', data_mean[data_id], global_step=update)
             ppo.writer.add_scalar(data_tags[data_id]+'/std', data_std[data_id], global_step=update)

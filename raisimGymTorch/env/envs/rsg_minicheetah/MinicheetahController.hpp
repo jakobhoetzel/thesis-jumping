@@ -76,7 +76,7 @@ class MinicheetahController {
 
     /// MUST BE DONE FOR ALL ENVIRONMENTS
     obDim_ = 141;  //34 //106 //130 //133 //198
-    unObsDim_ = 8;  //4
+    unObsDim_ = 11;  //4
     historyLength_ = 6;
     actionDim_ = nJoints_; actionMean_.setZero(actionDim_); actionStd_.setZero(actionDim_);  // action dimension is the same as the number of joints(by applying torque)
     obDouble_.setZero(obDim_); unobservableStates_.setZero(unObsDim_);
@@ -472,18 +472,16 @@ class MinicheetahController {
     if(isHeightMap_) {
       unobservableStates_ <<
       bodyLinearVel_,  /// body linear velocity. 3
-      mu_,  /// friction coefficient 1
       (footPos_[0].e()(2) - heightMap_->getHeight(footPos_[0].e()(0), footPos_[0].e()(1))), (footPos_[1].e()(2) - heightMap_->getHeight(footPos_[1].e()(0), footPos_[1].e()(1))),
-      (footPos_[2].e()(2) - heightMap_->getHeight(footPos_[2].e()(0), footPos_[2].e()(1))), (footPos_[3].e()(2) - heightMap_->getHeight(footPos_[3].e()(0), footPos_[3].e()(1)));
+      (footPos_[2].e()(2) - heightMap_->getHeight(footPos_[2].e()(0), footPos_[2].e()(1))), (footPos_[3].e()(2) - heightMap_->getHeight(footPos_[3].e()(0), footPos_[3].e()(1))),
       /// foot z position 4
-      //        footContactState_[0], footContactState_[1], footContactState_[2], footContactState_[3];  /// foot contact state/probability 4
+              footContactState_[0], footContactState_[1], footContactState_[2], footContactState_[3];  /// foot contact state/probability 4
     }
     else {
       unobservableStates_ <<
       bodyLinearVel_,  /// body linear velocity. 3
-      mu_,  /// friction coefficient 1
-      footPos_[0].e()(2), footPos_[1].e()(2), footPos_[2].e()(2), footPos_[3].e()(2);  /// foot z position 4
-      //        footContactState_[0], footContactState_[1], footContactState_[2], footContactState_[3];  /// foot contact state/probability 4
+      footPos_[0].e()(2), footPos_[1].e()(2), footPos_[2].e()(2), footPos_[3].e()(2),  /// foot z position 4
+              footContactState_[0], footContactState_[1], footContactState_[2], footContactState_[3];  /// foot contact state/probability 4
     }
 
     return unobservableStates_;

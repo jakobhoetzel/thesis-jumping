@@ -1,7 +1,7 @@
 seed: 1
-isHeightMap: False
 
 environment:
+  isHeightMap: True
   render: True
   num_envs: 800
   eval_every_n: 500
@@ -12,7 +12,7 @@ environment:
   rew_curriculum_factor: 0.5
   rew_curriculum_rate: 0.9998
   com_curriculum_factor1: 0.002
-  com_curriculum_factor2: 2000
+  com_curriculum_factor2: 1000
   com_curriculum_factor3: 2.5
   ter_curriculum_factor: 3000
   reward:

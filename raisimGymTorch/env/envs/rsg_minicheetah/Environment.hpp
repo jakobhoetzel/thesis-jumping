@@ -32,6 +32,7 @@ class ENVIRONMENT {
     robot->setControlMode(raisim::ControlMode::PD_PLUS_FEEDFORWARD_TORQUE);
     world_->addGround();
     mu_ = 0.4 + 0.3 * (uniDist_(gen_) + 1);  // [0.4, 1.0]  // should be corrected also in reset method.
+//    mu_ = 0.6;
     world_->setDefaultMaterial(mu_, 0, 0);
 
     controller_.create(world_.get());
@@ -85,6 +86,7 @@ class ENVIRONMENT {
     controller_.collisionRandomization(world_.get());
 
     mu_ = 0.4 + 0.3 * (uniDist_(gen_) + 1);  // [0.4, 1.0]
+//    mu_ = 0.6;
     world_->setDefaultMaterial(mu_, 0, 0);
   }
 
