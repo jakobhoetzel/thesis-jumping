@@ -19,10 +19,10 @@ class RaisimGymVecEnv:
         self.wrapper = impl
         self.wrapper.init()
         self.num_obs = self.wrapper.getObDim()
-        self.num_unObs = self.wrapper.getUnObsDim()
+        self.num_robotState = self.wrapper.getRobotStateDim()
         self.num_acts = self.wrapper.getActionDim()
         self._observation = np.zeros([self.num_envs, self.num_obs], dtype=np.float32)
-        self._unobservableStates = np.zeros([self.num_envs, self.num_unObs], dtype=np.float32)
+        self._robotState = np.zeros([self.num_envs, self.num_robotState], dtype=np.float32)
         self.obs_rms = RunningMeanStd(shape=[self.num_envs, self.num_obs])
         self._reward = np.zeros(self.num_envs, dtype=np.float32)
         self._done = np.zeros(self.num_envs, dtype=np.bool)
@@ -75,9 +75,9 @@ class RaisimGymVecEnv:
         else:
             return self._observation.copy()
 
-    def unObsState(self):
-        self.wrapper.unObsState(self._unobservableStates)
-        return self._unobservableStates.copy()
+    def getRobotState(self):
+        self.wrapper.getRobotState(self._robotState)
+        return self._robotState.copy()
 
     def reset(self):
         self._reward = np.zeros(self.num_envs, dtype=np.float32)
@@ -120,8 +120,6 @@ class RaisimGymVecEnv:
 
     def printTest(self):
         self.wrapper.printTest()
-        # print("observation after normalization:")
-        # print(self.observe(False))
 
     @property
     def num_envs(self):

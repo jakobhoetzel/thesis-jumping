@@ -83,7 +83,7 @@ else:
         env.set_command(command)
 
         obs = env.observe(False)
-        unObsState = env.unObsState()
+        robotState = env.getRobotState()
         action_ll = actor.architecture(torch.from_numpy(obs).cpu())
         reward_ll, dones = env.step(action_ll.cpu().detach().numpy())
 
@@ -93,7 +93,7 @@ else:
 
         f2 = open('velocityData.csv', 'a')
         writer = csv.writer(f2)
-        writer.writerow([*unObsState[0][0:2], obs[0][17]])
+        writer.writerow([*robotState[0][0:2], obs[0][17]])
 
         reward_ll_sum = reward_ll_sum + reward_ll[0]
         if dones or step == max_steps - 1:

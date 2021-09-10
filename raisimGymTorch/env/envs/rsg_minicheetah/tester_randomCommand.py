@@ -43,7 +43,7 @@ env = VecEnv(rsg_minicheetah.RaisimGymEnv(home_path + "/rsc", dump(cfg['environm
 
 # shortcuts
 ob_dim = env.num_obs
-unObs_dim = env.num_unObs
+robotState_dim = env.num_robotState
 act_dim = env.num_acts
 
 
@@ -53,7 +53,6 @@ else:
     print("Loaded weight from {}\n".format(weight_path))
     start = time.time()
     env.reset()
-    # command = np.array([0.5, 0, 0], dtype=np.float32)
     reward_ll_sum = 0
     done_sum = 0
     average_dones = 0.
@@ -62,11 +61,11 @@ else:
     start_step_id = 0
 
     print("Visualizing and evaluating the policy: ", weight_path)
-    actor = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + unObs_dim, act_dim)
+    actor = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, act_dim)
     actor.load_state_dict(torch.load(weight_path)['actor_architecture_state_dict'])
     print('actor of {} parameters'.format(sum(p.numel() for p in actor.parameters())))
 
-    estimator = ppo_module.MLP(cfg['architecture']['estimator_net'], torch.nn.LeakyReLU,ob_dim,unObs_dim)
+    estimator = ppo_module.MLP(cfg['architecture']['estimator_net'], torch.nn.LeakyReLU,ob_dim,robotState_dim)
     estimator.load_state_dict(torch.load(weight_path)['estimator_architecture_state_dict'])
 
     env.load_scaling(weight_dir, int(iteration_number))
@@ -88,7 +87,7 @@ else:
             env.set_command(command)
 
         obs = env.observe(False)
-        unObsState = env.unObsState()
+        robotState = env.getRobotState()
         est_out = estimator.architecture(torch.from_numpy(obs).cpu())
         concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
         action_ll = actor.architecture(torch.from_numpy(concatenated_obs_actor).cpu())
@@ -100,7 +99,7 @@ else:
 
         f2 = open('velocityData.csv', 'a')
         writer = csv.writer(f2)
-        writer.writerow([*unObsState[0][0:2], obs[0][17]])
+        writer.writerow([*robotState[0][0:2], obs[0][17]])
 
         f3 = open('estimatedVelocityData.csv', 'a')
         writer = csv.writer(f3)

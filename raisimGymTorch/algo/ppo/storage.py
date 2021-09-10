@@ -3,14 +3,14 @@ from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 
 
 class RolloutStorage:
-    def __init__(self, num_envs, num_transitions_per_env, actor_obs_shape, critic_obs_shape, actions_shape, estimator_input_shape, unObsState_shape, device):
+    def __init__(self, num_envs, num_transitions_per_env, actor_obs_shape, critic_obs_shape, actions_shape, estimator_input_shape, robotState_shape, device):
         self.device = device
 
         # Core
         self.critic_obs = torch.zeros(num_transitions_per_env, num_envs, *critic_obs_shape).to(self.device)
         self.actor_obs = torch.zeros(num_transitions_per_env, num_envs, *actor_obs_shape).to(self.device)
         self.estimator_input = torch.zeros(num_transitions_per_env, num_envs, *estimator_input_shape).to(self.device)
-        self.unObsState = torch.zeros(num_transitions_per_env, num_envs, *unObsState_shape).to(self.device)
+        self.robotState = torch.zeros(num_transitions_per_env, num_envs, *robotState_shape).to(self.device)
         self.rewards = torch.zeros(num_transitions_per_env, num_envs, 1).to(self.device)
         self.actions = torch.zeros(num_transitions_per_env, num_envs, *actions_shape).to(self.device)
         self.dones = torch.zeros(num_transitions_per_env, num_envs, 1).byte().to(self.device)
@@ -27,13 +27,13 @@ class RolloutStorage:
 
         self.step = 0
 
-    def add_transitions(self, actor_obs, critic_obs, actions, est_in, unObsState, rewards, dones, values, actions_log_prob):
+    def add_transitions(self, actor_obs, critic_obs, actions, est_in, robotState, rewards, dones, values, actions_log_prob):
         if self.step >= self.num_transitions_per_env:
             raise AssertionError("Rollout buffer overflow")
         self.critic_obs[self.step].copy_(torch.from_numpy(critic_obs).to(self.device))
         self.actor_obs[self.step].copy_(torch.from_numpy(actor_obs).to(self.device))
         self.estimator_input[self.step].copy_(torch.from_numpy(est_in).to(self.device))
-        self.unObsState[self.step].copy_(torch.from_numpy(unObsState).to(self.device))
+        self.robotState[self.step].copy_(torch.from_numpy(robotState).to(self.device))
         self.actions[self.step].copy_(actions.to(self.device))
         self.rewards[self.step].copy_(torch.from_numpy(rewards).view(-1, 1).to(self.device))
         self.dones[self.step].copy_(torch.from_numpy(dones).view(-1, 1).to(self.device))
@@ -71,13 +71,13 @@ class RolloutStorage:
             actor_obs_batch = self.actor_obs.view(-1, *self.actor_obs.size()[2:])[indices]
             critic_obs_batch = self.critic_obs.view(-1, *self.critic_obs.size()[2:])[indices]
             est_in_batch = self.estimator_input.view(-1, *self.estimator_input.size()[2:])[indices]
-            unObsState_batch = self.unObsState.view(-1, *self.unObsState.size()[2:])[indices]
+            robotState_batch = self.robotState.view(-1, *self.robotState.size()[2:])[indices]
             actions_batch = self.actions.view(-1, self.actions.size(-1))[indices]
             values_batch = self.values.view(-1, 1)[indices]
             returns_batch = self.returns.view(-1, 1)[indices]
             old_actions_log_prob_batch = self.actions_log_prob.view(-1, 1)[indices]
             advantages_batch = self.advantages.view(-1, 1)[indices]
-            yield actor_obs_batch, critic_obs_batch, actions_batch, values_batch, est_in_batch, unObsState_batch, advantages_batch, returns_batch, old_actions_log_prob_batch
+            yield actor_obs_batch, critic_obs_batch, actions_batch, values_batch, est_in_batch, robotState_batch, advantages_batch, returns_batch, old_actions_log_prob_batch
 
     def mini_batch_generator_inorder(self, num_mini_batches):
         batch_size = self.num_envs * self.num_transitions_per_env
@@ -89,7 +89,7 @@ class RolloutStorage:
                 self.actions.view(-1, self.actions.size(-1))[batch_id*mini_batch_size:(batch_id+1)*mini_batch_size], \
                 self.values.view(-1, 1)[batch_id*mini_batch_size:(batch_id+1)*mini_batch_size], \
                 self.estimator_input.view(-1, *self.estimator_input.size()[2:])[batch_id*mini_batch_size:(batch_id+1)*mini_batch_size], \
-                self.unObsState.view(-1, *self.unObsState.size()[2:])[batch_id*mini_batch_size:(batch_id+1)*mini_batch_size], \
+                self.robotState.view(-1, *self.robotState.size()[2:])[batch_id*mini_batch_size:(batch_id+1)*mini_batch_size], \
                 self.advantages.view(-1, 1)[batch_id*mini_batch_size:(batch_id+1)*mini_batch_size], \
                 self.returns.view(-1, 1)[batch_id*mini_batch_size:(batch_id+1)*mini_batch_size], \
                 self.actions_log_prob.view(-1, 1)[batch_id*mini_batch_size:(batch_id+1)*mini_batch_size]

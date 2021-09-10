@@ -49,7 +49,6 @@ else:
     print("Loaded weight from {}\n".format(weight_path))
     start = time.time()
     env.reset()
-    # command = np.array([0.5, 0, 0], dtype=np.float32)
     reward_ll_sum = 0
     done_sum = 0
     average_dones = 0.
@@ -76,7 +75,6 @@ else:
                 command_Vx *= 0.5
             command_Vy = - pygame.joystick.Joystick(0).get_axis(0)
             command_yaw = -2 * pygame.joystick.Joystick(0).get_axis(3)
-            # command_yaw /= max(1., min(2., abs(command_Vx) / abs(command_yaw)))
             command = np.array([command_Vx, command_Vy, command_yaw], dtype=np.float32)
             env.set_command(command)
 

@@ -37,13 +37,13 @@ class MinicheetahController {
 
   void setSeed(int seed) { gen_.seed(seed); }
 
-  bool create(raisim::World *world) { // called only once
+  bool create(raisim::World *world) {
     auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world->getObject("robot"));
 
     /// get robot data
     gcDim_ = cheetah->getGeneralizedCoordinateDim();
     gvDim_ = cheetah->getDOF();
-    nJoints_ = gvDim_ - 6;  // because each joint has 1 DOF and the main body has 6 DOF.
+    nJoints_ = gvDim_ - 6;
 
     /// initialize containers
     gc_.setZero(gcDim_); gc_init_.setZero(gcDim_); gc_init_noise.setZero(gcDim_);  //gc_ and gv_ are expressed in the joint frame and with respect to the parent body
@@ -53,8 +53,8 @@ class MinicheetahController {
     pTarget_.setZero(gcDim_); vTarget_.setZero(gvDim_); pTarget12_.setZero(nJoints_);
 
     /// this is nominal configuration of minicheetah
-    gc_init_ << 0, 0, 0.25, //0.07,  // gc_init_.segment(0, 3): x, y, z position  //0.28
-        0.707106, 0.0, 0.0, 0.707106,  // gc_init_.segment(3, 4): quaternion
+    gc_init_ << 0, 0, 0.25,
+        0.707106, 0.0, 0.0, 0.707106,
         0, -0.9, 1.8, 0, -0.9, 1.8, 0, -0.9, 1.8, 0, -0.9, 1.8;  // new stand up 0514
 
     gc_stationay_target << gc_init_.head(7),
@@ -70,10 +70,10 @@ class MinicheetahController {
 
     /// MUST BE DONE FOR ALL ENVIRONMENTS
     obDim_ = 141;  //34 //106 //130 //133 //198
-    unObsDim_ = 11;  //4
+    robotStateDim_ = 11;  //4
     historyLength_ = 6;
     actionDim_ = nJoints_; actionMean_.setZero(actionDim_); actionStd_.setZero(actionDim_);  // action dimension is the same as the number of joints(by applying torque)
-    obDouble_.setZero(obDim_); unobservableStates_.setZero(unObsDim_);
+    obDouble_.setZero(obDim_); robotState_.setZero(robotStateDim_);
     preJointVel_.setZero(nJoints_);
     previousAction_.setZero(actionDim_); prepreviousAction_.setZero(actionDim_);
     airTime_.setZero(4); stanceTime_.setZero(4);
@@ -119,7 +119,7 @@ class MinicheetahController {
 
 //    pTarget_ = gc_stationay_target;
 
-    cheetah->setPdTarget(pTarget_, vTarget_);  // Set vTarget as 0 because we don't know vTarget. It works quite well.
+    cheetah->setPdTarget(pTarget_, vTarget_);
 
     // joint friction
     Eigen::VectorXd tau; tau.setZero(gvDim_);
@@ -257,7 +257,6 @@ class MinicheetahController {
     foot_fr_idx = 4; foot_fl_idx = 8; foot_hr_idx = 12; foot_hl_idx = 16;
 
     Vec<3> pos_offset;
-//    cheetah->getCollisionBody("toe_fr/1").set
     pos_offset = {uniDist_(gen_)*0.01, uniDist_(gen_)*0.005, uniDist_(gen_)*0.02 - 0.195};
     cheetah->setCollisionObjectPositionOffset(foot_fr_idx, pos_offset);
     pos_offset = {uniDist_(gen_)*0.01, uniDist_(gen_)*0.005, uniDist_(gen_)*0.02 - 0.195};
@@ -280,7 +279,7 @@ class MinicheetahController {
 
     double desiredFootZPosition = 0.09;
     preJointVel_ = gv_.tail(nJoints_);
-    updateObservation(world);  // update obDouble, and so on.
+    updateObservation(world);
 
     /// A variable for foot slip reward and foot clearance reward
     double footTangentialForSlip = 0, footClearanceTangential = 0;
@@ -336,7 +335,6 @@ class MinicheetahController {
     double rewSmoothness1 = rewardCoeff.at(RewardType::SMOOTHNESS1) * (pTarget12_ - previousAction_).squaredNorm();
     double rewSmoothness2 = rewardCoeff.at(RewardType::SMOOTHNESS2) * (pTarget12_ - 2 * previousAction_ + prepreviousAction_).squaredNorm();
     double rewJointPosition = (gc_.tail(nJoints_) - gc_init_.tail(nJoints_)).squaredNorm() * rewardCoeff.at(RewardType::JOINTPOS);
-//    rewJointPosition /= std::max(1., pow(bodyLinearVel_.head(2).norm(), 1/4));
     double rewJointAcc = (gv_.tail(12) - preJointVel_).squaredNorm() * rewardCoeff.at(RewardType::JOINTACC);
     double rewBaseMotion = (0.8 * bodyLinearVel_[2] * bodyLinearVel_[2] + 0.2 * fabs(bodyAngularVel_[0]) + 0.2 * fabs(bodyAngularVel_[1])) * rewardCoeff.at(RewardType::BASEMOTION);
     double rewFootClearance = footClearanceTangential * rewardCoeff.at(RewardType::FOOTCLEARANCE);
@@ -361,10 +359,6 @@ class MinicheetahController {
     stepData_[13] = negativeRewardSum;
     stepData_[14] = positiveRewardSum;
     stepData_[15] = std::exp(0.2 * negativeRewardSum) * positiveRewardSum;  // totalReward
-  }
-
-  double rewKernel(double x) {
-    return 1 / (exp(x) + 2 + exp(-x));  // which is opposite in sign to the const function version.
   }
 
   const std::vector<std::string>& getStepDataTag() {
@@ -418,8 +412,7 @@ class MinicheetahController {
   }
 
   const Eigen::VectorXd& getObservation() {
-    obDouble_ << //gc_[2], /// body height. 1
-              rot_.e().row(2).transpose(), /// body orientation(z-axis in world frame expressed in body frame). 3
+    obDouble_ << rot_.e().row(2).transpose(), /// body orientation(z-axis in world frame expressed in body frame). 3
         gc_.tail(12), /// joint angles 12
 //        bodyLinearVel_, /// body linear velocity. 3
         bodyAngularVel_, /// body angular velocity. 3
@@ -435,11 +428,6 @@ class MinicheetahController {
         rot_.e().transpose() * (footPos_[0].e() - gc_.head(3)), rot_.e().transpose() * (footPos_[1].e() - gc_.head(3)),
         rot_.e().transpose() * (footPos_[2].e() - gc_.head(3)), rot_.e().transpose() * (footPos_[3].e() - gc_.head(3)),  /// relative foot position with respect to the body COM, expressed in the body frame 12
         command_;  /// command 3
-
-//    std::cout << "Joint position" << std::endl;
-//    std::cout << gc_.tail(12) << std::endl;
-//    std::cout << "foot position" << std::endl;
-//    std::cout << obDouble_.tail(15).head(12) << std::endl;
 
     /// Observation noise
     bool addObsNoise = true;
@@ -462,9 +450,9 @@ class MinicheetahController {
     return obDouble_;
   }
 
-  const Eigen::VectorXd& getUnobservableStates(double mu_, raisim::HeightMap* heightMap_) {
+  const Eigen::VectorXd& getRobotState(raisim::HeightMap* heightMap_) {
     if(isHeightMap_) {
-      unobservableStates_ <<
+      robotState_ <<
       bodyLinearVel_,  /// body linear velocity. 3
       (footPos_[0].e()(2) - heightMap_->getHeight(footPos_[0].e()(0), footPos_[0].e()(1))), (footPos_[1].e()(2) - heightMap_->getHeight(footPos_[1].e()(0), footPos_[1].e()(1))),
       (footPos_[2].e()(2) - heightMap_->getHeight(footPos_[2].e()(0), footPos_[2].e()(1))), (footPos_[3].e()(2) - heightMap_->getHeight(footPos_[3].e()(0), footPos_[3].e()(1))),
@@ -472,13 +460,13 @@ class MinicheetahController {
               footContactState_[0], footContactState_[1], footContactState_[2], footContactState_[3];  /// foot contact state/probability 4
     }
     else {
-      unobservableStates_ <<
+      robotState_ <<
       bodyLinearVel_,  /// body linear velocity. 3
       footPos_[0].e()(2), footPos_[1].e()(2), footPos_[2].e()(2), footPos_[3].e()(2),  /// foot z position 4
               footContactState_[0], footContactState_[1], footContactState_[2], footContactState_[3];  /// foot contact state/probability 4
     }
 
-    return unobservableStates_;
+    return robotState_;
   }
 
   /// If the contact body is not feet
@@ -495,8 +483,8 @@ class MinicheetahController {
     return obDim_;
   }
 
-  int getUnObsDim() {
-    return unObsDim_;
+  int getRobotStateDim() {
+    return robotStateDim_;
   }
 
   int getActionDim() {
@@ -527,13 +515,13 @@ class MinicheetahController {
   std::array<bool, 4> footContactState_;
   std::vector<raisim::Vec<3>> footPos_, footVel_;
   std::vector<size_t> footFrameIndices_;
-  int obDim_=0, actionDim_=0, unObsDim_;
+  int obDim_=0, actionDim_=0, robotStateDim_;
   int historyLength_;
   Eigen::VectorXd stepData_;
   Eigen::VectorXd airTime_, stanceTime_;
   std::vector<std::string> stepDataTag_;
   Eigen::VectorXd jointPosErrorHist_, jointVelHist_, historyTempMem_, preJointVel_;
-  Eigen::VectorXd unobservableStates_;
+  Eigen::VectorXd robotState_;
   Eigen::VectorXd jointFrictions_;
   Eigen::VectorXd jointPgain_, jointDgain_;
 

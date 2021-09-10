@@ -79,9 +79,9 @@ class PPO:
         # self.actions = np.clip(self.actions.numpy(), self.env.action_space.low, self.env.action_space.high)
         return self.actions.cpu().numpy()
 
-    def step(self, value_obs, est_in, unObsState, rews, dones):
+    def step(self, value_obs, est_in, robotState, rews, dones):
         values = self.critic.predict(torch.from_numpy(value_obs).to(self.device))
-        self.storage.add_transitions(self.actor_obs, value_obs, self.actions, est_in, unObsState, rews, dones, values,
+        self.storage.add_transitions(self.actor_obs, value_obs, self.actions, est_in, robotState, rews, dones, values,
                                      self.actions_log_prob)
 
     def update(self, actor_obs, value_obs, log_this_iteration, update):
@@ -111,7 +111,7 @@ class PPO:
         mean_estimation_loss = 0
         mean_entropy = 0
         for epoch in range(self.num_learning_epochs):
-            for actor_obs_batch, critic_obs_batch, actions_batch, target_values_batch, est_in_batch, unObsState_batch, \
+            for actor_obs_batch, critic_obs_batch, actions_batch, target_values_batch, est_in_batch, robotState_batch, \
                 advantages_batch, returns_batch, old_actions_log_prob_batch \
                     in self.batch_sampler(self.num_mini_batches):
 
@@ -136,7 +136,7 @@ class PPO:
                 else:
                     value_loss = (returns_batch - value_batch).pow(2).mean()
 
-                estimator_loss = (unObsState_batch - estimation_batch).pow(2).mean()
+                estimator_loss = (robotState_batch - estimation_batch).pow(2).mean()
 
                 loss = surrogate_loss + self.value_loss_coef * value_loss + self.estimator_loss_coef * estimator_loss\
                        - self.entropy_coef * entropy_batch.mean()

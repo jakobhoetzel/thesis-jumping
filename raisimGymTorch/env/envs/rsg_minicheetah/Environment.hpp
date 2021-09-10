@@ -88,7 +88,6 @@ class ENVIRONMENT {
     controller_.collisionRandomization(world_.get());
 
     mu_ = 0.4 + 0.3 * (uniDist_(gen_) + 1);  // [0.4, 1.0]
-//    mu_ = 0.6;
     world_->setDefaultMaterial(mu_, 0, 0);
   }
 
@@ -103,7 +102,6 @@ class ENVIRONMENT {
   void setCommand(const Eigen::Ref<EigenVec>& command) { controller_.setCommand(command); }
 
   double step(const Eigen::Ref<EigenVec> &action) {
-//    controller_.advance(world_.get(), action); ///make sure default pd target is not nan
     stepData_.setZero();
     int loopCount = int(control_dt_ / simulation_dt_ + 1e-10);
 //    delayDividedBySimdt = int((0.01 / simulation_dt_)*0.5*(uniDist_(gen_)+1));
@@ -133,8 +131,8 @@ class ENVIRONMENT {
     ob = controller_.getObservation().cast<float>();
   }
 
-  void unObsState(Eigen::Ref<EigenVec> ob) {
-    ob = controller_.getUnobservableStates(mu_, heightMap_).cast<float>();
+  void getRobotState(Eigen::Ref<EigenVec> ob) {
+    ob = controller_.getRobotState(heightMap_).cast<float>();
   }
 
   bool isTerminalState(float &terminalReward) {
@@ -175,7 +173,7 @@ class ENVIRONMENT {
 
   int getObDim() { return controller_.getObDim(); }
 
-  int getUnObsDim() { return controller_.getUnObsDim(); }
+  int getRobotStateDim() { return controller_.getRobotStateDim(); }
 
   int getActionDim() { return controller_.getActionDim(); }
 

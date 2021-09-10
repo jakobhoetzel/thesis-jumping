@@ -40,7 +40,7 @@ env = VecEnv(rsg_minicheetah.RaisimGymEnv(home_path + "/rsc", dump(cfg['environm
 
 # shortcuts
 ob_dim = env.num_obs
-unObs_dim = env.num_unObs
+robotState_dim = env.num_robotState
 act_dim = env.num_acts
 
 # Training
@@ -49,12 +49,12 @@ total_steps = n_steps * env.num_envs  # 40000
 
 avg_rewards = []
 
-actor = ppo_module.Actor(ppo_module.MLP(cfg['architecture']['policy_net'], nn.LeakyReLU, ob_dim + unObs_dim, act_dim),
+actor = ppo_module.Actor(ppo_module.MLP(cfg['architecture']['policy_net'], nn.LeakyReLU, ob_dim + robotState_dim, act_dim),
                          ppo_module.MultivariateGaussianDiagonalCovariance(act_dim, 1.0),  # 1.0
                          device)
-critic = ppo_module.Critic(ppo_module.MLP(cfg['architecture']['value_net'], nn.LeakyReLU, ob_dim + unObs_dim, 1),
+critic = ppo_module.Critic(ppo_module.MLP(cfg['architecture']['value_net'], nn.LeakyReLU, ob_dim + robotState_dim, 1),
                            device)
-stateEstimator = ppo_module.StateEstimator(ppo_module.MLP(cfg['architecture']['estimator_net'], nn.LeakyReLU, ob_dim, unObs_dim),
+stateEstimator = ppo_module.StateEstimator(ppo_module.MLP(cfg['architecture']['estimator_net'], nn.LeakyReLU, ob_dim, robotState_dim),
                                            device)
 
 saver = ConfigurationSaver(log_dir=home_path + "/raisimGymTorch/data/"+task_name,  # save environment and configuration data.
@@ -106,11 +106,11 @@ for update in range(max_iteration):
             'estimator_architecture_state_dict': stateEstimator.architecture.state_dict(),
             'optimizer_state_dict': ppo.optimizer.state_dict(),
         }, saver.data_dir+"/full_"+str(update)+'.pt')
-        actor.save_deterministic_graph(saver.data_dir + "/actor_" + str(update) + ".pt", torch.rand(1, ob_dim + unObs_dim).cpu())
+        actor.save_deterministic_graph(saver.data_dir + "/actor_" + str(update) + ".pt", torch.rand(1, ob_dim + robotState_dim).cpu())
         stateEstimator.save_deterministic_graph(saver.data_dir + "/estimator_" + str(update) + ".pt", torch.rand(1, ob_dim).cpu())
 
         # we create another graph just to demonstrate the save/load method
-        loaded_graph = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + unObs_dim, act_dim)
+        loaded_graph = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, act_dim)
         loaded_graph.load_state_dict(torch.load(saver.data_dir+"/full_"+str(update)+'.pt')['actor_architecture_state_dict'])
 
         env.turn_on_visualization()
@@ -120,10 +120,10 @@ for update in range(max_iteration):
         for step in range(n_steps*2):  # n_steps*2
             frame_start = time.time()
             obs = env.observe(False)  # don't compute rms
-            unObsState = env.unObsState()
+            robotState = env.getRobotState()
             est_out = stateEstimator.predict(torch.from_numpy(obs).to(device))
             concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
-            concatenated_obs_critic = np.concatenate((obs, unObsState), axis=1)
+            concatenated_obs_critic = np.concatenate((obs, robotState), axis=1)
             action = ppo.observe(concatenated_obs_actor)
             action_ll, _ = actor.sample(torch.from_numpy(concatenated_obs_actor).to(device))  # stochastic action
             # action_ll = loaded_graph.architecture(torch.from_numpy(obs).cpu())
@@ -149,13 +149,13 @@ for update in range(max_iteration):
     # actual training
     for step in range(n_steps):
         obs = env.observe()
-        unObsState = env.unObsState()
+        robotState = env.getRobotState()
         est_out = stateEstimator.predict(torch.from_numpy(obs).to(device))
         concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
-        concatenated_obs_critic = np.concatenate((obs, unObsState), axis=1)
+        concatenated_obs_critic = np.concatenate((obs, robotState), axis=1)
         action = ppo.observe(concatenated_obs_actor)
         reward, dones = env.step(action)
-        ppo.step(value_obs=concatenated_obs_critic, est_in=obs, unObsState=unObsState, rews=reward, dones=dones)
+        ppo.step(value_obs=concatenated_obs_critic, est_in=obs, robotState=robotState, rews=reward, dones=dones)
         done_sum = done_sum + sum(dones)
         reward_ll_sum = reward_ll_sum + sum(reward)
         data_size = env.get_step_data(data_size, data_mean, data_square_sum, data_min, data_max)
@@ -171,10 +171,10 @@ for update in range(max_iteration):
 
     # take st step to get value obs
     obs = env.observe()
-    unObsState = env.unObsState()
+    robotState = env.getRobotState()
     est_out = stateEstimator.predict(torch.from_numpy(obs).to(device))
     concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
-    concatenated_obs_critic = np.concatenate((obs, unObsState), axis=1)
+    concatenated_obs_critic = np.concatenate((obs, robotState), axis=1)
     ppo.update(actor_obs=concatenated_obs_actor, value_obs=concatenated_obs_critic, log_this_iteration=update % 20 == 0, update=update)
     average_ll_performance = reward_ll_sum / total_steps  # average reward per step per environment
     average_dones = done_sum / total_steps
