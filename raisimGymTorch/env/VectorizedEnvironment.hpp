@@ -41,6 +41,7 @@ class VectorizedEnvironment {
     }
 
     setSeed(0);
+//    setSeed(cfg_["seed"].template As<int>());
 
     for (int i = 0; i < num_envs_; i++) {
       // only the first environment is visualized

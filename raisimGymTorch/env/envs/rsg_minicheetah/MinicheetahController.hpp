@@ -55,14 +55,8 @@ class MinicheetahController {
     /// this is nominal configuration of minicheetah
     gc_init_ << 0, 0, 0.25, //0.07,  // gc_init_.segment(0, 3): x, y, z position  //0.28
         0.707106, 0.0, 0.0, 0.707106,  // gc_init_.segment(3, 4): quaternion
-//        0, -0.8, 1.8, 0, -0.8, 1.6, 0, -0.8, 1.6, 0, -0.8, 1.6;  // stand up
         0, -0.9, 1.8, 0, -0.9, 1.8, 0, -0.9, 1.8, 0, -0.9, 1.8;  // new stand up 0514
-//        -0.6, -1, 2.7, 0.6, -1, 2.7, -0.6, -1, 2.7, 0.6, -1, 2.7;
-//        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
-//        -0.62057, -1.039, 2.7, 0.6206, -1.039, 2.7, -0.6245, -1.034, 2.7, 0.62436, -1.034, 2.7;  // intended initial pose
-//        0., 0., 0.5, 0., 0., 0.5, 0., 0., 0.5, 0., 0., 0.5;
-//        -0.8659, -0.5307, 1.9672, 0.8661, -0.5302, 1.9666, -1.1019, -0.7014, 1.8063, 1.1017, -0.701, 1.8066;
-//        -0.726685, -0.947298, 2.7, 0.726636, -0.947339, 2.7, -0.727, -0.94654, 2.65542, 0.727415, -0.946541, 2.65542;  // unintended initial pose
+
     gc_stationay_target << gc_init_.head(7),
         0, -0.9, 1.8, 0, -0.9, 1.8, 0, -0.9, 1.8, 0, -0.9, 1.8;
 
@@ -245,9 +239,9 @@ class MinicheetahController {
     historyTempMem_.setZero();
     for(int i = 0; i < historyLength_; i++) {
       jointPosErrorHist_.segment(nJoints_ * i, nJoints_).setZero();
-      jointVelHist_.segment(nJoints_ * i, nJoints_) = gv_.tail(nJoints_);
+      jointVelHist_.segment(nJoints_ * i, nJoints_) = gv_init_noise.tail(nJoints_);
     }
-    pTarget_.tail(nJoints_) = gc_.tail(nJoints_); pTarget12_ = pTarget_.tail(nJoints_);
+    pTarget_.tail(nJoints_) = gc_init_noise.tail(nJoints_); pTarget12_ = pTarget_.tail(nJoints_);
     previousAction_ << pTarget12_; prepreviousAction_ << pTarget12_;
 
     for(int i=0; i<4; i++) airTime_[i] = 0;
@@ -325,7 +319,7 @@ class MinicheetahController {
       else {
         if (airTime_[i] < 0.25)
           airtimeTotal += std::min(airTime_[i], 0.2);
-        else if (stanceTime_[i] < 0.25)
+        if (stanceTime_[i] < 0.25)
           airtimeTotal += std::min(stanceTime_[i], 0.2);
       }
     }

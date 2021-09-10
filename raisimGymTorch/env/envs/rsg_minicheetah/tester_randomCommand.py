@@ -10,6 +10,8 @@ import torch
 import argparse
 import pygame
 import csv
+import datetime
+
 
 # pygame for logitech gamepad
 pygame.display.init()
@@ -69,14 +71,16 @@ else:
 
     env.load_scaling(weight_dir, int(iteration_number))
     env.turn_on_visualization()
+    env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy.mp4")
+    time.sleep(2)
 
     # max_steps = 1000000
-    max_steps = 60000 ## 10 secs
+    max_steps = 400 ## 10 secs
 
     for step in range(max_steps):
         frame_start = time.time()
 
-        if step % 300 == 0:
+        if step % 400 == 0:
             command_Vx = np.random.uniform(-1.75, 3.5, 1)
             command_Vy = np.random.uniform(-1., 1., 1)
             command_yaw = np.random.uniform(-2., 2., 1)
@@ -116,6 +120,7 @@ else:
         if wait_time > 0.:
             time.sleep(wait_time)
 
+    env.stop_video_recording()
     env.turn_off_visualization()
     env.reset()
     print("Finished at the maximum visualization steps")

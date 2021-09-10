@@ -30,7 +30,6 @@ class ENVIRONMENT {
     auto* robot = world_->addArticulatedSystem(resourceDir + "/mini_cheetah/mini-cheetah-vision-v1.5.urdf");
     robot->setName("robot");
     robot->setControlMode(raisim::ControlMode::PD_PLUS_FEEDFORWARD_TORQUE);
-    world_->addGround();
     mu_ = 0.4 + 0.3 * (uniDist_(gen_) + 1);  // [0.4, 1.0]  // should be corrected also in reset method.
 //    mu_ = 0.6;
     world_->setDefaultMaterial(mu_, 0, 0);
@@ -62,6 +61,9 @@ class ENVIRONMENT {
     controller_.setIsHeightMap(isHeightMap_);
     if (isHeightMap_){
       heightMap_ = terrainGenerator_.generateTerrain(world_.get(), RandomHeightMapGenerator::GroundType(groundType_), 0.0, false, gen_, uniDist_);
+    }
+    else {
+      world_->addGround();
     }
 
     stepData_.resize(controller_.getStepDataTag().size());
