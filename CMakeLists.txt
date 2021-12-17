@@ -75,3 +75,7 @@ FOREACH(subdir ${SUBDIRS})
         endif()
     endif()
 ENDFOREACH()
+
+add_executable(replay raisimGymTorch/env/envs/rsg_minicheetah/replay.cpp)
+target_link_libraries(replay PRIVATE raisim::raisim)
+target_include_directories(replay PUBLIC raisimGymTorch/env/envs/${subdir} ${EIGEN3_INCLUDE_DIRS})

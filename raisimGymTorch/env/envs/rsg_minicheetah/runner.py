@@ -156,8 +156,8 @@ for update in range(max_iteration):
         action = ppo.observe(concatenated_obs_actor)
         reward, dones = env.step(action)
         ppo.step(value_obs=concatenated_obs_critic, est_in=obs, robotState=robotState, rews=reward, dones=dones)
-        done_sum = done_sum + sum(dones)
-        reward_ll_sum = reward_ll_sum + sum(reward)
+        done_sum = done_sum + np.sum(dones)
+        reward_ll_sum = reward_ll_sum + np.sum(reward)
         data_size = env.get_step_data(data_size, data_mean, data_square_sum, data_min, data_max)
 
     data_std = np.sqrt((data_square_sum - data_size * data_mean * data_mean) / (data_size - 1 + 1e-16))
