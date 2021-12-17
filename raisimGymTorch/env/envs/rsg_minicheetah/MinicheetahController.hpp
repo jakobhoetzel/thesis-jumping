@@ -32,7 +32,8 @@ class MinicheetahController {
     JOINTPOS,
     JOINTACC,
     BASEMOTION,
-    FOOTCLEARANCE
+    FOOTCLEARANCE,
+    HURDLES
   };
 
   void setSeed(int seed) { gen_.seed(seed); }
@@ -53,9 +54,9 @@ class MinicheetahController {
     pTarget_.setZero(gcDim_); vTarget_.setZero(gvDim_); pTarget12_.setZero(nJoints_);
 
     /// this is nominal configuration of minicheetah
-    gc_init_ << 0, 0, 0.25,
-        0.707106, 0.0, 0.0, 0.707106,
-        0, -0.9, 1.8, 0, -0.9, 1.8, 0, -0.9, 1.8, 0, -0.9, 1.8;  // new stand up 0514
+    gc_init_ << 0, 0, 0.25,  // x, y, z position
+        1.0, 0.0, 0.0, 0.0,  // quaternion
+        0, -0.9, 1.8, 0, -0.9, 1.8, 0, -0.9, 1.8, 0, -0.9, 1.8;  // joint
 
     gc_stationay_target << gc_init_.head(7),
         0, -0.9, 1.8, 0, -0.9, 1.8, 0, -0.9, 1.8, 0, -0.9, 1.8;
@@ -95,7 +96,7 @@ class MinicheetahController {
     footFrameIndices_.push_back(cheetah->getFrameIdxByName("toe_hr_joint"));
     footFrameIndices_.push_back(cheetah->getFrameIdxByName("toe_hl_joint"));
 
-    stepDataTag_ = {"rewBodyAngularVel", "rewLinearVel", "rewAirTime", "rewTorque", "rewJointSpeed", "rewFootSlip",
+    stepDataTag_ = {"rewBodyAngularVel", "rewLinearVel", "rewAirTime", "rewHurdles", "rewTorque", "rewJointSpeed", "rewFootSlip",
                     "rewBodyOri", "rewSmoothness1", "rewSmoothness2", "rewJointPosition", "rewJointAcc", "rewBaseMotion",
                     "rewFootClearance", "negativeRewardSum", "positiveRewardSum", "totalRewardSum"};
     stepData_.resize(stepDataTag_.size());
@@ -149,7 +150,7 @@ class MinicheetahController {
     }
     else {
       do {
-        command_ << comCurriculumFactor * uniDist_(gen_), 1.0 * uniDist_(gen_), 2.0 * uniDist_(gen_);
+        command_ << comCurriculumFactor * uniDist_(gen_), 0.5 * uniDist_(gen_), 0.5 * uniDist_(gen_); // comCurriculumFactor, 1.0, 2.0 TODO: set  initial commands
         if (command_(0) < 0) {
           command_(0) *= 0.5;
         }
@@ -250,7 +251,7 @@ class MinicheetahController {
     return true;
   }
 
-  void collisionRandomization(raisim::World *world) {
+  void collisionRandomization(raisim::World *world) {  // randomizing foot size and positions
     auto *cheetah = reinterpret_cast<raisim::ArticulatedSystem *>(world->getObject("robot"));
 
     size_t foot_fr_idx, foot_fl_idx, foot_hr_idx, foot_hl_idx;
@@ -323,11 +324,19 @@ class MinicheetahController {
       }
     }
 
+    /// A variable for hurdles reward calculation
+    double hurdlesVar = 0;
+    if (gc_[0] > 10 ){
+        hurdlesVar = 1; //TODO: real function
+    }
+
+
     /// Reward functions
     // no curriculum factor is applied at the moment
     double rewBodyAngularVel = std::exp(-1.5 * pow((command_(2) - bodyAngularVel_(2)), 2)) * rewardCoeff.at(RewardType::ANGULARVELOCIY1);
     double rewLinearVel = std::exp(-1.0 * (command_.head(2) - bodyLinearVel_.head(2)).squaredNorm()) * rewardCoeff.at(RewardType::VELOCITY1);
     double rewAirTime = airtimeTotal * rewardCoeff.at(RewardType::AIRTIME);
+    double rewHurdles = hurdlesVar * rewardCoeff.at(RewardType::HURDLES); //TODO: good reward function
     double rewTorque = rewardCoeff.at(RewardType::TORQUE) * cheetah->getGeneralizedForce().squaredNorm();
     double rewJointSpeed = (gv_.tail(12)).squaredNorm() * rewardCoeff.at(RewardType::JOINTSPEED);
     double rewFootSlip = footTangentialForSlip * rewardCoeff.at(RewardType::FOOTSLIP);
@@ -342,23 +351,24 @@ class MinicheetahController {
     stepData_[0] = rewBodyAngularVel;  /// positive reward
     stepData_[1] = rewLinearVel;  /// positive reward
     stepData_[2] = rewAirTime;  /// positive reward
-    stepData_[3] = rewTorque;
-    stepData_[4] = rewJointSpeed;
-    stepData_[5] = rewFootSlip;
-    stepData_[6] = rewBodyOri;
-    stepData_[7] = rewSmoothness1;
-    stepData_[8] = rewSmoothness2;
-    stepData_[9] = rewJointPosition;
-    stepData_[10] = rewJointAcc;
-    stepData_[11] = rewBaseMotion;
-    stepData_[12] = rewFootClearance;
+    stepData_[3] = rewHurdles;  /// positive reward
+    stepData_[4] = rewTorque;
+    stepData_[5] = rewJointSpeed;
+    stepData_[6] = rewFootSlip;
+    stepData_[7] = rewBodyOri;
+    stepData_[8] = rewSmoothness1;
+    stepData_[9] = rewSmoothness2;
+    stepData_[10] = rewJointPosition;
+    stepData_[11] = rewJointAcc;
+    stepData_[12] = rewBaseMotion;
+    stepData_[13] = rewFootClearance;
 
-    double negativeRewardSum = stepData_.segment(3, stepDataTag_.size()-6).sum();
-    double positiveRewardSum = stepData_.head(3).sum();
+    double negativeRewardSum = stepData_.segment(4, stepDataTag_.size()-7).sum();
+    double positiveRewardSum = stepData_.head(4).sum();
 
-    stepData_[13] = negativeRewardSum;
-    stepData_[14] = positiveRewardSum;
-    stepData_[15] = std::exp(0.2 * negativeRewardSum) * positiveRewardSum;  // totalReward
+    stepData_[14] = negativeRewardSum;
+    stepData_[15] = positiveRewardSum;
+    stepData_[16] = std::exp(0.2 * negativeRewardSum) * positiveRewardSum;  // totalReward
   }
 
   const std::vector<std::string>& getStepDataTag() {
@@ -371,6 +381,7 @@ class MinicheetahController {
 
   void setCommand(const Eigen::Ref<EigenVec>& command) {
     command_ = command.cast<double>();
+    std::cout << "command: " << command_ << std::endl; // print command
   }
 
   void updateHistory() {
@@ -388,7 +399,7 @@ class MinicheetahController {
     previousAction_ = pTarget12_;
   }
 
-  void updateObservation(raisim::World *world) {
+  void updateObservation(raisim::World *world) { // only for reset
     auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world->getObject("robot"));
     cheetah->getState(gc_, gv_);
     raisim::Vec<4> quat;
@@ -427,6 +438,7 @@ class MinicheetahController {
         jointPosErrorHist_.segment((historyLength_ - 2) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 2) * nJoints_, nJoints_), /// joint History 24
         rot_.e().transpose() * (footPos_[0].e() - gc_.head(3)), rot_.e().transpose() * (footPos_[1].e() - gc_.head(3)),
         rot_.e().transpose() * (footPos_[2].e() - gc_.head(3)), rot_.e().transpose() * (footPos_[3].e() - gc_.head(3)),  /// relative foot position with respect to the body COM, expressed in the body frame 12
+        gc_[0], /// x position TODO: set real obervation for hurdles
         command_;  /// command 3
 
     /// Observation noise

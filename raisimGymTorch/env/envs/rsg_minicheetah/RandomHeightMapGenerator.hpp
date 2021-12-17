@@ -17,7 +17,8 @@ class RandomHeightMapGenerator {
     HEIGHT_MAP_DISCRETE = 4,
     STEPS = 2,
     STAIRS = 3,
-    Slope = 1
+    Slope = 1,
+    HURDLES = 5
   };
 
   RandomHeightMapGenerator() = default;
@@ -93,6 +94,22 @@ class RandomHeightMapGenerator {
         return world->addHeightMap(120, 120, 8.0, 8.0, 0., 0., heightVec);
         break;
       }
+
+        case GroundType::HURDLES:
+        {
+            heightVec.resize(2*1000);
+            std::fill(heightVec.begin(), heightVec.end(), 0);
+
+            double height = curriculumFactor; // TODO: set real values, uniDist(gen)
+            // int xPos = 400 + 40 * uniDist(gen); // position of hurdles in xSize of environment TODO: changing position
+            int xPos = 600; // position of hurdles in xSize of environment
+
+            heightVec[xPos] = height;
+            heightVec[xPos + 1000] = height;
+
+            return world->addHeightMap(1000, 2, 100.0, 80.0, 0., 0., heightVec);
+            break;
+        }
 
       case GroundType::STAIRS:
       {

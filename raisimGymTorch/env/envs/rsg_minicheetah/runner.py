@@ -97,6 +97,8 @@ for update in range(max_iteration):
     done_sum = 0
     average_dones = 0.
 
+    env.curriculum_callback(update)
+
     if update % cfg['environment']['eval_every_n'] == 0:
         print("Visualizing and evaluating the current policy")
         torch.save({
@@ -156,8 +158,8 @@ for update in range(max_iteration):
         action = ppo.observe(concatenated_obs_actor)
         reward, dones = env.step(action)
         ppo.step(value_obs=concatenated_obs_critic, est_in=obs, robotState=robotState, rews=reward, dones=dones)
-        done_sum = done_sum + np.sum(dones)
-        reward_ll_sum = reward_ll_sum + np.sum(reward)
+        done_sum = done_sum + sum(dones)
+        reward_ll_sum = reward_ll_sum + sum(reward)
         data_size = env.get_step_data(data_size, data_mean, data_square_sum, data_min, data_max)
 
     data_std = np.sqrt((data_square_sum - data_size * data_mean * data_mean) / (data_size - 1 + 1e-16))
@@ -183,7 +185,7 @@ for update in range(max_iteration):
 
     actor.distribution.enforce_minimum_std((torch.ones(12)*0.25).to(device))
 
-    env.curriculum_callback(update)
+    # env.curriculum_callback(update) # at the beginning now
 
     end = time.time()
 

@@ -56,11 +56,12 @@ class ENVIRONMENT {
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::JOINTACC], cfg["reward"]["jointAccCoeff"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::BASEMOTION], cfg["reward"]["baseMotionCoeff"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::FOOTCLEARANCE], cfg["reward"]["footClearanceCoeff"])
+    READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::HURDLES], cfg["reward"]["hurdlesCoeff"])
 
     isHeightMap_ = cfg["isHeightMap"].template As<bool>();
     controller_.setIsHeightMap(isHeightMap_);
     if (isHeightMap_){
-      heightMap_ = terrainGenerator_.generateTerrain(world_.get(), RandomHeightMapGenerator::GroundType(groundType_), 0.0, false, gen_, uniDist_);
+      heightMap_ = terrainGenerator_.generateTerrain(world_.get(), RandomHeightMapGenerator::GroundType(groundType_), terrain_curriculum_, false, gen_, uniDist_);
     }
     else {
       world_->addGround();
@@ -131,7 +132,7 @@ class ENVIRONMENT {
     ob = controller_.getObservation().cast<float>();
   }
 
-  void getRobotState(Eigen::Ref<EigenVec> ob) {
+  void getRobotState(Eigen::Ref<EigenVec> ob) {  // related to the estimator network learning
     ob = controller_.getRobotState(heightMap_).cast<float>();
   }
 
@@ -150,10 +151,12 @@ class ENVIRONMENT {
     comCurriculumFactorT_ = std::fmax(1., comCurriculumFactorT_);
 
     if(isHeightMap_) {
-      groundType_ = (groundType_+1) % 2;
+      //groundType_ = (groundType_+1) % 2;
       world_->removeObject(heightMap_);
-      double terrain_curriculum = 1 * std::min(1., iter / terCurriculumFactor_);
-      heightMap_ = terrainGenerator_.generateTerrain(world_.get(), RandomHeightMapGenerator::GroundType(groundType_), terrain_curriculum, false, gen_, uniDist_);
+      //double terrain_curriculum_ = 1 * std::min(1., iter / terCurriculumFactor_);
+      terrain_curriculum_ = iter * terCurriculumFactor_ / 5000; // TODO: better curriculum function, adapt to number of iter
+      heightMap_ = terrainGenerator_.generateTerrain(world_.get(), RandomHeightMapGenerator::GroundType(groundType_), terrain_curriculum_, false, gen_, uniDist_);
+      //std::cout << std::setprecision( 6 ) << "terrain_corriculum: " << terrain_curriculum_ << std::endl;
     }
   };
   float getCurriculumFactor() {return float(rewCurriculumFactor_);};
@@ -161,7 +164,7 @@ class ENVIRONMENT {
   void setSeed(int seed) {
     controller_.setSeed(seed);
     terrainGenerator_.setSeed(seed);
-    groundType_ = seed % 2;
+    //groundType_ = seed % 2;
   };
   ////////////////////////////////
 
@@ -203,10 +206,11 @@ class ENVIRONMENT {
   double rewCurriculumFactor_, rewCurriculumRate_;
   double comCurriculumFactorT_ = 1., comCurriculumFactor1_, comCurriculumFactor2_, comCurriculumFactor3_;
   double terCurriculumFactor_;
+  double terrain_curriculum_ = 0.3; // height of hurdles
   double simulation_dt_;
   double control_dt_;
   double mu_;
-  int groundType_ = 0;
+  int groundType_ = 0; //0  Set ground Type
   int delayDividedBySimdt;
   std::unique_ptr<raisim::RaisimServer> server_;
   Eigen::VectorXd stepData_;
