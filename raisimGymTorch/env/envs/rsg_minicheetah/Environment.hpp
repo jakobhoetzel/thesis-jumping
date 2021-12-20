@@ -65,6 +65,7 @@ class ENVIRONMENT {
     }
     else {
       world_->addGround();
+      //world_->addBox(30, 0.1, 2, 1000);
     }
 
     stepData_.resize(controller_.getStepDataTag().size());
