@@ -348,7 +348,7 @@ class MinicheetahController {
     double rewBaseMotion = (0.8 * bodyLinearVel_[2] * bodyLinearVel_[2] + 0.2 * fabs(bodyAngularVel_[0]) + 0.2 * fabs(bodyAngularVel_[1])) * rewardCoeff.at(RewardType::BASEMOTION);
     double rewFootClearance = footClearanceTangential * rewardCoeff.at(RewardType::FOOTCLEARANCE);
 
-    stepData_[0] = rewBodyAngularVel;  /// positive reward
+    stepData_[0] = rewBodyAngularVel;  /// positive reward; maximization
     stepData_[1] = rewLinearVel;  /// positive reward
     stepData_[2] = rewAirTime;  /// positive reward
     stepData_[3] = rewHurdles;  /// positive reward
@@ -438,7 +438,7 @@ class MinicheetahController {
         jointPosErrorHist_.segment((historyLength_ - 2) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 2) * nJoints_, nJoints_), /// joint History 24
         rot_.e().transpose() * (footPos_[0].e() - gc_.head(3)), rot_.e().transpose() * (footPos_[1].e() - gc_.head(3)),
         rot_.e().transpose() * (footPos_[2].e() - gc_.head(3)), rot_.e().transpose() * (footPos_[3].e() - gc_.head(3)),  /// relative foot position with respect to the body COM, expressed in the body frame 12
-        gc_[0], /// x position TODO: set real obervation for hurdles
+        //gc_[0], /// x position, Dimensions need to be adapted TODO: set real obervation for hurdles
         command_;  /// command 3
 
     /// Observation noise

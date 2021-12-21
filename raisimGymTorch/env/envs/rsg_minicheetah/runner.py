@@ -119,7 +119,7 @@ for update in range(max_iteration):
         env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy_"+str(update)+'.mp4')
         time.sleep(1)
 
-        for step in range(n_steps*2):  # n_steps*2
+        for step in range(n_steps*1):  # n_steps*2
             frame_start = time.time()
             obs = env.observe(False)  # don't compute rms
             robotState = env.getRobotState()

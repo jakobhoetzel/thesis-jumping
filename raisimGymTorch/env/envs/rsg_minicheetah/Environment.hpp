@@ -65,7 +65,12 @@ class ENVIRONMENT {
     }
     else {
       world_->addGround();
-      //world_->addBox(30, 0.1, 2, 1000);
+      xPos_Hurdles_ = uniDist_(gen_)*10. + 5.;
+      xPos_Hurdles_ = 10.;
+      auto hurdle1_ = world_->addBox(0.1, 10, terrain_curriculum_+1., 100); //x, y, z length, mass change also in reset
+      hurdle1_->setPosition(xPos_Hurdles_, 0, terrain_curriculum_/2.0+0.5); //pos of cog
+      hurdle1_->setOrientation(1., 0, 0, 0); //quaternion
+      hurdle1_->setName("hurdle1");
     }
 
     stepData_.resize(controller_.getStepDataTag().size());
@@ -91,6 +96,15 @@ class ENVIRONMENT {
 
     mu_ = 0.4 + 0.3 * (uniDist_(gen_) + 1);  // [0.4, 1.0]
     world_->setDefaultMaterial(mu_, 0, 0);
+
+    auto hurdle1_ = world_->getObject("hurdle1");
+    xPos_Hurdles_ = uniDist_(gen_)*10. + 5.;
+    xPos_Hurdles_ = 10.;
+    world_->removeObject(hurdle1_);
+    auto hurdle2_ = world_->addBox(0.1, 2, terrain_curriculum_+1., 100); //x, y, z length, mass; change also in init
+    hurdle2_->setPosition(xPos_Hurdles_, 0, terrain_curriculum_/2.0+0.5); //pos of cog
+    hurdle2_->setOrientation(1., 0, 0, 0); //quaternion
+    hurdle2_->setName("hurdle1");
   }
 
   const std::vector<std::string>& getStepDataTag() {
@@ -150,12 +164,12 @@ class ENVIRONMENT {
     rewCurriculumFactor_ = pow(rewCurriculumFactor_, rewCurriculumRate_);
     comCurriculumFactorT_ = 1 + comCurriculumFactor3_ / (1 + std::exp(-comCurriculumFactor1_ * (iter - comCurriculumFactor2_)));
     comCurriculumFactorT_ = std::fmax(1., comCurriculumFactorT_);
+    terrain_curriculum_ = iter * terCurriculumFactor_ / 5000.0; // TODO: better curriculum function, adapt to number of iter
 
     if(isHeightMap_) {
       //groundType_ = (groundType_+1) % 2;
       world_->removeObject(heightMap_);
       //double terrain_curriculum_ = 1 * std::min(1., iter / terCurriculumFactor_);
-      terrain_curriculum_ = iter * terCurriculumFactor_ / 5000; // TODO: better curriculum function, adapt to number of iter
       heightMap_ = terrainGenerator_.generateTerrain(world_.get(), RandomHeightMapGenerator::GroundType(groundType_), terrain_curriculum_, false, gen_, uniDist_);
       //std::cout << std::setprecision( 6 ) << "terrain_corriculum: " << terrain_curriculum_ << std::endl;
     }
@@ -208,10 +222,11 @@ class ENVIRONMENT {
   double comCurriculumFactorT_ = 1., comCurriculumFactor1_, comCurriculumFactor2_, comCurriculumFactor3_;
   double terCurriculumFactor_;
   double terrain_curriculum_ = 0.3; // height of hurdles
+  double xPos_Hurdles_;
   double simulation_dt_;
   double control_dt_;
   double mu_;
-  int groundType_ = 0; //0  Set ground Type
+  int groundType_ = 5; //0  Set ground Type
   int delayDividedBySimdt;
   std::unique_ptr<raisim::RaisimServer> server_;
   Eigen::VectorXd stepData_;
