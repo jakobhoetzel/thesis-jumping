@@ -32,6 +32,8 @@ environment:
     footClearanceCoeff: -25.0 #-10.0    -15
 
 architecture:
-  policy_net: [512, 256, 64] #512, 256, 64
-  value_net: [512, 256, 64] #512, 256, 64
-  estimator_net: [512, 256] #512, 256
+  policy_net_in: [512, 256, 64] #512, 256, 64
+  value_net_in: [512, 256, 64] #512, 256, 64
+  estimator_net_in: [512, 256] #512, 256
+  policy_net: [512, 256, 64]
+  value_net: [512, 256, 64]
