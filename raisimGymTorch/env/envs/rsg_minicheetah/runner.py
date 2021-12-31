@@ -24,7 +24,7 @@ parser.add_argument('-w', '--weight', help='pre-trained weight path', type=str, 
 args = parser.parse_args()
 mode = args.mode  # 'train' or 'retrain'
 #weight_path = args.weight
-weight_path = "../../../data/minicheetah_locomotion/slope_full/full_10000.pt"
+weight_path = "../../../data/minicheetah_locomotion/baseline1/full_5000.pt"
 
 # check if gpu is available
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -50,14 +50,14 @@ total_steps = n_steps * env.num_envs  # 40000
 
 avg_rewards = []
 
-actor = ppo_module.Actor(ppo_module.MLP(cfg['architecture']['policy_net'], nn.LeakyReLU, ob_dim + robotState_dim, act_dim), #TODO: set dimensions
+actor = ppo_module.Actor(ppo_module.MLP(cfg['architecture']['policy_net'], nn.LeakyReLU, ob_dim + act_dim, act_dim), #TODO: set dimensions
                          ppo_module.MultivariateGaussianDiagonalCovariance(act_dim, 1.0),  # 1.0
                          device)
 critic = ppo_module.Critic(ppo_module.MLP(cfg['architecture']['value_net'], nn.LeakyReLU, ob_dim + robotState_dim, 1),
                               device)
-actor_in = ppo_module.MLP(cfg['architecture']['policy_net_in'], torch.nn.LeakyReLU, ob_dim + robotState_dim, act_dim)
+actor_in = ppo_module.MLP(cfg['architecture']['policy_net_in'], torch.nn.LeakyReLU, ob_dim + robotState_dim, act_dim).to(device) #to device?
 actor_in.load_state_dict(torch.load(weight_path)['actor_architecture_state_dict'])
-estimator_in = ppo_module.MLP(cfg['architecture']['estimator_net_in'], torch.nn.LeakyReLU,ob_dim,robotState_dim)
+estimator_in = ppo_module.MLP(cfg['architecture']['estimator_net_in'], torch.nn.LeakyReLU,ob_dim,robotState_dim).to(device)
 estimator_in.load_state_dict(torch.load(weight_path)['estimator_architecture_state_dict'])
 
 saver = ConfigurationSaver(log_dir=home_path + "/raisimGymTorch/data/"+task_name,  # save environment and configuration data.
@@ -110,11 +110,11 @@ for update in range(max_iteration):
             #'estimator_architecture_state_dict': estimator_in.architecture.state_dict(),
             'optimizer_state_dict': ppo.optimizer.state_dict(),
         }, saver.data_dir+"/full_"+str(update)+'.pt')
-        actor.save_deterministic_graph(saver.data_dir + "/actor_" + str(update) + ".pt", torch.rand(1, ob_dim + robotState_dim).cpu())
+        actor.save_deterministic_graph(saver.data_dir + "/actor_" + str(update) + ".pt", torch.rand(1, ob_dim + act_dim).cpu())
         #estimator_in.save_deterministic_graph(saver.data_dir + "/estimator_" + str(update) + ".pt", torch.rand(1, ob_dim).cpu())
 
         # we create another graph just to demonstrate the save/load method
-        loaded_graph = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, act_dim)
+        loaded_graph = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + act_dim, act_dim)
         loaded_graph.load_state_dict(torch.load(saver.data_dir+"/full_"+str(update)+'.pt')['actor_architecture_state_dict'])
 
         env.turn_on_visualization()
@@ -131,9 +131,10 @@ for update in range(max_iteration):
             # action_ll = actor.architecture(torch.from_numpy(concatenated_obs_actor).cpu())
             # reward_ll, dones = env.step(action_ll.cpu().detach().numpy())
 
-            est_out = estimator_in.predict(torch.from_numpy(obs).to(device)) #for input network
+            #est_out = estimator_in.architecture(torch.from_numpy(obs).cpu()) #for input network
+            est_out = estimator_in.architecture(torch.from_numpy(obs).to(device))
             concatenated_obs_actor_in = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
-            action_in = actor_in.architecture(torch.from_numpy(concatenated_obs_actor).to(device))
+            action_in = actor_in.architecture(torch.from_numpy(concatenated_obs_actor_in).to(device))
 
             concatenated_obs_critic = np.concatenate((obs, robotState), axis=1)
             concatenated_obs_actor = np.concatenate((obs, action_in.cpu().detach().numpy()), axis=1) #TODO: real observation
@@ -164,7 +165,7 @@ for update in range(max_iteration):
         obs = env.observe()
         robotState = env.getRobotState()
 
-        est_out = estimator_in.predict(torch.from_numpy(obs).to(device))
+        est_out = estimator_in.architecture(torch.from_numpy(obs).to(device))
         concatenated_obs_actor_in = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
         action_in = actor_in.architecture(torch.from_numpy(concatenated_obs_actor_in).to(device))
 
@@ -190,7 +191,7 @@ for update in range(max_iteration):
     obs = env.observe()
     robotState = env.getRobotState()
 
-    est_out = estimator_in.predict(torch.from_numpy(obs).to(device))
+    est_out = estimator_in.architecture(torch.from_numpy(obs).to(device))
     concatenated_obs_actor_in = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
     action_in = actor_in.architecture(torch.from_numpy(concatenated_obs_actor_in).to(device))
 
