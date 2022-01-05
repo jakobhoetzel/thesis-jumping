@@ -45,6 +45,7 @@ env = VecEnv(rsg_minicheetah.RaisimGymEnv(home_path + "/rsc", dump(cfg['environm
 ob_dim = env.num_obs
 robotState_dim = env.num_robotState
 act_dim = env.num_acts
+sensor_dim = 2
 
 
 if weight_path == "":
@@ -73,8 +74,8 @@ else:
     env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy.mp4")
     time.sleep(2)
 
-    # max_steps = 1000000
-    max_steps = 400 ## 10 secs
+    max_steps = 1000000
+    ##max_steps = 400 ## 10 secs
 
     for step in range(max_steps):
         frame_start = time.time()
@@ -87,6 +88,7 @@ else:
             env.set_command(command)
 
         obs = env.observe(False)
+        obs = obs[:,:ob_dim]
         robotState = env.getRobotState()
         est_out = estimator.architecture(torch.from_numpy(obs).cpu())
         concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)

@@ -65,10 +65,9 @@ class ENVIRONMENT {
     }
     else {
       world_->addGround();
-      xPos_Hurdles_ = uniDist_(gen_)*10. + 5.;
-      xPos_Hurdles_ = 10.;
-      auto hurdle1_ = world_->addBox(0.1, 10, terrain_curriculum_+1., 100); //x, y, z length, mass change also in reset
-      hurdle1_->setPosition(xPos_Hurdles_, 0, terrain_curriculum_/2.0+0.5); //pos of cog
+      xPos_Hurdles_ = uniDist_(gen_)*1. + 5.;
+      auto hurdle1_ = world_->addBox(0.1, 10, terrain_curriculum_, 100); //x, y, z length, mass change also in reset
+      hurdle1_->setPosition(xPos_Hurdles_, 0, terrain_curriculum_/2.0); //pos of cog
       hurdle1_->setOrientation(1., 0, 0, 0); //quaternion
       hurdle1_->setName("hurdle1");
     }
@@ -98,11 +97,10 @@ class ENVIRONMENT {
     world_->setDefaultMaterial(mu_, 0, 0);
 
     auto hurdle1_ = world_->getObject("hurdle1");
-    xPos_Hurdles_ = uniDist_(gen_)*10. + 5.;
-    xPos_Hurdles_ = 10.;
+    xPos_Hurdles_ = uniDist_(gen_)*1. + 5.;
     world_->removeObject(hurdle1_);
-    auto hurdle2_ = world_->addBox(0.1, 2, terrain_curriculum_+1., 100); //x, y, z length, mass; change also in init
-    hurdle2_->setPosition(xPos_Hurdles_, 0, terrain_curriculum_/2.0+0.5); //pos of cog
+    auto hurdle2_ = world_->addBox(0.1, 2, terrain_curriculum_, 100); //x, y, z length, mass; change also in init
+    hurdle2_->setPosition(xPos_Hurdles_, 0, terrain_curriculum_/2.0); //pos of cog
     hurdle2_->setOrientation(1., 0, 0, 0); //quaternion
     hurdle2_->setName("hurdle1");
   }
@@ -145,10 +143,14 @@ class ENVIRONMENT {
 
   void observe(Eigen::Ref<EigenVec> ob) {
     ob = controller_.getObservation().cast<float>();
+    //ob.tail(2) = {{terrain_curriculum_, xPos_Hurdles_-ob.tail(1)(0)}}; //height and distance to hurdle
+    ob.tail(2) << terrain_curriculum_+uniDist_(gen_) * 0.05, xPos_Hurdles_-ob.tail(1)(0)+uniDist_(gen_) * 0.05; //height and distance to hurdle TODO: change observation when jumped over hurdle
   }
 
   void getRobotState(Eigen::Ref<EigenVec> ob) {  // related to the estimator network learning
     ob = controller_.getRobotState(heightMap_).cast<float>();
+    //ob.tail(2) = {{terrain_curriculum_, xPos_Hurdles_-ob.tail(1)(0)}}; //height and distance to hurdle
+    ob.tail(2) << terrain_curriculum_, xPos_Hurdles_-ob.tail(1)(0); //height and distance to hurdle
   }
 
   bool isTerminalState(float &terminalReward) {
@@ -221,7 +223,7 @@ class ENVIRONMENT {
   double rewCurriculumFactor_, rewCurriculumRate_;
   double comCurriculumFactorT_ = 1., comCurriculumFactor1_, comCurriculumFactor2_, comCurriculumFactor3_;
   double terCurriculumFactor_;
-  double terrain_curriculum_ = 0.3; // height of hurdles
+  double terrain_curriculum_; // height of hurdles
   double xPos_Hurdles_;
   double simulation_dt_;
   double control_dt_;

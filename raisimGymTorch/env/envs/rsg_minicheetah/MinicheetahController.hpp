@@ -70,7 +70,7 @@ class MinicheetahController {
     cheetah->setGeneralizedForce(Eigen::VectorXd::Zero(gvDim_));
 
     /// MUST BE DONE FOR ALL ENVIRONMENTS
-    obDim_ = 141;  //34 //106 //130 //133 //198
+    obDim_ = 141 + 2;  //34 //106 //130 //133 //198
     robotStateDim_ = 11;  //4
     historyLength_ = 6;
     actionDim_ = nJoints_; actionMean_.setZero(actionDim_); actionStd_.setZero(actionDim_);  // action dimension is the same as the number of joints(by applying torque)
@@ -144,19 +144,20 @@ class MinicheetahController {
 
     /// command generation
     double p = uniDist_(gen_);
-    if(fabs(p) < 0.1) {  // 10%
-      command_.setZero();
-      standingMode_ = true;
-    }
-    else {
-      do {
-        command_ << comCurriculumFactor * uniDist_(gen_), 0.5 * uniDist_(gen_), 0.5 * uniDist_(gen_); // comCurriculumFactor, 1.0, 2.0 TODO: set  initial commands
-        if (command_(0) < 0) {
-          command_(0) *= 0.5;
-        }
-      } while (command_.norm() < 0.3);
-      standingMode_ = false;
-    }
+    command_ << 0.5, 0, 0;
+//    if(fabs(p) < 0.1) {  // 10%
+//      command_.setZero();
+//      standingMode_ = true;
+//    }
+//    else {
+//      do {
+//        command_ << comCurriculumFactor * uniDist_(gen_), 0.5 * uniDist_(gen_), 0.5 * uniDist_(gen_); // comCurriculumFactor, 1.0, 2.0 TODO: set  initial commands
+//        if (command_(0) < 0) {
+//          command_(0) *= 0.5;
+//        }
+//      } while (command_.norm() < 0.3);
+//      standingMode_ = false;
+//    }
 
     bool keep_state = fabs(uniDist_(gen_)) < 0.25; /// keep state and only change command. 25%
     if (keep_state){
@@ -165,7 +166,7 @@ class MinicheetahController {
     }
     else {
       bool init_noise = true;
-      if (init_noise) {
+      if (init_noise) { //TODO: set noise
         /// Generalized Coordinates randomization.
         for (int i = 0; i < gcDim_; i++) {
           if (i < 3) {
@@ -325,7 +326,7 @@ class MinicheetahController {
     }
 
     /// A variable for hurdles reward calculation
-    double hurdlesVar = 0;
+    bool hurdlesVar = 0;
     if (gc_[0] > 10 ){
         hurdlesVar = 1; //TODO: real function
     }
@@ -438,8 +439,8 @@ class MinicheetahController {
         jointPosErrorHist_.segment((historyLength_ - 2) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 2) * nJoints_, nJoints_), /// joint History 24
         rot_.e().transpose() * (footPos_[0].e() - gc_.head(3)), rot_.e().transpose() * (footPos_[1].e() - gc_.head(3)),
         rot_.e().transpose() * (footPos_[2].e() - gc_.head(3)), rot_.e().transpose() * (footPos_[3].e() - gc_.head(3)),  /// relative foot position with respect to the body COM, expressed in the body frame 12
-        //gc_[0], /// x position, Dimensions need to be adapted TODO: set real obervation for hurdles
-        command_;  /// command 3
+        command_,  /// command 3
+        0.0, gc_[0]; //x_pos; sensor observation in environment
 
     /// Observation noise
     bool addObsNoise = true;
@@ -454,8 +455,8 @@ class MinicheetahController {
         } else if(i<30) {  // joint velocity
           obDouble_(i) = obDouble_(i)  + uniDist_(gen_) * 0.5;
         } else if(i>=126 && i < 138) {  // foot position
-          obDouble_(i) = obDouble_(i)  + uniDist_(gen_) * 0.03;
-        }
+          obDouble_(i) = obDouble_(i)  + uniDist_(gen_) * 0.03; //no noise on command
+        } //noise on sensor data in environment
       }
     }
 
@@ -469,7 +470,7 @@ class MinicheetahController {
       (footPos_[0].e()(2) - heightMap_->getHeight(footPos_[0].e()(0), footPos_[0].e()(1))), (footPos_[1].e()(2) - heightMap_->getHeight(footPos_[1].e()(0), footPos_[1].e()(1))),
       (footPos_[2].e()(2) - heightMap_->getHeight(footPos_[2].e()(0), footPos_[2].e()(1))), (footPos_[3].e()(2) - heightMap_->getHeight(footPos_[3].e()(0), footPos_[3].e()(1))),
       /// foot z position 4
-              footContactState_[0], footContactState_[1], footContactState_[2], footContactState_[3];  /// foot contact state/probability 4
+              footContactState_[0], footContactState_[1], footContactState_[2], footContactState_[3];   /// foot contact state/probability 4
     }
     else {
       robotState_ <<
