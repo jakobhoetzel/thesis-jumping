@@ -54,11 +54,11 @@ total_steps = n_steps * env.num_envs  # 40000
 avg_rewards = []
 
 actor = ppo_module.Actor(ppo_module.MLP(cfg['architecture']['policy_net'], nn.LeakyReLU, sensor_dim + act_dim, act_dim),
-                         ppo_module.MultivariateGaussianDiagonalCovariance(act_dim, 0.0001),  # 1.0
+                         ppo_module.MultivariateGaussianDiagonalCovariance(act_dim, 1.0),  # 1.0
                          device)
 critic = ppo_module.Critic(ppo_module.MLP(cfg['architecture']['value_net'], nn.LeakyReLU, ob_dim + robotState_dim, 1),
                               device)
-actor_in = ppo_module.MLP(cfg['architecture']['policy_net_in'], torch.nn.LeakyReLU, ob_dim - sensor_dim + robotState_dim, act_dim).to(device) #to device?
+actor_in = ppo_module.MLP(cfg['architecture']['policy_net_in'], torch.nn.LeakyReLU, ob_dim - sensor_dim + robotState_dim, act_dim).to(device)
 actor_in.load_state_dict(torch.load(weight_path)['actor_architecture_state_dict'])
 estimator_in = ppo_module.MLP(cfg['architecture']['estimator_net_in'], torch.nn.LeakyReLU, ob_dim - sensor_dim, robotState_dim).to(device)
 estimator_in.load_state_dict(torch.load(weight_path)['estimator_architecture_state_dict'])
@@ -69,7 +69,7 @@ saver = ConfigurationSaver(log_dir=home_path + "/raisimGymTorch/data/"+task_name
                                        task_path + "/../../RaisimGymVecEnv.py", task_path + "/../../raisim_gym.cpp",
                                        task_path + "/../../../algo/ppo/module.py", task_path + "/../../../../rsc/mini_cheetah/mini-cheetah-vision-v1.5.urdf",
                                        task_path + "/../../../algo/ppo/ppo_woEstimator.py", task_path + "/../../../algo/ppo/storage_woEstimator.py"])
-# tensorboard_launcher(saver.data_dir+"/..")  # press refresh (F5) after the first ppo update
+tensorboard_launcher(saver.data_dir+"/..")  # press refresh (F5) after the first ppo update
 
 ppo = PPO.PPO(actor=actor,
               critic=critic,
@@ -95,7 +95,7 @@ if mode == 'retrain':
 
 max_iteration = 5000 + 1 #5000+1
 
-IL.identity_learning(num_iterations=50000, actor=actor, act_dim=act_dim, device=device)  # sensor size must be changed here
+IL.identity_learning(num_iterations=200000, actor=actor, act_dim=act_dim, device=device)  # sensor size must be changed here
 
 for update in range(max_iteration):
     start = time.time()
@@ -119,42 +119,68 @@ for update in range(max_iteration):
         #estimator_in.save_deterministic_graph(saver.data_dir + "/estimator_" + str(update) + ".pt", torch.rand(1, ob_dim).cpu())
 
         # we create another graph just to demonstrate the save/load method
-        loaded_graph = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, sensor_dim + act_dim, act_dim)
-        loaded_graph.load_state_dict(torch.load(saver.data_dir+"/full_"+str(update)+'.pt')['actor_architecture_state_dict'])
+        # loaded_graph = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, sensor_dim + act_dim, act_dim)
+        # loaded_graph.load_state_dict(torch.load(saver.data_dir+"/full_"+str(update)+'.pt')['actor_architecture_state_dict'])
 
         env.load_scaling(weight_dir, int(iteration_number))
+
+        temp_obs = np.ones((cfg['environment']['num_envs'],ob_dim-sensor_dim), dtype=np.float32)  # to see if input network changes
+        temp_est_in = estimator_in.architecture(torch.from_numpy(temp_obs).to(device))
+        concatenated_obs_actor_in = np.concatenate((temp_obs, temp_est_in.cpu().detach().numpy()), axis=1)
+        temp_action_in = actor_in.architecture(torch.from_numpy(concatenated_obs_actor_in).to(device)).detach()
+        np.savetxt("ones_action_in_beginning.csv", temp_action_in.cpu().numpy(), delimiter=",")
+
         env.turn_on_visualization()
         env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy_"+str(update)+'.mp4')
         time.sleep(1)
 
-        for step in range(n_steps*2):  # n_steps*2
+        for step in range(n_steps*0):  # n_steps*2
             frame_start = time.time()
             obs = env.observe(False)  # don't compute rms
-            # print("step: ", step)
-            if np.isnan(obs).any():
-                print("obs: ")
-                print(np.argwhere(np.isnan(obs)))
-                exit()
+            # np.savetxt("obs"+str(step)+".csv", obs, delimiter=",")
+            # if np.isnan(obs).any() and step % 1 == 0:
+            #     print("1. NaN in step ", step)
+            #     # print(np.argwhere(np.isnan(obs)))
+            #     print("number env", np.unique(np.argwhere(np.isnan(obs))[:,0]))
+            #     nannumb = np.unique(np.argwhere(np.isnan(obs))[:,0])
+            #     # print("number observation", np.unique(np.argwhere(np.isnan(obs))[:,1]))
+                # exit()
+            # obs = np.ones((cfg['environment']['num_envs'],ob_dim), dtype=np.float32)  # for checking
             obs_in = obs[:,:ob_dim-sensor_dim]
             sensor_obs = obs[:,-sensor_dim:]
             robotState = env.getRobotState()
+            # if step % 10 == 1:
+            #     if 'NaN numb' in locals():
+            #         print("RS1 ", robotState[0,:])
+            #         print("RS2 ", robotState[nannumb[0],:])
+            # robotState = np.ones((cfg['environment']['num_envs'],robotState_dim), dtype=np.float32)  # for checking
 
             est_in = estimator_in.architecture(torch.from_numpy(obs_in).to(device)) #for input network
             concatenated_obs_actor_in = np.concatenate((obs_in, est_in.cpu().detach().numpy()), axis=1)
             action_in = actor_in.architecture(torch.from_numpy(concatenated_obs_actor_in).to(device)).detach() #detach -> actor_in does not change -> remove maybe
+            # np.savetxt("action_in"+str(step)+".csv", action_in.cpu().numpy(), delimiter=",")
 
             concatenated_obs_critic = np.concatenate((obs, robotState), axis=1)
             concatenated_obs_actor = np.concatenate((action_in.cpu().detach().numpy(), sensor_obs), axis=1)
             action = ppo.observe(concatenated_obs_actor)
-            # print("iteration: ", step)
-            # print("action_in: ", concatenated_obs_actor)
-            # print("action: ", action)
-            # print("sup-loss: ", np.linalg.norm(concatenated_obs_actor[:,0:12] - action) ** 2)
+            # np.savetxt("action"+str(step)+".csv", action, delimiter=",")
+            print("iteration: ", step)
+            print("action_in: ", concatenated_obs_actor)
+            print("action: ", action)
+            print("sup-loss: ", np.linalg.norm(concatenated_obs_actor[:,0:12] - action) ** 2)
             # action_ll, _ = actor.sample(torch.from_numpy(concatenated_obs_actor).to(device))  # stochastic action
             # action_ll = loaded_graph.architecture(torch.from_numpy(obs).cpu())
-
             reward_ll, dones = env.step(action)
             # reward_ll, dones = env.step(action_in.cpu().numpy())  # to test if action_in works
+            # obs = env.observe(False)
+            # if np.isnan(obs).any() and step % 1 == 0:
+            #     print("12. NaN in step ", step)
+            #     # print(np.argwhere(np.isnan(obs)))
+            #     print("number env", np.unique(np.argwhere(np.isnan(obs))[:,0]))
+            #     nannumb = np.unique(np.argwhere(np.isnan(obs))[:,0])
+                # print("number observation", np.unique(np.argwhere(np.isnan(obs))[:,1]))
+                # exit()
+
             frame_end = time.time()
             wait_time = cfg['environment']['control_dt'] - (frame_end-frame_start)
             if wait_time > 0.:
@@ -178,6 +204,12 @@ for update in range(max_iteration):
         obs_in = obs[:,:ob_dim-sensor_dim]
         sensor_obs = obs[:,-sensor_dim:]
         robotState = env.getRobotState()
+        if np.isnan(obs).any() and step % 1 == 0:
+            print("2. NaN in step ", step)
+            # print(np.argwhere(np.isnan(obs)))
+            print("number env", np.unique(np.argwhere(np.isnan(obs))[:,0]))
+            print("number observation", np.unique(np.argwhere(np.isnan(obs))[:,1]))
+            # exit()
 
         est_in = estimator_in.architecture(torch.from_numpy(obs_in).to(device)) #for input network
         concatenated_obs_actor_in = np.concatenate((obs_in, est_in.cpu().detach().numpy()), axis=1)
@@ -206,6 +238,13 @@ for update in range(max_iteration):
     obs_in = obs[:,:ob_dim-sensor_dim]
     sensor_obs = obs[:,-sensor_dim:]
     robotState = env.getRobotState()
+    if np.isnan(obs).any():
+        print("update: ", update)
+        print("3. NaN in step ", step)
+        # print(np.argwhere(np.isnan(obs)))
+        print("number env", np.unique(np.argwhere(np.isnan(obs))[:,0]))
+        # print("number observation", np.unique(np.argwhere(np.isnan(obs))[:,1]))
+        # exit()
 
     est_in = estimator_in.architecture(torch.from_numpy(obs_in).to(device)) #for input network
     concatenated_obs_actor_in = np.concatenate((obs_in, est_in.cpu().detach().numpy()), axis=1)
@@ -238,3 +277,10 @@ for update in range(max_iteration):
     print('std: ')
     print(np.exp(actor.distribution.std.cpu().detach().numpy()))
     print('----------------------------------------------------\n')
+
+    if update % 500 == 0:
+        temp_obs = np.ones((cfg['environment']['num_envs'],ob_dim-sensor_dim), dtype=np.float32)  # to see if input network changes
+        temp_est_in = estimator_in.architecture(torch.from_numpy(temp_obs).to(device))
+        concatenated_obs_actor_in = np.concatenate((temp_obs, temp_est_in.cpu().detach().numpy()), axis=1)
+        temp_action_in = actor_in.architecture(torch.from_numpy(concatenated_obs_actor_in).to(device)).detach()
+        np.savetxt("ones_action_in_end.csv", temp_action_in.cpu().numpy(), delimiter=",")

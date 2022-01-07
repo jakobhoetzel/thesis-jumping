@@ -144,7 +144,7 @@ class MinicheetahController {
 
     /// command generation
     double p = uniDist_(gen_);
-    command_ << 0.5, 0, 0;
+    command_ << 3.5, 0, 0; // 3.5, 0, 0
 //    if(fabs(p) < 0.1) {  // 10%
 //      command_.setZero();
 //      standingMode_ = true;
@@ -327,7 +327,7 @@ class MinicheetahController {
 
     /// A variable for hurdles reward calculation
     bool hurdlesVar = 0;
-    if (gc_[0] > 10 ){
+    if (gc_[0] > 15 ){
         hurdlesVar = 1; //TODO: real function
     }
 
@@ -440,7 +440,7 @@ class MinicheetahController {
         rot_.e().transpose() * (footPos_[0].e() - gc_.head(3)), rot_.e().transpose() * (footPos_[1].e() - gc_.head(3)),
         rot_.e().transpose() * (footPos_[2].e() - gc_.head(3)), rot_.e().transpose() * (footPos_[3].e() - gc_.head(3)),  /// relative foot position with respect to the body COM, expressed in the body frame 12
         command_,  /// command 3
-        0.0, gc_[0]; //x_pos; sensor observation in environment
+        0.0, gc_(0); //x_pos; sensor observation in environment
 
     /// Observation noise
     bool addObsNoise = true;
@@ -459,7 +459,6 @@ class MinicheetahController {
         } //noise on sensor data in environment
       }
     }
-
     return obDouble_;
   }
 
@@ -478,8 +477,7 @@ class MinicheetahController {
       footPos_[0].e()(2), footPos_[1].e()(2), footPos_[2].e()(2), footPos_[3].e()(2),  /// foot z position 4
               footContactState_[0], footContactState_[1], footContactState_[2], footContactState_[3];  /// foot contact state/probability 4
     }
-
-    return robotState_;
+    return robotState_; // TODO: add hurdles to robot state
   }
 
   /// If the contact body is not feet
@@ -515,6 +513,7 @@ class MinicheetahController {
 //    std::cout << "Observation Test for debugging!" << std::endl;
 //    std::cout << "Observation: " << std::endl;
 //    std::cout << getObservation() << std::endl;
+//    std::cout << "control com: "<< command_ << std::endl;
   }
 
  private:

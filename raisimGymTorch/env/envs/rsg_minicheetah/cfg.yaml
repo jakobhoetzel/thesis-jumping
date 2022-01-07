@@ -14,7 +14,7 @@ environment:
   com_curriculum_factor1: 0.002
   com_curriculum_factor2: 1000
   com_curriculum_factor3: 2.5
-  ter_curriculum_factor: 0.2  #max height of hurdles, change in Environment also for tester
+  ter_curriculum_factor: 0.35 #max height of hurdles, change in Environment also for tester
   reward:
     bodyAngularVelCoeff1: 2.5 #1.5   3
     forwardVelCoeff1: 2.5 #3    3
@@ -35,5 +35,5 @@ architecture:
   policy_net_in: [512, 256, 64] #512, 256, 64
   value_net_in: [512, 256, 64] #512, 256, 64
   estimator_net_in: [512, 256] #512, 256
-  policy_net: [32, 32]
+  policy_net: [512, 256, 64]
   value_net: [512, 256, 64]
