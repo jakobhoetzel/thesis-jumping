@@ -33,8 +33,12 @@ weight_path = args.weight
 iteration_number = weight_path.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir = weight_path.rsplit('/', 1)[0] + '/'
 
+weight_path_baseline = "../../../data/minicheetah_locomotion/baseline1/full_5000.pt"
+iteration_number_baseline = weight_path_baseline.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
+weight_dir_baseline = weight_path_baseline.rsplit('/', 1)[0] + '/'
+
 # config
-cfg = YAML().load(open(weight_dir + "/cfg.yaml", 'r'))
+cfg = YAML().load(open(task_path + "/cfg.yaml", 'r')) # change to weight_path
 
 # create environment from the configuration file
 cfg['environment']['num_envs'] = 1
@@ -62,12 +66,14 @@ else:
     start_step_id = 0
 
     print("Visualizing and evaluating the policy: ", weight_path)
-    actor = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim - sensor_dim + robotState_dim, act_dim)
+    actor = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, act_dim + sensor_dim, act_dim)
     actor.load_state_dict(torch.load(weight_path)['actor_architecture_state_dict'])
     print('actor of {} parameters'.format(sum(p.numel() for p in actor.parameters())))
 
-    estimator = ppo_module.MLP(cfg['architecture']['estimator_net'], torch.nn.LeakyReLU,ob_dim- sensor_dim,robotState_dim)
-    estimator.load_state_dict(torch.load(weight_path)['estimator_architecture_state_dict'])
+    actor_in = ppo_module.MLP(cfg['architecture']['policy_net_in'], torch.nn.LeakyReLU, ob_dim - sensor_dim + robotState_dim, act_dim)
+    actor_in.load_state_dict(torch.load(weight_path_baseline)['actor_architecture_state_dict'])
+    estimator_in = ppo_module.MLP(cfg['architecture']['estimator_net_in'], torch.nn.LeakyReLU, ob_dim - sensor_dim, robotState_dim)
+    estimator_in.load_state_dict(torch.load(weight_path_baseline)['estimator_architecture_state_dict'])
 
     env.load_scaling(weight_dir, int(iteration_number))
     env.turn_on_visualization()
@@ -76,42 +82,45 @@ else:
 
     max_steps = 1000000
     ##max_steps = 400 ## 10 secs
+    command = np.array([3.5, 0, 0], dtype=np.float32)
+    env.set_command(command)
+    env.curriculum_callback(5000)
+    env.reset()
+    env.printTest()
 
     for step in range(max_steps):
         frame_start = time.time()
-
-        if step % 400 == 0:
-            command_Vx = np.random.uniform(-1.75, 3.5, 1)
-            command_Vy = np.random.uniform(-1., 1., 1)
-            command_yaw = np.random.uniform(-2., 2., 1)
-            command = np.array([command_Vx, command_Vy, command_yaw], dtype=np.float32)
-            env.set_command(command)
+        # if step % 400 == 0:
+        #     command_Vx = np.random.uniform(-1.75, 3.5, 1)
+        #     command_Vy = np.random.uniform(-1., 1., 1)
+        #     command_yaw = np.random.uniform(-2., 2., 1)
+        #     command = np.array([command_Vx, command_Vy, command_yaw], dtype=np.float32)
+        #     env.set_command(command)
 
         obs = env.observe(False)
-        # if np.isnan(obs).any():
-        #     print("obs in step ", step)
-        #     print(np.argwhere(np.isnan(obs)))
-        #     exit()
-        # obs = np.ones((cfg['environment']['num_envs'],ob_dim), dtype=np.float32)  # for checking
-        obs = obs[:,:ob_dim-sensor_dim]
+        obs_in = obs[:,:ob_dim-sensor_dim]
+        sensor_obs = obs[:,-sensor_dim:]
         robotState = env.getRobotState()
-        # robotState = np.ones((cfg['environment']['num_envs'],robotState_dim), dtype=np.float32)  # for checking
-        est_out = estimator.architecture(torch.from_numpy(obs).cpu())
-        concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
+        est_in = estimator_in.architecture(torch.from_numpy(obs_in).cpu()) #for input network
+        concatenated_obs_actor_in = np.concatenate((obs_in, est_in.cpu().detach().numpy()), axis=1)
+        action_in = actor_in.architecture(torch.from_numpy(concatenated_obs_actor_in).cpu()).detach() #detach -> actor_in does not change -> remove maybe
+
+        concatenated_obs_actor = np.concatenate((action_in.cpu().detach().numpy(), sensor_obs), axis=1)
+
         action_ll = actor.architecture(torch.from_numpy(concatenated_obs_actor).cpu())
         reward_ll, dones = env.step(action_ll.cpu().detach().numpy())
 
-        f1 = open('randomCommandData.csv', 'a')
-        writer = csv.writer(f1)
-        writer.writerow([command[0][0], command[1][0], command[2][0]])
-
-        f2 = open('velocityData.csv', 'a')
-        writer = csv.writer(f2)
-        writer.writerow([*robotState[0][0:2], obs[0][17]])
-
-        f3 = open('estimatedVelocityData.csv', 'a')
-        writer = csv.writer(f3)
-        writer.writerow(est_out[0][0:2].cpu().detach().numpy())
+        # f1 = open('randomCommandData.csv', 'a')
+        # writer = csv.writer(f1)
+        # writer.writerow([command[0][0], command[1][0], command[2][0]])
+        #
+        # f2 = open('velocityData.csv', 'a')
+        # writer = csv.writer(f2)
+        # writer.writerow([*robotState[0][0:2], obs[0][17]])
+        #
+        # f3 = open('estimatedVelocityData.csv', 'a')
+        # writer = csv.writer(f3)
+        # writer.writerow(est_in[0][0:2].cpu().detach().numpy())
 
         reward_ll_sum = reward_ll_sum + reward_ll[0]
         if dones or step == max_steps - 1:

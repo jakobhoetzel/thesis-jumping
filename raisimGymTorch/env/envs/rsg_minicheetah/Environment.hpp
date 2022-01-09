@@ -215,6 +215,7 @@ class ENVIRONMENT {
 
   void printTest() { controller_.printTest();
 //    std::cout << "height: "<< terrain_curriculum_ << std::endl;
+//    std::cout << "factor: "<< terCurriculumFactor_ << std::endl;
   }
 
  private:
