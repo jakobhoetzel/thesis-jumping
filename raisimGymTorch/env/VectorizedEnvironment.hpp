@@ -70,6 +70,12 @@ class VectorizedEnvironment {
       environments_[i]->getRobotState(ob.row(i));
   }
 
+  void go_straight_controller() {
+#pragma omp parallel for
+      for (int i = 0; i < num_envs_; i++)
+        environments_[i]->go_straight_controller();
+    }
+
   std::vector<std::string> getStepDataTag() {
     return environments_[0]->getStepDataTag();
   }

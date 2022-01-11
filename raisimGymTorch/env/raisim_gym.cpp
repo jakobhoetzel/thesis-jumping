@@ -37,5 +37,6 @@ PYBIND11_MODULE(RAISIMGYM_TORCH_ENV_NAME, m) {
     .def("curriculumUpdate", &VectorizedEnvironment<ENVIRONMENT>::curriculumUpdate)
     .def("getStepDataTag", &VectorizedEnvironment<ENVIRONMENT>::getStepDataTag)
     .def("getStepData", &VectorizedEnvironment<ENVIRONMENT>::getStepData)
-    .def("printTest", &VectorizedEnvironment<ENVIRONMENT>::printTest);
+    .def("printTest", &VectorizedEnvironment<ENVIRONMENT>::printTest)
+    .def("go_straight_controller", &VectorizedEnvironment<ENVIRONMENT>::go_straight_controller);
 }

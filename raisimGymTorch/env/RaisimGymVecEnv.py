@@ -112,6 +112,9 @@ class RaisimGymVecEnv:
     def curriculum_callback(self, iter):
         self.wrapper.curriculumUpdate(iter)
 
+    def go_straight_controller(self):
+        self.wrapper.go_straight_controller()
+
     def get_step_data_tag(self):
         return self.wrapper.getStepDataTag()
 

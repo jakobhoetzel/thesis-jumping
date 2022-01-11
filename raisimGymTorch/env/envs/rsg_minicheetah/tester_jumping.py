@@ -109,6 +109,7 @@ else:
 
         action_ll = actor.architecture(torch.from_numpy(concatenated_obs_actor).cpu())
         reward_ll, dones = env.step(action_ll.cpu().detach().numpy())
+        env.go_straight_controller()
 
         # f1 = open('randomCommandData.csv', 'a')
         # writer = csv.writer(f1)

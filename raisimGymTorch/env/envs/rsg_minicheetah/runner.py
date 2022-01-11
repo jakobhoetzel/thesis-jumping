@@ -95,7 +95,7 @@ if mode == 'retrain':
 
 max_iteration = 5000 + 1 #5000+1
 
-IL.identity_learning(num_iterations=200000, actor=actor, act_dim=act_dim, device=device)  # sensor size must be changed here
+IL.identity_learning(num_iterations=100000, actor=actor, act_dim=act_dim, device=device)  # sensor size must be changed here
 
 for update in range(max_iteration):
     start = time.time()
@@ -134,7 +134,7 @@ for update in range(max_iteration):
         env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy_"+str(update)+'.mp4')
         time.sleep(1)
 
-        for step in range(n_steps*0):  # n_steps*2
+        for step in range(n_steps*1):  # n_steps*2
             frame_start = time.time()
             obs = env.observe(False)  # don't compute rms
             # np.savetxt("obs"+str(step)+".csv", obs, delimiter=",")
@@ -164,13 +164,14 @@ for update in range(max_iteration):
             concatenated_obs_actor = np.concatenate((action_in.cpu().detach().numpy(), sensor_obs), axis=1)
             action = ppo.observe(concatenated_obs_actor)
             # np.savetxt("action"+str(step)+".csv", action, delimiter=",")
-            print("iteration: ", step)
-            print("action_in: ", concatenated_obs_actor)
-            print("action: ", action)
-            print("sup-loss: ", np.linalg.norm(concatenated_obs_actor[:,0:12] - action) ** 2)
+            # print("iteration: ", step)
+            # print("action_in: ", concatenated_obs_actor)
+            # print("action: ", action)
+            # print("sup-loss: ", np.linalg.norm(concatenated_obs_actor[:,0:12] - action) ** 2)
             # action_ll, _ = actor.sample(torch.from_numpy(concatenated_obs_actor).to(device))  # stochastic action
             # action_ll = loaded_graph.architecture(torch.from_numpy(obs).cpu())
             reward_ll, dones = env.step(action)
+            env.go_straight_controller()
             # reward_ll, dones = env.step(action_in.cpu().numpy())  # to test if action_in works
             # obs = env.observe(False)
             # if np.isnan(obs).any() and step % 1 == 0:
@@ -278,7 +279,7 @@ for update in range(max_iteration):
     print(np.exp(actor.distribution.std.cpu().detach().numpy()))
     print('----------------------------------------------------\n')
 
-    if update % 500 == 0:
+    if update % cfg['environment']['eval_every_n'] == 0:
         temp_obs = np.ones((cfg['environment']['num_envs'],ob_dim-sensor_dim), dtype=np.float32)  # to see if input network changes
         temp_est_in = estimator_in.architecture(torch.from_numpy(temp_obs).to(device))
         concatenated_obs_actor_in = np.concatenate((temp_obs, temp_est_in.cpu().detach().numpy()), axis=1)

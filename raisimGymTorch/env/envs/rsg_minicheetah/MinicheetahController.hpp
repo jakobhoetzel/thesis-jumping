@@ -134,6 +134,11 @@ class MinicheetahController {
     return true;
   }
 
+  void go_straight_controller(){
+//    command_(1) = -0.2 * gc_(1);
+    command_(2) = -8 * gv_(1);
+  }
+
   bool reset(raisim::World *world, double comCurriculumFactor, raisim::HeightMap* heightMap_) {
     auto *cheetah = reinterpret_cast<raisim::ArticulatedSystem *>(world->getObject("robot"));
 
@@ -327,7 +332,7 @@ class MinicheetahController {
 
     /// A variable for hurdles reward calculation
     bool hurdlesVar = 0;
-    if (gc_[0] > 15 ){
+    if (gc_[0] > 10 ){
         hurdlesVar = 1; //TODO: real function
     }
 

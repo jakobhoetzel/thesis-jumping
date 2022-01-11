@@ -59,7 +59,7 @@ class ENVIRONMENT {
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::FOOTCLEARANCE], cfg["reward"]["footClearanceCoeff"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::HURDLES], cfg["reward"]["hurdlesCoeff"])
 
-    terrain_curriculum_ = terCurriculumFactor_*0.25;
+    terrain_curriculum_ = terCurriculumFactor_*0.0;
     isHeightMap_ = cfg["isHeightMap"].template As<bool>();
     controller_.setIsHeightMap(isHeightMap_);
     if (isHeightMap_){
@@ -67,7 +67,7 @@ class ENVIRONMENT {
     }
     else {
       world_->addGround();
-      xPos_Hurdles_ = uniDist_(gen_)*1. + 5.;
+      xPos_Hurdles_ = uniDist_(gen_)*0.5 + 5.0;
       auto hurdle1_ = world_->addBox(0.1, 20, terrain_curriculum_, 100000); //x, y, z length, mass change also in reset
       hurdle1_->setPosition(xPos_Hurdles_, 0, terrain_curriculum_/2.0); //pos of cog
       hurdle1_->setOrientation(1., 0, 0, 0); //quaternion
@@ -99,7 +99,7 @@ class ENVIRONMENT {
     world_->setDefaultMaterial(mu_, 0, 0);
 
     auto hurdle1_ = world_->getObject("hurdle1");
-    xPos_Hurdles_ = uniDist_(gen_)*1. + 5.;
+    xPos_Hurdles_ = uniDist_(gen_)*0.5 + 5.0;
     world_->removeObject(hurdle1_);
     auto hurdle2_ = world_->addBox(0.1, 10, terrain_curriculum_, 100000); //x, y, z length, mass; change also in init
     hurdle2_->setPosition(xPos_Hurdles_, 0, terrain_curriculum_/2.0); //pos of cog
@@ -116,6 +116,8 @@ class ENVIRONMENT {
   }
 
   void setCommand(const Eigen::Ref<EigenVec>& command) { controller_.setCommand(command); }
+
+  void go_straight_controller() { controller_.go_straight_controller(); }
 
   double step(const Eigen::Ref<EigenVec> &action) {
     stepData_.setZero();
@@ -168,7 +170,7 @@ class ENVIRONMENT {
     rewCurriculumFactor_ = pow(rewCurriculumFactor_, rewCurriculumRate_);
     comCurriculumFactorT_ = 1 + comCurriculumFactor3_ / (1 + std::exp(-comCurriculumFactor1_ * (iter - comCurriculumFactor2_)));
     comCurriculumFactorT_ = std::fmax(1., comCurriculumFactorT_);
-    terrain_curriculum_ = iter * (terCurriculumFactor_*0.75) / 5000.0 + terCurriculumFactor_*0.25; // TODO: better curriculum function, adapt to number of iter
+    terrain_curriculum_ = iter * (terCurriculumFactor_*1.0) / 5000.0 + terCurriculumFactor_*0.0; // TODO: better curriculum function, adapt to number of iter
 
     if(isHeightMap_) {
       //groundType_ = (groundType_+1) % 2;
