@@ -220,6 +220,7 @@ for update in range(max_iteration):
         concatenated_obs_actor = np.concatenate((action_in.cpu().detach().numpy(), sensor_obs), axis=1)
         action = ppo.observe(concatenated_obs_actor)
         reward, dones = env.step(action)
+        env.go_straight_controller()
         ppo.step(value_obs=concatenated_obs_critic, rews=reward, dones=dones)
         done_sum = done_sum + sum(dones)
         reward_ll_sum = reward_ll_sum + sum(reward)
