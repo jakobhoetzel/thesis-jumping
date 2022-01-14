@@ -95,6 +95,8 @@ if mode == 'retrain':
 
 max_iteration = 5000 + 1 #5000+1
 
+env.load_scaling(weight_dir, int(iteration_number))
+
 IL.identity_learning(num_iterations=100000, actor=actor, act_dim=act_dim, device=device)  # sensor size must be changed here
 
 for update in range(max_iteration):
@@ -122,7 +124,6 @@ for update in range(max_iteration):
         # loaded_graph = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, sensor_dim + act_dim, act_dim)
         # loaded_graph.load_state_dict(torch.load(saver.data_dir+"/full_"+str(update)+'.pt')['actor_architecture_state_dict'])
 
-        env.load_scaling(weight_dir, int(iteration_number))
 
         temp_obs = np.ones((cfg['environment']['num_envs'],ob_dim-sensor_dim), dtype=np.float32)  # to see if input network changes
         temp_est_in = estimator_in.architecture(torch.from_numpy(temp_obs).to(device))
