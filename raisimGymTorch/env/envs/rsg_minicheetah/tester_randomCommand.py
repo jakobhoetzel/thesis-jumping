@@ -62,11 +62,11 @@ else:
     start_step_id = 0
 
     print("Visualizing and evaluating the policy: ", weight_path)
-    actor = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim - sensor_dim + robotState_dim, act_dim)
+    actor = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, act_dim)
     actor.load_state_dict(torch.load(weight_path)['actor_architecture_state_dict'])
     print('actor of {} parameters'.format(sum(p.numel() for p in actor.parameters())))
 
-    estimator = ppo_module.MLP(cfg['architecture']['estimator_net'], torch.nn.LeakyReLU,ob_dim- sensor_dim,robotState_dim)
+    estimator = ppo_module.MLP(cfg['architecture']['estimator_net'], torch.nn.LeakyReLU,ob_dim - sensor_dim,robotState_dim)
     estimator.load_state_dict(torch.load(weight_path)['estimator_architecture_state_dict'])
 
     env.load_scaling(weight_dir, int(iteration_number))
@@ -88,15 +88,10 @@ else:
             env.set_command(command)
 
         obs = env.observe(False)
-        # if np.isnan(obs).any():
-        #     print("obs in step ", step)
-        #     print(np.argwhere(np.isnan(obs)))
-        #     exit()
-        # obs = np.ones((cfg['environment']['num_envs'],ob_dim), dtype=np.float32)  # for checking
-        obs = obs[:,:ob_dim-sensor_dim]
+        obs_estimator = obs[:,:ob_dim-sensor_dim]
         robotState = env.getRobotState()
         # robotState = np.ones((cfg['environment']['num_envs'],robotState_dim), dtype=np.float32)  # for checking
-        est_out = estimator.architecture(torch.from_numpy(obs).cpu())
+        est_out = estimator.architecture(torch.from_numpy(obs_estimator).cpu())
         concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
         action_ll = actor.architecture(torch.from_numpy(concatenated_obs_actor).cpu())
         reward_ll, dones = env.step(action_ll.cpu().detach().numpy())

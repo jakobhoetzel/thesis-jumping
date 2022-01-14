@@ -33,10 +33,6 @@ weight_path = args.weight
 iteration_number = weight_path.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir = weight_path.rsplit('/', 1)[0] + '/'
 
-weight_path_baseline = "../../../data/minicheetah_locomotion/baseline1/full_5000.pt"
-iteration_number_baseline = weight_path_baseline.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
-weight_dir_baseline = weight_path_baseline.rsplit('/', 1)[0] + '/'
-
 # config
 cfg = YAML().load(open(task_path + "/cfg.yaml", 'r')) # change to weight_path
 
@@ -66,14 +62,12 @@ else:
     start_step_id = 0
 
     print("Visualizing and evaluating the policy: ", weight_path)
-    actor = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, act_dim + sensor_dim, act_dim)
+    actor = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, act_dim)
     actor.load_state_dict(torch.load(weight_path)['actor_architecture_state_dict'])
     print('actor of {} parameters'.format(sum(p.numel() for p in actor.parameters())))
 
-    actor_in = ppo_module.MLP(cfg['architecture']['policy_net_in'], torch.nn.LeakyReLU, ob_dim - sensor_dim + robotState_dim, act_dim)
-    actor_in.load_state_dict(torch.load(weight_path_baseline)['actor_architecture_state_dict'])
-    estimator_in = ppo_module.MLP(cfg['architecture']['estimator_net_in'], torch.nn.LeakyReLU, ob_dim - sensor_dim, robotState_dim)
-    estimator_in.load_state_dict(torch.load(weight_path_baseline)['estimator_architecture_state_dict'])
+    estimator = ppo_module.MLP(cfg['architecture']['estimator_net'], torch.nn.LeakyReLU, ob_dim - sensor_dim, robotState_dim)
+    estimator.load_state_dict(torch.load(weight_path)['estimator_architecture_state_dict'])
 
     env.load_scaling(weight_dir, int(iteration_number))
     env.turn_on_visualization()
@@ -98,15 +92,11 @@ else:
         #     env.set_command(command)
 
         obs = env.observe(False)
-        obs_in = obs[:,:ob_dim-sensor_dim]
-        sensor_obs = obs[:,-sensor_dim:]
+        obs_estimator = obs[:,:ob_dim-sensor_dim]
         robotState = env.getRobotState()
-        est_in = estimator_in.architecture(torch.from_numpy(obs_in).cpu()) #for input network
-        concatenated_obs_actor_in = np.concatenate((obs_in, est_in.cpu().detach().numpy()), axis=1)
-        action_in = actor_in.architecture(torch.from_numpy(concatenated_obs_actor_in).cpu()).detach() #detach -> actor_in does not change -> remove maybe
-
-        concatenated_obs_actor = np.concatenate((action_in.cpu().detach().numpy(), sensor_obs), axis=1)
-
+        # robotState = np.ones((cfg['environment']['num_envs'],robotState_dim), dtype=np.float32)  # for checking
+        est_out = estimator.architecture(torch.from_numpy(obs_estimator).cpu())
+        concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
         action_ll = actor.architecture(torch.from_numpy(concatenated_obs_actor).cpu())
         reward_ll, dones = env.step(action_ll.cpu().detach().numpy())
         env.go_straight_controller()

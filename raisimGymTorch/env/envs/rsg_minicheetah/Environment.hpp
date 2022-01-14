@@ -59,7 +59,7 @@ class ENVIRONMENT {
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::FOOTCLEARANCE], cfg["reward"]["footClearanceCoeff"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::HURDLES], cfg["reward"]["hurdlesCoeff"])
 
-    terrain_curriculum_ = terCurriculumFactor_*0.0;
+    terrain_curriculum_ = terCurriculumFactor_*0.25;
     isHeightMap_ = cfg["isHeightMap"].template As<bool>();
     controller_.setIsHeightMap(isHeightMap_);
     if (isHeightMap_){
@@ -170,7 +170,7 @@ class ENVIRONMENT {
     rewCurriculumFactor_ = pow(rewCurriculumFactor_, rewCurriculumRate_);
     comCurriculumFactorT_ = 1 + comCurriculumFactor3_ / (1 + std::exp(-comCurriculumFactor1_ * (iter - comCurriculumFactor2_)));
     comCurriculumFactorT_ = std::fmax(1., comCurriculumFactorT_);
-    terrain_curriculum_ = iter * (terCurriculumFactor_*1.0) / 5000.0 + terCurriculumFactor_*0.0; // TODO: better curriculum function, adapt to number of iter
+    terrain_curriculum_ = iter * (terCurriculumFactor_*0.75) / 5000.0 + terCurriculumFactor_*0.25; // TODO: better curriculum function, adapt to number of iter
 
     if(isHeightMap_) {
       //groundType_ = (groundType_+1) % 2;
