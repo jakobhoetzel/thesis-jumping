@@ -105,6 +105,10 @@ class PPO:
         self.writer.add_scalar('Policy/entropy', variables['mean_entropy'], variables['it'])
         self.writer.add_scalar('Policy/mean_noise_std', mean_std.item(), variables['it'])
 
+    def updateOptimizer(self, learning_rate=5e-4):
+        # self.optimizer = AdamP([*self.actor.parameters(), *self.critic.parameters(), *self.estimator.parameters()], lr=learning_rate)
+        self.optimizer = AdamP(filter(lambda p: p.requires_grad, [*self.actor.parameters(), *self.critic.parameters(), *self.estimator.parameters()]), lr=learning_rate)
+
     def _train_step(self):
         mean_value_loss = 0
         mean_surrogate_loss = 0

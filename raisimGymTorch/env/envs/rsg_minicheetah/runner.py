@@ -41,12 +41,12 @@ home_path = task_path + "/../../../.."
 # config
 cfg = YAML().load(open(task_path + "/cfg.yaml", 'r'))
 
-if runNumber == 0:
-    cfg['environment']['ter_curriculum_factor'] = 0.0
-elif runNumber == 1:
-    cfg['environment']['ter_curriculum_factor'] = 0.2
-elif runNumber == 2:
-    cfg['environment']['ter_curriculum_factor'] = 0.4
+# if runNumber == 0:
+#     cfg['environment']['ter_curriculum_factor'] = 0.0
+# elif runNumber == 1:
+#     cfg['environment']['ter_curriculum_factor'] = 0.2
+# elif runNumber == 2:
+#     cfg['environment']['ter_curriculum_factor'] = 0.4
 
 # create environment from the configuration file
 env = VecEnv(rsg_minicheetah.RaisimGymEnv(home_path + "/rsc", dump(cfg['environment'], Dumper=RoundTripDumper)), cfg['environment'])
@@ -82,8 +82,8 @@ mlpEstimator.load_state_dict(torch.load(weight_path)['estimator_architecture_sta
 stateEstimator = ppo_module.StateEstimator(mlpEstimator,
                                            device)
 
-actor_test = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim - sensor_dim + robotState_dim, act_dim).to(device)
-actor_test.load_state_dict(torch.load(weight_path)['actor_architecture_state_dict'])
+# actor_test = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim - sensor_dim + robotState_dim, act_dim).to(device)
+# actor_test.load_state_dict(torch.load(weight_path)['actor_architecture_state_dict'])
 
 saver = ConfigurationSaver(log_dir=home_path + "/raisimGymTorch/data/"+task_name,  # save environment and configuration data.
                            save_items=[task_path + "/cfg.yaml", task_path + "/Environment.hpp", task_path + "/MinicheetahController.hpp",
@@ -104,7 +104,7 @@ ppo = PPO.PPO(actor=actor,
               num_learning_epochs=4,
               gamma=0.99,
               lam=0.95,
-              learning_rate=5e-4,
+              learning_rate=5e-4,  # 5e-4
               entropy_coef=0.01,
               num_mini_batches=8,
               device=device,
@@ -131,6 +131,23 @@ temp_obs = np.ones((cfg['environment']['num_envs'], ob_dim + robotState_dim), dt
 temp_action_in = actor.architecture.architecture(torch.from_numpy(temp_obs).to(device)).detach()
 np.savetxt("ones_action_in_beginning.csv", temp_action_in.cpu().numpy(), delimiter=",")
 
+test1 = actor.parameters()
+
+for param in actor.parameters():
+    param.requires_grad = False
+for param in stateEstimator.parameters():
+    param.requires_grad = False
+
+# for param_group in ppo.optimizer.param_groups:
+#     param_group['lr'] = 0.1  # only for critic training
+
+ppo.updateOptimizer(learning_rate=0.01)
+
+test2 = actor.parameters()
+test3 = [*actor.parameters(), *critic.parameters(), *stateEstimator.parameters()]
+test4 = filter(lambda p: p.requires_grad, [*actor.parameters(), *critic.parameters(), *stateEstimator.parameters()])
+test5 = list(test4)
+
 for update in range(max_iteration):
     start = time.time()
     env.reset()
@@ -139,6 +156,18 @@ for update in range(max_iteration):
     average_dones = 0.
 
     env.curriculum_callback(update)
+
+    if update == 300:  # train actor also
+        for param in actor.parameters():
+            param.requires_grad = True
+        for param in stateEstimator.parameters():
+            param.requires_grad = True
+        # for param_group in ppo.optimizer.param_groups:
+        #     param_group['lr'] = 5e-4
+        temp_obs = np.ones((cfg['environment']['num_envs'], ob_dim + robotState_dim), dtype=np.float32)  # to see if input network changes
+        temp_action_in = actor.architecture.architecture(torch.from_numpy(temp_obs).to(device)).detach()
+        np.savetxt("ones_action_in_requ_grad300.csv", temp_action_in.cpu().numpy(), delimiter=",")
+        ppo.updateOptimizer(learning_rate=5e-4)
 
     if update % cfg['environment']['eval_every_n'] == 0:
         print("Visualizing and evaluating the current policy")

@@ -38,7 +38,7 @@ class ENVIRONMENT {
     controller_.create(world_.get());
     READ_YAML(double, simulation_dt_, cfg["simulation_dt"])
     READ_YAML(double, control_dt_, cfg["control_dt"])
-    READ_YAML(double, rewCurriculumFactor_, cfg["rew_curriculum_factor"])
+    READ_YAML(double, rewCurriculumFactor2_, cfg["rew_curriculum_factor"])
     READ_YAML(double, rewCurriculumRate_, cfg["rew_curriculum_rate"])
     READ_YAML(double, comCurriculumFactor1_, cfg["com_curriculum_factor1"])
     READ_YAML(double, comCurriculumFactor2_, cfg["com_curriculum_factor2"])
@@ -167,7 +167,9 @@ class ENVIRONMENT {
   }
   /////// optional methods ///////
   void curriculumUpdate(int iter) {
-    rewCurriculumFactor_ = pow(rewCurriculumFactor_, rewCurriculumRate_);
+//    rewCurriculumFactor_ = pow(rewCurriculumFactor_+1, rewCurriculumRate_);
+    rewCurriculumFactor2_ = rewCurriculumFactor2_*rewCurriculumRate_;
+    rewCurriculumFactor_ = 1 - rewCurriculumFactor2_;
     comCurriculumFactorT_ = 1 + comCurriculumFactor3_ / (1 + std::exp(-comCurriculumFactor1_ * (iter - comCurriculumFactor2_)));
     comCurriculumFactorT_ = std::fmax(1., comCurriculumFactorT_);
     terrain_curriculum_ = iter * (terCurriculumFactor_*0.75) / 5000.0 + terCurriculumFactor_*0.25; // TODO: better curriculum function, adapt to number of iter
@@ -227,7 +229,7 @@ class ENVIRONMENT {
   double terminalRewardCoeff_ = -10.;
   MinicheetahController controller_;
   std::unique_ptr<raisim::World> world_;
-  double rewCurriculumFactor_, rewCurriculumRate_;
+  double rewCurriculumFactor_=0, rewCurriculumFactor2_, rewCurriculumRate_;
   double comCurriculumFactorT_ = 1., comCurriculumFactor1_, comCurriculumFactor2_, comCurriculumFactor3_;
   double terCurriculumFactor_;
   double terrain_curriculum_; // height of hurdles

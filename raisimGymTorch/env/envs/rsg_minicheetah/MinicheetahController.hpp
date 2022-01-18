@@ -338,7 +338,7 @@ class MinicheetahController {
 
 
     /// Reward functions
-    // no curriculum factor is applied at the moment
+    // curriculum factor in negative reward
     double rewBodyAngularVel = std::exp(-1.5 * pow((command_(2) - bodyAngularVel_(2)), 2)) * rewardCoeff.at(RewardType::ANGULARVELOCIY1);
     double rewLinearVel = std::exp(-1.0 * (command_.head(2) - bodyLinearVel_.head(2)).squaredNorm()) * rewardCoeff.at(RewardType::VELOCITY1);
     double rewAirTime = airtimeTotal * rewardCoeff.at(RewardType::AIRTIME);
@@ -369,7 +369,7 @@ class MinicheetahController {
     stepData_[12] = rewBaseMotion;
     stepData_[13] = rewFootClearance;
 
-    double negativeRewardSum = stepData_.segment(4, stepDataTag_.size()-7).sum();
+    double negativeRewardSum = stepData_.segment(4, stepDataTag_.size()-7).sum()* rewCurriculumFactor; /// curriculum 0->1
     double positiveRewardSum = stepData_.head(4).sum();
 
     stepData_[14] = negativeRewardSum;

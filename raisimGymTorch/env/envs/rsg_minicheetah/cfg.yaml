@@ -9,8 +9,8 @@ environment:
   simulation_dt: 0.002 #     0.001
   control_dt: 0.01
   max_time: 6.0 # 4.0
-  rew_curriculum_factor: 0.5
-  rew_curriculum_rate: 0.9998
+  rew_curriculum_factor: 1
+  rew_curriculum_rate: 0.9999
   com_curriculum_factor1: 0.002
   com_curriculum_factor2: 1000
   com_curriculum_factor3: 2.5
@@ -19,7 +19,7 @@ environment:
     bodyAngularVelCoeff1: 3 #1.5   3
     forwardVelCoeff1: 3 #3    3
     airTimeCoeff: 0.3 # 1.2      0.3
-    hurdlesCoeff: 100.0 #
+    hurdlesCoeff: 100 #
     torqueCoeff: -6.e-4 #-2.e-5    -6.e-4
     jointSpeedCoeff: -6.e-4 #-3.25e-3        -6.e-4 
     footSlipCoeff: -8.e-2 #          -8.e-2
