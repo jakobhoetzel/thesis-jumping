@@ -10,26 +10,28 @@ environment:
   control_dt: 0.01
   max_time: 6.0 # 4.0
   rew_curriculum_factor: 1
-  rew_curriculum_rate: 0.9999
+  rew_curriculum_rate: 0.999
   com_curriculum_factor1: 0.002
   com_curriculum_factor2: 1000
   com_curriculum_factor3: 2.5
-  ter_curriculum_factor: 0.2 #max height of hurdles, change in Environment also for tester
+  ter_curriculum_factor: 0.0 #max height of hurdles, change in Environment also for tester
   reward:
     bodyAngularVelCoeff1: 3 #1.5   3
-    forwardVelCoeff1: 3 #3    3
+    forwardVelCoeff1: 0.5 #3    3
     airTimeCoeff: 0.3 # 1.2      0.3
-    hurdlesCoeff: 100 #
+    hurdlesCoeff: 0 #
     torqueCoeff: -6.e-4 #-2.e-5    -6.e-4
     jointSpeedCoeff: -6.e-4 #-3.25e-3        -6.e-4 
     footSlipCoeff: -8.e-2 #          -8.e-2
-    bodyOriCoeff: -3.0 #-5.0        -3.0
+    bodyOriCoeff: -1.0 #-5.0        -3.0
     smoothnessCoeff1: -2.5 #-5.0      -2.5
     smoothnessCoeff2: -1.2 #-1.6     -1.2
     jointPosCoeff: -0.75 #     -0.75
     jointAccCoeff: -2.e-2 #-3e-2      -2.e-2
     baseMotionCoeff: -1.5  #         -1.5
     footClearanceCoeff: -15.0 #-10.0    -15
+    symmetryCoeff: -15.0
+    bodyHeightCoeff: -1.0
 
 architecture:
   policy_net: [512, 256, 64] #512, 256, 64

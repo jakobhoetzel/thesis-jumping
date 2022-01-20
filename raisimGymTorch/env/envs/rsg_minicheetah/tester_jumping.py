@@ -45,7 +45,7 @@ env = VecEnv(rsg_minicheetah.RaisimGymEnv(home_path + "/rsc", dump(cfg['environm
 ob_dim = env.num_obs
 robotState_dim = env.num_robotState
 act_dim = env.num_acts
-sensor_dim = 2
+sensor_dim = 3
 
 
 if weight_path == "":
@@ -76,7 +76,7 @@ else:
 
     max_steps = 1000000
     ##max_steps = 400 ## 10 secs
-    command = np.array([3.5, 0, 0], dtype=np.float32)
+    command = np.array([4.0, 0, 0], dtype=np.float32)
     env.set_command(command)
     env.curriculum_callback(5000)
     env.reset()

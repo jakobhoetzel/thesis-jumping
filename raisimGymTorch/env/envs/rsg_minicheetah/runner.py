@@ -27,7 +27,7 @@ args = parser.parse_args()
 mode = args.mode  # 'train' or 'retrain'
 runNumber = args.runNumber
 #weight_path = args.weight
-weight_path = "../../../data/minicheetah_locomotion/baseline1/full_5000.pt"
+weight_path = "../../../data/minicheetah_locomotion/baseline2/full_5000.pt"
 iteration_number = weight_path.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir = weight_path.rsplit('/', 1)[0] + '/'
 
@@ -55,7 +55,7 @@ env = VecEnv(rsg_minicheetah.RaisimGymEnv(home_path + "/rsc", dump(cfg['environm
 ob_dim = env.num_obs  # including sensor
 robotState_dim = env.num_robotState
 act_dim = env.num_acts
-sensor_dim = 2
+sensor_dim = 3
 
 # Training
 n_steps = math.floor(cfg['environment']['max_time'] / cfg['environment']['control_dt'])  # 400
@@ -66,7 +66,7 @@ avg_rewards = []
 savedWeights = torch.load(weight_path)['actor_architecture_state_dict']['architecture.0.weight']
 savedWeights_obs = savedWeights[:, :ob_dim-sensor_dim]
 savedWeights_robotState = savedWeights[:, -robotState_dim:]
-addedWeights = torch.randn(512,2).to(device)*0.000001
+addedWeights = torch.randn(512,sensor_dim).to(device)*0.000001
 combinedWeights = torch.cat([savedWeights_obs, addedWeights, savedWeights_robotState], dim=1)
 savedDict = torch.load(weight_path)['actor_architecture_state_dict']
 savedDict['architecture.0.weight'] = torch.nn.Parameter(combinedWeights)
@@ -121,32 +121,22 @@ if mode == 'retrain':
 
 max_iteration = 5000 + 1 #5000+1
 
-env.load_scaling(weight_dir, int(iteration_number))
+env.load_scaling(weight_dir, int(iteration_number), 1e8) # 1e8 -> less disruption when retraining
 
 # IL.identity_learning(num_iterations=100000, actor=actor, act_dim=act_dim, device=device)  # sensor size must be changed here
 
 # exit()
+#
+# temp_obs = np.ones((cfg['environment']['num_envs'], ob_dim + robotState_dim), dtype=np.float32)  # to see if input network changes
+# temp_action_in = actor.architecture.architecture(torch.from_numpy(temp_obs).to(device)).detach()
+# np.savetxt("ones_action_in_beginning.csv", temp_action_in.cpu().numpy(), delimiter=",")
 
-temp_obs = np.ones((cfg['environment']['num_envs'], ob_dim + robotState_dim), dtype=np.float32)  # to see if input network changes
-temp_action_in = actor.architecture.architecture(torch.from_numpy(temp_obs).to(device)).detach()
-np.savetxt("ones_action_in_beginning.csv", temp_action_in.cpu().numpy(), delimiter=",")
-
-test1 = actor.parameters()
-
-for param in actor.parameters():
-    param.requires_grad = False
-for param in stateEstimator.parameters():
-    param.requires_grad = False
-
-# for param_group in ppo.optimizer.param_groups:
-#     param_group['lr'] = 0.1  # only for critic training
-
-ppo.updateOptimizer(learning_rate=0.01)
-
-test2 = actor.parameters()
-test3 = [*actor.parameters(), *critic.parameters(), *stateEstimator.parameters()]
-test4 = filter(lambda p: p.requires_grad, [*actor.parameters(), *critic.parameters(), *stateEstimator.parameters()])
-test5 = list(test4)
+# for param in actor.parameters():
+#     param.requires_grad = False
+# for param in stateEstimator.parameters():
+#     param.requires_grad = False
+#
+# ppo.updateOptimizer(learning_rate=0.01)
 
 for update in range(max_iteration):
     start = time.time()
@@ -157,17 +147,17 @@ for update in range(max_iteration):
 
     env.curriculum_callback(update)
 
-    if update == 300:  # train actor also
-        for param in actor.parameters():
-            param.requires_grad = True
-        for param in stateEstimator.parameters():
-            param.requires_grad = True
-        # for param_group in ppo.optimizer.param_groups:
-        #     param_group['lr'] = 5e-4
-        temp_obs = np.ones((cfg['environment']['num_envs'], ob_dim + robotState_dim), dtype=np.float32)  # to see if input network changes
-        temp_action_in = actor.architecture.architecture(torch.from_numpy(temp_obs).to(device)).detach()
-        np.savetxt("ones_action_in_requ_grad300.csv", temp_action_in.cpu().numpy(), delimiter=",")
-        ppo.updateOptimizer(learning_rate=5e-4)
+    # if update == 300:  # train actor also
+    #     for param in actor.parameters():
+    #         param.requires_grad = True
+    #     for param in stateEstimator.parameters():
+    #         param.requires_grad = True
+    #     # for param_group in ppo.optimizer.param_groups:
+    #     #     param_group['lr'] = 5e-4
+    #     temp_obs = np.ones((cfg['environment']['num_envs'], ob_dim + robotState_dim), dtype=np.float32)  # to see if input network changes
+    #     temp_action_in = actor.architecture.architecture(torch.from_numpy(temp_obs).to(device)).detach()
+    #     np.savetxt("ones_action_in_requ_grad300.csv", temp_action_in.cpu().numpy(), delimiter=",")
+    #     ppo.updateOptimizer(learning_rate=5e-4)
 
     if update % cfg['environment']['eval_every_n'] == 0:
         print("Visualizing and evaluating the current policy")
@@ -279,7 +269,7 @@ for update in range(max_iteration):
     print(np.exp(actor.distribution.std.cpu().detach().numpy()))
     print('----------------------------------------------------\n')
 
-    if update % cfg['environment']['eval_every_n'] == 0:
-        temp_obs = np.ones((cfg['environment']['num_envs'], ob_dim + robotState_dim), dtype=np.float32)  # to see if input network changes
-        temp_action_in = actor.architecture.architecture(torch.from_numpy(temp_obs).to(device)).detach()
-        np.savetxt("ones_action_in_end.csv", temp_action_in.cpu().numpy(), delimiter=",")
+    # if update % cfg['environment']['eval_every_n'] == 0:
+    #     temp_obs = np.ones((cfg['environment']['num_envs'], ob_dim + robotState_dim), dtype=np.float32)  # to see if input network changes
+    #     temp_action_in = actor.architecture.architecture(torch.from_numpy(temp_obs).to(device)).detach()
+    #     np.savetxt("ones_action_in_end.csv", temp_action_in.cpu().numpy(), delimiter=",")

@@ -58,6 +58,8 @@ class ENVIRONMENT {
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::BASEMOTION], cfg["reward"]["baseMotionCoeff"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::FOOTCLEARANCE], cfg["reward"]["footClearanceCoeff"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::HURDLES], cfg["reward"]["hurdlesCoeff"])
+    READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::SYMMETRY], cfg["reward"]["symmetryCoeff"])
+    READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::BODYHEIGHT], cfg["reward"]["bodyHeightCoeff"])
 
     terrain_curriculum_ = terCurriculumFactor_*0.25;
     isHeightMap_ = cfg["isHeightMap"].template As<bool>();
@@ -148,8 +150,10 @@ class ENVIRONMENT {
   void observe(Eigen::Ref<EigenVec> ob) {
     ob = controller_.getObservation().cast<float>();
     //ob.tail(2) = {{terrain_curriculum_, xPos_Hurdles_-ob.tail(1)(0)}}; //height and distance to hurdle
-    double height_obs = std::min( std::max(xPos_Hurdles_-ob.tail(1)(0), 0.0), 8.0); //distance between 0 and 8
-    ob.tail(2) << terrain_curriculum_+uniDist_(gen_) * 0.05, height_obs+uniDist_(gen_) * 0.05; //height and distance to hurdle TODO: change observation when jumped over hurdle
+    double dist_obs_next = std::min( std::max(xPos_Hurdles_-ob.tail(1)(0), 0.0), 8.0); //distance between 0 and 8
+    double dist_obs_last = std::min( std::max(xPos_Hurdles_-ob.tail(1)(0), -8.0), 0.0); //distance between -8 and 0
+    ob.tail(3) << terrain_curriculum_+uniDist_(gen_) * 0.05, dist_obs_next+uniDist_(gen_) * 0.05, dist_obs_last+uniDist_(gen_) * 0.05;
+    //height and distance to next and last hurdle
   }
 
   void getRobotState(Eigen::Ref<EigenVec> ob) {  // related to the estimator network learning
