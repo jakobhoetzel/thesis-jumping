@@ -31,7 +31,7 @@ def tensorboard_launcher(directory_path):
     webbrowser.open_new(url)
 
 
-def load_param(weight_path, env, actor, critic, estimator, optimizer, data_dir):
+def load_param(weight_path, env, actor_run, actor_jump, critic_run, critic_jump, estimator, optimizer, data_dir):
     if weight_path == "":
         raise Exception("\nCan't find the pre-trained weight, please provide a pre-trained weight with --weight switch\n")
     print("\nRetraining from the checkpoint:", weight_path+"\n")
@@ -54,8 +54,11 @@ def load_param(weight_path, env, actor, critic, estimator, optimizer, data_dir):
 
     # load actor and critic parameters from full checkpoint
     checkpoint = torch.load(weight_path)
-    actor.architecture.load_state_dict(checkpoint['actor_architecture_state_dict'])
-    actor.distribution.load_state_dict(checkpoint['actor_distribution_state_dict'])
-    critic.architecture.load_state_dict(checkpoint['critic_architecture_state_dict'])
+    actor_run.architecture.load_state_dict(checkpoint['actor_run_architecture_state_dict'])
+    actor_run.distribution.load_state_dict(checkpoint['actor_run_distribution_state_dict'])
+    actor_jump.architecture.load_state_dict(checkpoint['actor_jump_architecture_state_dict'])
+    actor_jump.distribution.load_state_dict(checkpoint['actor_jump_distribution_state_dict'])
+    critic_run.architecture.load_state_dict(checkpoint['critic_run_architecture_state_dict'])
+    critic_jump.architecture.load_state_dict(checkpoint['critic_jump_architecture_state_dict'])
     estimator.architecture.load_state_dict(checkpoint['estimator_architecture_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])

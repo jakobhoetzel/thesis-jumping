@@ -150,8 +150,15 @@ class ENVIRONMENT {
   void observe(Eigen::Ref<EigenVec> ob) {
     ob = controller_.getObservation().cast<float>();
     //ob.tail(2) = {{terrain_curriculum_, xPos_Hurdles_-ob.tail(1)(0)}}; //height and distance to hurdle
-    double dist_obs_next = std::min( std::max(xPos_Hurdles_-ob.tail(1)(0), 0.0), 8.0); //distance between 0 and 8
-    double dist_obs_last = std::min( std::max(xPos_Hurdles_-ob.tail(1)(0), -8.0), 0.0); //distance between -8 and 0
+    double dist_obs_next = 0;
+    double dist_obs_last = 0;
+    if ((xPos_Hurdles_-ob.tail(1)(0)) >= 0) { // before hurdle
+      dist_obs_next = std::min( std::max(xPos_Hurdles_-ob.tail(1)(0), 0.0), 8.0); //distance between 0 and 8
+      dist_obs_last = -8; //distance between -8 and 0
+    } else{ // after hurdle
+      dist_obs_next = 8; //distance between 0 and 8
+      dist_obs_last = std::min( std::max(xPos_Hurdles_-ob.tail(1)(0), -8.0), 0.0); //distance between -8 and 0
+    }
     ob.tail(3) << terrain_curriculum_+uniDist_(gen_) * 0.05, dist_obs_next+uniDist_(gen_) * 0.05, dist_obs_last+uniDist_(gen_) * 0.05;
     //height and distance to next and last hurdle
   }
