@@ -115,13 +115,15 @@ class PPO:
 
     def log(self, variables, width=80, pad=28):
         self.tot_timesteps += self.num_transitions_per_env * self.num_envs
-        mean_std = 0.5 * self.actor_run.distribution.std.mean() + 0.5 * self.actor_jump.distribution.std.mean()  # TODO: wrong!!
+        mean_std_run = self.actor_run.distribution.std.mean()
+        mean_std_jump = self.actor_jump.distribution.std.mean()
 
         self.writer.add_scalar('Loss/value_function', variables['mean_value_loss'], variables['it'])
         self.writer.add_scalar('Loss/surrogate', variables['mean_surrogate_loss'], variables['it'])
         self.writer.add_scalar('Loss/estimation', variables['mean_estimation_loss'], variables['it'])
         self.writer.add_scalar('Policy/entropy', variables['mean_entropy'], variables['it'])
-        self.writer.add_scalar('Policy/mean_noise_std', mean_std.item(), variables['it'])
+        self.writer.add_scalar('Policy/mean_noise_std_run', mean_std_run.item(), variables['it'])
+        self.writer.add_scalar('Policy/mean_noise_std_jump', mean_std_jump.item(), variables['it'])
 
     def _train_step(self):
         mean_value_loss = 0

@@ -1,6 +1,7 @@
 from ruamel.yaml import YAML, dump, RoundTripDumper
 from raisimGymTorch.env.bin import rsg_minicheetah
 from raisimGymTorch.env.RaisimGymVecEnv import RaisimGymVecEnv as VecEnv
+from networkSelector import run_bool_function
 import os
 import math
 import time
@@ -62,9 +63,12 @@ else:
     start_step_id = 0
 
     print("Visualizing and evaluating the policy: ", weight_path)
-    actor = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, act_dim)
-    actor.load_state_dict(torch.load(weight_path)['actor_architecture_state_dict'])
-    print('actor of {} parameters'.format(sum(p.numel() for p in actor.parameters())))
+    actor_run = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, act_dim)
+    actor_jump = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, act_dim)
+    actor_run.load_state_dict(torch.load(weight_path)['actor_run_architecture_state_dict'])
+    actor_jump.load_state_dict(torch.load(weight_path)['actor_jump_architecture_state_dict'])
+    print('actor of {} parameters'.format(sum(p.numel() for p in actor_run.parameters())))
+    print('actor of {} parameters'.format(sum(p.numel() for p in actor_jump.parameters())))
 
     estimator = ppo_module.MLP(cfg['architecture']['estimator_net'], torch.nn.LeakyReLU, ob_dim - sensor_dim, robotState_dim)
     estimator.load_state_dict(torch.load(weight_path)['estimator_architecture_state_dict'])
@@ -82,6 +86,8 @@ else:
     env.reset()
     env.printTest()
 
+    run_bool = np.ones((1,1))
+
     for step in range(max_steps):
         frame_start = time.time()
         # if step % 400 == 0:
@@ -97,7 +103,10 @@ else:
         # robotState = np.ones((cfg['environment']['num_envs'],robotState_dim), dtype=np.float32)  # for checking
         est_out = estimator.architecture(torch.from_numpy(obs_estimator).cpu())
         concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
-        action_ll = actor.architecture(torch.from_numpy(concatenated_obs_actor).cpu())
+        run_bool = torch.from_numpy(run_bool_function(obs, act_dim, True, run_bool)).cpu()
+        jump_bool = torch.add(torch.ones(run_bool.size()).cpu(), run_bool, alpha=-1)
+        action_ll = run_bool * actor_run.architecture(torch.from_numpy(concatenated_obs_actor).cpu())\
+                    + jump_bool * actor_jump.architecture(torch.from_numpy(concatenated_obs_actor).cpu())
         reward_ll, dones = env.step(action_ll.cpu().detach().numpy())
         env.go_straight_controller()
 
@@ -124,6 +133,7 @@ else:
 
         frame_end = time.time()
         wait_time = cfg['environment']['control_dt'] - (frame_end-frame_start)
+        time.sleep(5)
         if wait_time > 0.:
             time.sleep(wait_time)
 

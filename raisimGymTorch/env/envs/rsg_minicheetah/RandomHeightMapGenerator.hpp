@@ -100,8 +100,8 @@ class RandomHeightMapGenerator {
             heightVec.resize(2*1000);
             std::fill(heightVec.begin(), heightVec.end(), 0);
 
-            double height = curriculumFactor; // TODO: set real values, uniDist(gen)
-            // int xPos = 400 + 40 * uniDist(gen); // position of hurdles in xSize of environment TODO: changing position
+            double height = curriculumFactor;
+            // int xPos = 400 + 40 * uniDist(gen); // position of hurdles in xSize of environment
             int xPos = 600; // position of hurdles in xSize of environment
 
             heightVec[xPos] = height;

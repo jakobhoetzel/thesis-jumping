@@ -35,7 +35,8 @@ class MinicheetahController {
     FOOTCLEARANCE,
     HURDLES,
     SYMMETRY,
-    BODYHEIGHT
+    BODYHEIGHT,
+    FOOTCONTACT
   };
 
   void setSeed(int seed) { gen_.seed(seed); }
@@ -100,7 +101,7 @@ class MinicheetahController {
 
     stepDataTag_ = {"rewBodyAngularVel", "rewLinearVel", "rewAirTime", "rewHurdles", "rewTorque", "rewJointSpeed", "rewFootSlip",
                     "rewBodyOri", "rewSmoothness1", "rewSmoothness2", "rewJointPosition", "rewJointAcc", "rewBaseMotion",
-                    "rewFootClearance", "symmetryCoeff", "bodyHeightCoeff", "negativeRewardSum", "positiveRewardSum", "totalRewardSum"};
+                    "rewFootClearance", "rewSymmetry", "rewBodyHeight", "rewFootContact", "negativeRewardSum", "positiveRewardSum", "totalRewardSum"};
     stepData_.resize(stepDataTag_.size());
 
     updateObservation(world);
@@ -346,6 +347,22 @@ class MinicheetahController {
     double symmetryCoeff = (gc_.segment(7, 3) - gc_.segment(10, 3)).norm() + (gc_.segment(13, 3) - gc_.segment(16, 3)).norm();
     /// order: RF - LF - RH - LH
 
+    /// A variable reward the correct touching of the ground
+    double footContactVar;
+    double footContactNumber = std::accumulate(footContactState_.begin(), footContactState_.end(),0); //number of feet touching the ground
+    if (footContactNumber == 0 || footContactNumber == 1){ //zero or one foot on the ground
+      footContactVar = -1; // good due to multiplication with negative coefficient
+    }
+    else if (footContactNumber == 3 || footContactNumber == 4){ //three or four feet on the ground
+      footContactVar = 1; // bad
+    }
+    else if (footContactState_[0] == footContactState_[1]){ //only foreleg or hind leg on the ground
+      footContactVar = -1;
+    }
+    else{
+      footContactVar = 1;
+    }
+
     /// Reward functions
     // curriculum factor in negative reward
     double rewBodyAngularVel = std::exp(-1.5 * pow((command_(2) - bodyAngularVel_(2)), 2)) * rewardCoeff.at(RewardType::ANGULARVELOCIY1);
@@ -365,6 +382,7 @@ class MinicheetahController {
     double rewFootClearance = footClearanceTangential * rewardCoeff.at(RewardType::FOOTCLEARANCE);
     double rewSymmetry = (1 - rewCurriculumFactor) * symmetryCoeff * rewardCoeff.at(RewardType::SYMMETRY); /// curriculum 1->0
     double rewBodyHeight = std::exp(-10 * (maxBodyHeight-0.5)) * rewardCoeff.at(RewardType::BODYHEIGHT);
+    double rewFootContact = footContactVar * rewardCoeff.at(RewardType::FOOTCONTACT);
 
     stepData_[0] = rewBodyAngularVel;  /// positive reward; maximization
     stepData_[1] = rewLinearVel;  /// positive reward
@@ -380,15 +398,16 @@ class MinicheetahController {
     stepData_[11] = rewJointAcc;
     stepData_[12] = rewBaseMotion;
     stepData_[13] = rewFootClearance;
-    stepData_[14] = rewSymmetry;
+    stepData_[14] = rewSymmetry / (rewCurriculumFactor + 1e-5); /// not affected of curriculum
     stepData_[15] = rewBodyHeight;
+    stepData_[16] = rewFootContact / (rewCurriculumFactor + 1e-5);
 
     double negativeRewardSum = stepData_.segment(4, stepDataTag_.size()-7).sum()* rewCurriculumFactor; /// curriculum 0->1
     double positiveRewardSum = stepData_.head(4).sum();
 
-    stepData_[16] = negativeRewardSum;
-    stepData_[17] = positiveRewardSum;
-    stepData_[18] = std::exp(0.2 * negativeRewardSum) * positiveRewardSum;  // totalReward
+    stepData_[17] = negativeRewardSum;
+    stepData_[18] = positiveRewardSum;
+    stepData_[19] = std::exp(0.2 * negativeRewardSum) * positiveRewardSum;  // totalReward
   }
 
   const std::vector<std::string>& getStepDataTag() {
@@ -496,7 +515,7 @@ class MinicheetahController {
       footPos_[0].e()(2), footPos_[1].e()(2), footPos_[2].e()(2), footPos_[3].e()(2),  /// foot z position 4
               footContactState_[0], footContactState_[1], footContactState_[2], footContactState_[3];  /// foot contact state/probability 4
     }
-    return robotState_; // TODO: add hurdles to robot state
+    return robotState_;
   }
 
   /// If the contact body is not feet
