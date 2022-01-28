@@ -3,8 +3,8 @@ seed: 1
 environment:
   isHeightMap: False #True
   render: True
-  num_envs: 800 # 800
-  eval_every_n: 100 # 500
+  num_envs: 5 # 800
+  eval_every_n: 25 # 500
   num_threads: 36 # 128
   simulation_dt: 0.002 #     0.001
   control_dt: 0.01
@@ -38,3 +38,4 @@ architecture:
   policy_net: [512, 256, 64] #512, 256, 64
   value_net: [512, 256, 64] #512, 256, 64
   estimator_net: [512, 256] #512, 256
+  manager_net: [512, 256]

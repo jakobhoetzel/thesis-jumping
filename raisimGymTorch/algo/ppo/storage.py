@@ -7,24 +7,23 @@ class RolloutStorage:
         self.device = device
 
         # Core
-        self.critic_obs = torch.zeros(num_transitions_per_env, num_envs, *critic_obs_shape).to(self.device)
-        self.actor_obs = torch.zeros(num_transitions_per_env, num_envs, *actor_obs_shape).to(self.device)
-        self.estimator_input = torch.zeros(num_transitions_per_env, num_envs, *estimator_input_shape).to(self.device)
-        self.robotState = torch.zeros(num_transitions_per_env, num_envs, *robotState_shape).to(self.device)
-        self.rewards = torch.zeros(num_transitions_per_env, num_envs, 1).to(self.device)
-        self.actions = torch.zeros(num_transitions_per_env, num_envs, *actions_shape).to(self.device)
-        self.dones = torch.zeros(num_transitions_per_env, num_envs, 1).byte().to(self.device)
-        self.run_bool = torch.zeros(num_transitions_per_env, num_envs, *actions_shape).to(self.device)
+        self.critic_obs = torch.zeros(num_transitions_per_env, num_envs, *critic_obs_shape, device=self.device)
+        self.actor_obs = torch.zeros(num_transitions_per_env, num_envs, *actor_obs_shape, device=self.device)
+        self.estimator_input = torch.zeros(num_transitions_per_env, num_envs, *estimator_input_shape, device=self.device)
+        self.robotState = torch.zeros(num_transitions_per_env, num_envs, *robotState_shape, device=self.device)
+        self.rewards = torch.zeros(num_transitions_per_env, num_envs, 1, device=self.device)
+        self.actions = torch.zeros(num_transitions_per_env, num_envs, *actions_shape, device=self.device)
+        self.dones = torch.zeros(num_transitions_per_env, num_envs, 1, device=self.device).byte()
+        self.run_bool = torch.zeros(num_transitions_per_env, num_envs, *actions_shape, device=self.device)
 
         # For PPO
-        self.actions_log_prob = torch.zeros(num_transitions_per_env, num_envs, 1).to(self.device)
-        self.values = torch.zeros(num_transitions_per_env, num_envs, 1).to(self.device)
-        self.returns = torch.zeros(num_transitions_per_env, num_envs, 1).to(self.device)
-        self.advantages = torch.zeros(num_transitions_per_env, num_envs, 1).to(self.device)
+        self.actions_log_prob = torch.zeros(num_transitions_per_env, num_envs, 1, device=self.device)
+        self.values = torch.zeros(num_transitions_per_env, num_envs, 1, device=self.device)
+        self.returns = torch.zeros(num_transitions_per_env, num_envs, 1, device=self.device)
+        self.advantages = torch.zeros(num_transitions_per_env, num_envs, 1, device=self.device)
 
         self.num_transitions_per_env = num_transitions_per_env
         self.num_envs = num_envs
-        self.device = device
 
         self.step = 0
 
