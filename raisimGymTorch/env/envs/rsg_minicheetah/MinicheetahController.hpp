@@ -159,7 +159,7 @@ class MinicheetahController {
 //    }
 //    else {
 //      do {
-//        command_ << comCurriculumFactor * uniDist_(gen_), 0.5 * uniDist_(gen_), 0.5 * uniDist_(gen_); // comCurriculumFactor, 1.0, 2.0 TODO: set  initial commands
+//        command_ << comCurriculumFactor * uniDist_(gen_), 0.5 * uniDist_(gen_), 0.5 * uniDist_(gen_); // comCurriculumFactor, 1.0, 2.0
 //        if (command_(0) < 0) {
 //          command_(0) *= 0.5;
 //        }
@@ -337,7 +337,7 @@ class MinicheetahController {
     /// A variable for hurdles reward calculation
     bool hurdlesVar = 0;
     if (gc_[0] > 10 ){
-        hurdlesVar = 1; //TODO: real function
+        hurdlesVar = 1;
     }
 
     /// A variable for hurdles reward calculation
@@ -369,7 +369,7 @@ class MinicheetahController {
 //    double rewLinearVel = std::exp(-1.0 * (command_.head(2) - bodyLinearVel_.head(2)).squaredNorm()) * rewardCoeff.at(RewardType::VELOCITY1);
     double rewLinearVel = std::exp(0.4 * bodyLinearVel_[0]) * rewardCoeff.at(RewardType::VELOCITY1);
     double rewAirTime = airtimeTotal * rewardCoeff.at(RewardType::AIRTIME);
-    double rewHurdles = hurdlesVar * rewardCoeff.at(RewardType::HURDLES); //TODO: good reward function
+    double rewHurdles = hurdlesVar * rewardCoeff.at(RewardType::HURDLES);
     double rewTorque = rewardCoeff.at(RewardType::TORQUE) * cheetah->getGeneralizedForce().squaredNorm();
     double rewJointSpeed = (gv_.tail(12)).squaredNorm() * rewardCoeff.at(RewardType::JOINTSPEED);
     double rewFootSlip = footTangentialForSlip * rewardCoeff.at(RewardType::FOOTSLIP);

@@ -129,11 +129,12 @@ class PPO:
 
     def update(self, actor_obs, value_obs, log_this_iteration, update): #TODO
         bool_manager = self.actor_manager.sample(torch.from_numpy(actor_obs).to(self.device))[0]
-        run_bool = bool_manager.unsqueeze(1).repeat(1,self.actor_run.action_shape[0])
-        jump_bool = torch.add(torch.ones(self.run_bool.size(), device=self.device), self.run_bool, alpha=-1)  # 1-run_bool
+        # run_bool = bool_manager.unsqueeze(1).repeat(1,self.actor_run.action_shape[0])
+        # jump_bool = torch.add(torch.ones(self.run_bool.size(), device=self.device), self.run_bool, alpha=-1)  # 1-run_bool
         if self.manager_training:
             last_values = self.critic_manager.predict(torch.from_numpy(value_obs).to(self.device))
         else:
+            run_bool = bool_manager.unsqueeze(1).repeat(1,self.actor_run.action_shape[0])
             jump_bool = torch.add(torch.ones(run_bool[:,0:1].shape, device=self.device), run_bool[:,0:1], alpha=-1)
             last_values = run_bool[:,0:1] * self.critic_run.predict(torch.from_numpy(value_obs).to(self.device)) \
                           + jump_bool[:,0:1] * self.critic_jump.predict(torch.from_numpy(value_obs).to(self.device))

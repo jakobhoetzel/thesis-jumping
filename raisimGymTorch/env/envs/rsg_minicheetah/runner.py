@@ -3,6 +3,7 @@ from raisimGymTorch.env.bin import rsg_minicheetah
 from raisimGymTorch.env.RaisimGymVecEnv import RaisimGymVecEnv as VecEnv
 from raisimGymTorch.helper.raisim_gym_helper import ConfigurationSaver, load_param, tensorboard_launcher
 from networkSelector import run_bool_function
+from freeze import freeze_actors, freeze_manager
 import os
 import math
 import time
@@ -33,9 +34,13 @@ args = parser.parse_args()
 mode = args.mode  # 'train' or 'retrain'
 runNumber = args.runNumber
 #weight_path = args.weight
-weight_path = "../../../data/minicheetah_locomotion/baseline2/full_5000.pt"
-iteration_number = weight_path.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
-weight_dir = weight_path.rsplit('/', 1)[0] + '/'
+weight_path_run = "../../../data/minicheetah_locomotion/baselineRun2/full_5000.pt"
+iteration_number_run = weight_path_run.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
+weight_dir_run = weight_path_run.rsplit('/', 1)[0] + '/'
+
+weight_path_jump = "../../../data/minicheetah_locomotion/baselineJump0/full_5000.pt"
+iteration_number_jump = weight_path_jump.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
+weight_dir_jump = weight_path_jump.rsplit('/', 1)[0] + '/'
 
 # check if gpu is available
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -69,21 +74,28 @@ total_steps = n_steps * env.num_envs  # 40000
 
 avg_rewards = []
 
-savedWeights = torch.load(weight_path)['actor_architecture_state_dict']['architecture.0.weight']
-savedWeights_obs = savedWeights[:, :ob_dim-sensor_dim]
-savedWeights_robotState = savedWeights[:, -robotState_dim:]
-addedWeights = torch.randn(512,sensor_dim,device=device)*0.000001
-combinedWeights = torch.cat([savedWeights_obs, addedWeights, savedWeights_robotState], dim=1)
-savedDict = torch.load(weight_path)['actor_architecture_state_dict']
-savedDict['architecture.0.weight'] = torch.nn.Parameter(combinedWeights)
-mlpActor = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, act_dim).to(device)
-mlpActor.load_state_dict(savedDict)
-actor_run = ppo_module.Actor(mlpActor,
+savedWeights_run = torch.load(weight_path_run)['actor_architecture_state_dict']['architecture.0.weight']
+savedWeights_run_obs = savedWeights_run[:, :ob_dim-sensor_dim]
+savedWeights_run_robotState = savedWeights_run[:, -robotState_dim:]
+addedWeights_run = torch.randn(512,sensor_dim,device=device)*0.000001
+combinedWeights_run = torch.cat([savedWeights_run_obs, addedWeights_run, savedWeights_run_robotState], dim=1)
+savedDict_run = torch.load(weight_path_run)['actor_architecture_state_dict']
+savedDict_run['architecture.0.weight'] = torch.nn.Parameter(combinedWeights_run)
+mlpActor_run = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, act_dim).to(device)
+mlpActor_run.load_state_dict(savedDict_run)
+actor_run = ppo_module.Actor(mlpActor_run,
                              ppo_module.MultivariateGaussianDiagonalCovariance(act_dim, 1.0),  # 1.0
                              device)
-actor_jump = ppo_module.Actor(mlpActor,
+
+savedWeights_jump = torch.load(weight_path_jump)['actor_architecture_state_dict']['architecture.0.weight']
+savedDict_jump = torch.load(weight_path_jump)['actor_architecture_state_dict']
+savedDict_jump['architecture.0.weight'] = torch.nn.Parameter(savedWeights_jump)
+mlpActor_jump = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, act_dim).to(device)
+mlpActor_jump.load_state_dict(savedDict_jump)
+actor_jump = ppo_module.Actor(mlpActor_jump,
                               ppo_module.MultivariateGaussianDiagonalCovariance(act_dim, 1.0),  # 1.0
                               device)
+
 actor_manager = ppo_module.Manager(ppo_module.MLP(cfg['architecture']['manager_net'], nn.LeakyReLU, ob_dim + robotState_dim, 2, softmax=True),
                          device)
 critic_run = ppo_module.Critic(ppo_module.MLP(cfg['architecture']['value_net'], nn.LeakyReLU, ob_dim + robotState_dim, 1),
@@ -93,7 +105,7 @@ critic_jump = ppo_module.Critic(ppo_module.MLP(cfg['architecture']['value_net'],
 critic_manager = ppo_module.Critic(ppo_module.MLP(cfg['architecture']['value_net'], nn.LeakyReLU, ob_dim + robotState_dim, 1),
                                 device)
 mlpEstimator = ppo_module.MLP(cfg['architecture']['estimator_net'], torch.nn.LeakyReLU, ob_dim - sensor_dim, robotState_dim).to(device)
-mlpEstimator.load_state_dict(torch.load(weight_path)['estimator_architecture_state_dict'])
+mlpEstimator.load_state_dict(torch.load(weight_path_run)['estimator_architecture_state_dict']) # or weight_path_jump??
 stateEstimator = ppo_module.StateEstimator(mlpEstimator,
                                            device)
 
@@ -137,14 +149,17 @@ data_tags = env.get_step_data_tag()
 
 scheduler = torch.optim.lr_scheduler.MultiStepLR(ppo.optimizer, milestones=[2000], gamma=0.333333)
 
-if mode == 'retrain':
-    load_param(weight_path, env, actor_run, actor_jump, critic_run, critic_jump, stateEstimator, ppo.optimizer, saver.data_dir)
+# if mode == 'retrain':
+#     load_param(weight_path, env, actor_run, actor_jump, critic_run, critic_jump, stateEstimator, ppo.optimizer, saver.data_dir)
 
 max_iteration = 5000 + 1 #5000+1
 
-env.load_scaling(weight_dir, int(iteration_number), 1e8) # 1e8 -> less disruption when retraining
+env.load_scaling(weight_dir_run, int(iteration_number_run), 1e8) # 1e8 -> less disruption when retraining #TODO: different scaling for different networks
 
-# ppo.set_manager_training(True)
+ppo.set_manager_training(True)
+# ppo.set_manager_training(False)
+# freeze_manager(ppo)
+# freeze_actors(ppo)
 
 for update in range(max_iteration):
     start = time.time()
@@ -174,7 +189,7 @@ for update in range(max_iteration):
         temp_obs = np.ones((cfg['environment']['num_envs'], ob_dim + robotState_dim), dtype=np.float32)  # to see if input network changes
         temp_action_run = actor_run.architecture.architecture(torch.from_numpy(temp_obs).to(device)).detach()
         temp_action_jump = actor_jump.architecture.architecture(torch.from_numpy(temp_obs).to(device)).detach()
-        temp_action_manager = actor_jump.architecture.architecture(torch.from_numpy(temp_obs).to(device)).detach()
+        temp_action_manager = actor_manager.architecture.architecture(torch.from_numpy(temp_obs).to(device)).detach()
         np.savetxt("ones_action_run_beg.csv", temp_action_run.cpu().numpy(), delimiter=",")
         np.savetxt("ones_action_jump_beg.csv", temp_action_jump.cpu().numpy(), delimiter=",")
         np.savetxt("ones_action_manager_beg.csv", temp_action_manager.cpu().numpy(), delimiter=",")
@@ -251,6 +266,14 @@ for update in range(max_iteration):
     est_out = stateEstimator.predict(torch.from_numpy(obs_estimator).to(device))
     concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
     concatenated_obs_critic = np.concatenate((obs, robotState), axis=1)
+
+    a0 = list(actor_run.parameters())[0].grad
+    print("a0: ", a0)
+    a1 = list(actor_jump.parameters())[0].grad
+    print("a1: ", a1)
+    a2 = list(actor_manager.parameters())[0].grad
+    print("a2: ", a2)
+
     ppo.update(actor_obs=concatenated_obs_actor, value_obs=concatenated_obs_critic, log_this_iteration=update % 20 == 0, update=update)
     average_ll_performance = reward_ll_sum / total_steps  # average reward per step per environment
     average_dones = done_sum / total_steps
@@ -283,7 +306,7 @@ for update in range(max_iteration):
         temp_obs = np.ones((cfg['environment']['num_envs'], ob_dim + robotState_dim), dtype=np.float32)  # to see if input network changes
         temp_action_run = actor_run.architecture.architecture(torch.from_numpy(temp_obs).to(device)).detach()
         temp_action_jump = actor_jump.architecture.architecture(torch.from_numpy(temp_obs).to(device)).detach()
-        temp_action_manager = actor_jump.architecture.architecture(torch.from_numpy(temp_obs).to(device)).detach()
+        temp_action_manager = actor_manager.architecture.architecture(torch.from_numpy(temp_obs).to(device)).detach()
         np.savetxt("ones_action_run_end.csv", temp_action_run.cpu().numpy(), delimiter=",")
         np.savetxt("ones_action_jump_end.csv", temp_action_jump.cpu().numpy(), delimiter=",")
         np.savetxt("ones_action_manager_end.csv", temp_action_manager.cpu().numpy(), delimiter=",")
