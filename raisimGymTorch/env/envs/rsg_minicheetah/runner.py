@@ -152,7 +152,7 @@ scheduler = torch.optim.lr_scheduler.MultiStepLR(ppo.optimizer, milestones=[2000
 # if mode == 'retrain':
 #     load_param(weight_path, env, actor_run, actor_jump, critic_run, critic_jump, stateEstimator, ppo.optimizer, saver.data_dir)
 
-max_iteration = 5000 + 1 #5000+1
+max_iteration = 10000 + 1 #5000+1
 
 env.load_scaling(weight_dir_run, int(iteration_number_run), 1e8) # 1e8 -> less disruption when retraining #TODO: different scaling for different networks
 
@@ -168,7 +168,7 @@ for update in range(max_iteration):
     done_sum = 0
     average_dones = 0.
 
-    env.curriculum_callback(update)
+    env.curriculum_callback(update//2 + 5000)  # start with half height
 
     if update % cfg['environment']['eval_every_n'] == 0:
         print("Visualizing and evaluating the current policy")
@@ -177,6 +177,7 @@ for update in range(max_iteration):
             'actor_run_distribution_state_dict': actor_run.distribution.state_dict(),
             'actor_jump_architecture_state_dict': actor_jump.architecture.state_dict(),
             'actor_jump_distribution_state_dict': actor_jump.distribution.state_dict(),
+            'actor_manager_architecture_state_dict': actor_manager.architecture.state_dict(),
             'critic_run_architecture_state_dict': critic_run.architecture.state_dict(),
             'critic_jump_architecture_state_dict': critic_jump.architecture.state_dict(),
             'estimator_architecture_state_dict': stateEstimator.architecture.state_dict(),
@@ -184,6 +185,7 @@ for update in range(max_iteration):
         }, saver.data_dir+"/full_"+str(update)+'.pt')
         actor_run.save_deterministic_graph(saver.data_dir + "/actor_run_" + str(update) + ".pt", torch.rand(1, ob_dim + robotState_dim).cpu())
         actor_jump.save_deterministic_graph(saver.data_dir + "/actor_jump_" + str(update) + ".pt", torch.rand(1, ob_dim + robotState_dim).cpu())
+        actor_jump.save_deterministic_graph(saver.data_dir + "/actor_manager_" + str(update) + ".pt", torch.rand(1, ob_dim + robotState_dim).cpu())
         stateEstimator.save_deterministic_graph(saver.data_dir + "/estimator_" + str(update) + ".pt", torch.rand(1, ob_dim-sensor_dim).cpu())
 
         temp_obs = np.ones((cfg['environment']['num_envs'], ob_dim + robotState_dim), dtype=np.float32)  # to see if input network changes
@@ -267,12 +269,12 @@ for update in range(max_iteration):
     concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
     concatenated_obs_critic = np.concatenate((obs, robotState), axis=1)
 
-    a0 = list(actor_run.parameters())[0].grad
-    print("a0: ", a0)
-    a1 = list(actor_jump.parameters())[0].grad
-    print("a1: ", a1)
-    a2 = list(actor_manager.parameters())[0].grad
-    print("a2: ", a2)
+    # a0 = list(actor_run.parameters())[0].grad
+    # print("a0: ", a0)
+    # a1 = list(actor_jump.parameters())[0].grad
+    # print("a1: ", a1)
+    # a2 = list(actor_manager.parameters())[0].grad
+    # print("a2: ", a2)
 
     ppo.update(actor_obs=concatenated_obs_actor, value_obs=concatenated_obs_critic, log_this_iteration=update % 20 == 0, update=update)
     average_ll_performance = reward_ll_sum / total_steps  # average reward per step per environment
@@ -310,3 +312,9 @@ for update in range(max_iteration):
         np.savetxt("ones_action_run_end.csv", temp_action_run.cpu().numpy(), delimiter=",")
         np.savetxt("ones_action_jump_end.csv", temp_action_jump.cpu().numpy(), delimiter=",")
         np.savetxt("ones_action_manager_end.csv", temp_action_manager.cpu().numpy(), delimiter=",")
+
+    if update==1000 or update==3000 or update==5000 or update==7000 or update==9000:
+        ppo.set_manager_training(False)
+
+    if update==2000 or update==4000 or update==6000 or update==8000:
+        ppo.set_manager_training(True)

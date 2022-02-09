@@ -1,6 +1,7 @@
 from ruamel.yaml import YAML, dump, RoundTripDumper
 from raisimGymTorch.env.bin import rsg_minicheetah
 from raisimGymTorch.env.RaisimGymVecEnv import RaisimGymVecEnv as VecEnv
+from torch.distributions import Categorical
 from networkSelector import run_bool_function
 import os
 import math
@@ -48,6 +49,8 @@ robotState_dim = env.num_robotState
 act_dim = env.num_acts
 sensor_dim = 3
 
+selectedNetwork = None
+
 
 if weight_path == "":
     print("Can't find trained weight, please provide a trained weight with --weight switch\n")
@@ -65,8 +68,10 @@ else:
     print("Visualizing and evaluating the policy: ", weight_path)
     actor_run = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, act_dim)
     actor_jump = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, act_dim)
+    actor_manager = ppo_module.MLP(cfg['architecture']['manager_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, 2, softmax=True)
     actor_run.load_state_dict(torch.load(weight_path)['actor_run_architecture_state_dict'])
     actor_jump.load_state_dict(torch.load(weight_path)['actor_jump_architecture_state_dict'])
+    actor_manager.load_state_dict(torch.load(weight_path)['actor_manager_architecture_state_dict'])
     print('actor of {} parameters'.format(sum(p.numel() for p in actor_run.parameters())))
     print('actor of {} parameters'.format(sum(p.numel() for p in actor_jump.parameters())))
 
@@ -100,13 +105,23 @@ else:
         obs = env.observe(False)
         obs_estimator = obs[:,:ob_dim-sensor_dim]
         robotState = env.getRobotState()
-        # robotState = np.ones((cfg['environment']['num_envs'],robotState_dim), dtype=np.float32)  # for checking
+        # robotState = np.ones((cfg['environment']['num_envs'],robotStatsoftmax=Falsee_dim), dtype=np.float32)  # for checking
         est_out = estimator.architecture(torch.from_numpy(obs_estimator).cpu())
         concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
-        run_bool = torch.from_numpy(run_bool_function(obs, act_dim, True, run_bool)).cpu()
-        jump_bool = torch.add(torch.ones(run_bool.size()).cpu(), run_bool, alpha=-1)
-        action_ll = run_bool * actor_run.architecture(torch.from_numpy(concatenated_obs_actor).cpu())\
-                    + jump_bool * actor_jump.architecture(torch.from_numpy(concatenated_obs_actor).cpu())
+        # run_bool = torch.from_numpy(run_bool_function(obs, act_dim, True, run_bool)).cpu()
+        # jump_bool = torch.add(torch.ones(run_bool.size()).cpu(), run_bool, alpha=-1)
+        # action_ll = run_bool * actor_run.architecture(torch.from_numpy(concatenated_obs_actor).cpu())\
+        #             + jump_bool * actor_jump.architecture(torch.from_numpy(concatenated_obs_actor).cpu())
+        action_probs = actor_manager.architecture(torch.from_numpy(concatenated_obs_actor).cpu())
+        dist = Categorical(action_probs)
+        bool_manager = dist.sample()
+        run_bool = bool_manager.unsqueeze(1)
+        previousNetwork = selectedNetwork
+        selectedNetwork = bool_manager[0].item()
+        jump_bool = torch.add(torch.ones(run_bool.size(), device='cpu'), run_bool, alpha=-1)  # 1-run_bool
+        actions_run = actor_run.architecture(torch.from_numpy(concatenated_obs_actor).cpu())
+        actions_jump = actor_jump.architecture(torch.from_numpy(concatenated_obs_actor).cpu())
+        action_ll = run_bool * actions_run + jump_bool * actions_jump
         reward_ll, dones = env.step(action_ll.cpu().detach().numpy())
         env.go_straight_controller()
 
@@ -121,6 +136,15 @@ else:
         # f3 = open('estimatedVelocityData.csv', 'a')
         # writer = csv.writer(f3)
         # writer.writerow(est_in[0][0:2].cpu().detach().numpy())
+        if step==0:
+            if selectedNetwork == 0:
+                print("selected network in step ", step, ": jump")
+            else:
+                print("selected network in step ", step, ":")
+        elif previousNetwork == 0 and selectedNetwork == 1:
+            print("changed network in step ", step, ": jump -> run")
+        elif previousNetwork == 1 and selectedNetwork == 0:
+            print("changed network in step ", step, ": run -> jump")
 
         reward_ll_sum = reward_ll_sum + reward_ll[0]
         if dones or step == max_steps - 1:
@@ -133,7 +157,6 @@ else:
 
         frame_end = time.time()
         wait_time = cfg['environment']['control_dt'] - (frame_end-frame_start)
-        time.sleep(5)
         if wait_time > 0.:
             time.sleep(wait_time)
 

@@ -78,7 +78,7 @@ class RolloutStorage:
             returns_batch = self.returns.view(-1, 1)[indices]
             old_actions_log_prob_batch = self.actions_log_prob.view(-1, 1)[indices]
             advantages_batch = self.advantages.view(-1, 1)[indices]
-            run_bool_batch = self.run_bool.view(-1, *self.run_bool.size()[2:])[indices]
+            run_bool_batch = self.run_bool.view(-1, 1)[indices]
         yield actor_obs_batch, critic_obs_batch, actions_batch, values_batch, est_in_batch, robotState_batch, advantages_batch, returns_batch, old_actions_log_prob_batch, run_bool_batch
 
     def mini_batch_generator_inorder(self, num_mini_batches):
@@ -95,4 +95,4 @@ class RolloutStorage:
                 self.advantages.view(-1, 1)[batch_id*mini_batch_size:(batch_id+1)*mini_batch_size], \
                 self.returns.view(-1, 1)[batch_id*mini_batch_size:(batch_id+1)*mini_batch_size], \
                 self.actions_log_prob.view(-1, 1)[batch_id*mini_batch_size:(batch_id+1)*mini_batch_size], \
-                self.run_bool.view(-1, *self.run_bool.size()[2:])[batch_id*mini_batch_size:(batch_id+1)*mini_batch_size]
+                self.run_bool.view(-1, 1)[batch_id*mini_batch_size:(batch_id+1)*mini_batch_size]

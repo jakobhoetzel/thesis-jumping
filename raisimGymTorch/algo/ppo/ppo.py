@@ -92,7 +92,7 @@ class PPO:
     def observe(self, actor_obs):  # run_bool = 1 when running network active; run_bool = 0 when jumping network active
         self.actor_obs = actor_obs
         bool_manager, actions_log_prob_manager = self.actor_manager.sample(torch.from_numpy(actor_obs).to(self.device))
-        self.run_bool = bool_manager.unsqueeze(1).repeat(1,self.actor_run.action_shape[0])
+        self.run_bool = bool_manager.unsqueeze(1)
         self.jump_bool = torch.add(torch.ones(self.run_bool.size(), device=self.device), self.run_bool, alpha=-1)  # 1-run_bool
 
         actions_run, actions_run_log_prob = self.actor_run.sample(torch.from_numpy(actor_obs).to(self.device))
@@ -122,22 +122,22 @@ class PPO:
         if self.manager_training:
             values = self.critic_manager.predict(torch.from_numpy(value_obs).to(self.device))
         else:
-            values = self.run_bool[:,0:1] * self.critic_run.predict(torch.from_numpy(value_obs).to(self.device)) \
-                     + self.jump_bool[:,0:1] * self.critic_jump.predict(torch.from_numpy(value_obs).to(self.device))
+            values = self.run_bool * self.critic_run.predict(torch.from_numpy(value_obs).to(self.device)) \
+                     + self.jump_bool * self.critic_jump.predict(torch.from_numpy(value_obs).to(self.device))
         self.storage.add_transitions(self.actor_obs, value_obs, self.actions, est_in, robotState, rews, dones, values,
                                      self.actions_log_prob, self.run_bool)
 
-    def update(self, actor_obs, value_obs, log_this_iteration, update): #TODO
+    def update(self, actor_obs, value_obs, log_this_iteration, update):
         bool_manager = self.actor_manager.sample(torch.from_numpy(actor_obs).to(self.device))[0]
-        # run_bool = bool_manager.unsqueeze(1).repeat(1,self.actor_run.action_shape[0])
+        # run_bool = bool_manager.unsqueeze(1)
         # jump_bool = torch.add(torch.ones(self.run_bool.size(), device=self.device), self.run_bool, alpha=-1)  # 1-run_bool
         if self.manager_training:
             last_values = self.critic_manager.predict(torch.from_numpy(value_obs).to(self.device))
         else:
-            run_bool = bool_manager.unsqueeze(1).repeat(1,self.actor_run.action_shape[0])
+            run_bool = bool_manager.unsqueeze(1)
             jump_bool = torch.add(torch.ones(run_bool[:,0:1].shape, device=self.device), run_bool[:,0:1], alpha=-1)
-            last_values = run_bool[:,0:1] * self.critic_run.predict(torch.from_numpy(value_obs).to(self.device)) \
-                          + jump_bool[:,0:1] * self.critic_jump.predict(torch.from_numpy(value_obs).to(self.device))
+            last_values = run_bool * self.critic_run.predict(torch.from_numpy(value_obs).to(self.device)) \
+                          + jump_bool * self.critic_jump.predict(torch.from_numpy(value_obs).to(self.device))
 
         # Learning step
         self.storage.compute_returns(last_values, self.gamma, self.lam)
@@ -212,7 +212,7 @@ class PPO:
                     self.optimizer_manager.zero_grad()
                     loss.backward()
                     nn.utils.clip_grad_norm_([*self.actor_manager.parameters(), *self.critic_manager.parameters()], self.max_grad_norm)
-                    self.optimizer.step()
+                    self.optimizer_manager.step()
                 else:
                     self.optimizer.zero_grad()
                     loss.backward()
