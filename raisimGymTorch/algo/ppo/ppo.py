@@ -116,7 +116,7 @@ class PPO:
         #     self.actions_log_prob = self.run_bool[:,0] * actions_run_log_prob.to(self.device) + self.jump_bool[:,0] * actions_jump_log_prob.to(self.device)
 
         # self.actions = np.clip(self.actions.numpy(), self.env.action_space.low, self.env.action_space.high)
-        return self.actions.cpu().numpy()
+        return self.actions.cpu().numpy(), self.run_bool.cpu().numpy()
 
     def step(self, value_obs, est_in, robotState, rews, dones):
         if self.manager_training:

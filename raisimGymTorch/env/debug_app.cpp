@@ -47,9 +47,11 @@ int main(int argc, char *argv[]) {
   Eigen::Ref<EigenRowMajorMat> ob_ref(observation), action_ref(action);
   Eigen::Ref<EigenVec> reward_ref(reward);
   Eigen::Ref<EigenBoolVec> dones_ref(dones);
+  Eigen::Ref<EigenBoolVec> run_bool_ref(dones);
+  bool managerTraining;
 
   vecEnv.reset();
-  vecEnv.step(action_ref, reward_ref, dones_ref);
+  vecEnv.step(action_ref, reward_ref, dones_ref, run_bool_ref, managerTraining);
 
   return 0;
 }

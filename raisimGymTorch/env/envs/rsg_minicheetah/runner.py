@@ -156,8 +156,8 @@ max_iteration = 10000 + 1 #5000+1
 
 env.load_scaling(weight_dir_run, int(iteration_number_run), 1e8) # 1e8 -> less disruption when retraining #TODO: different scaling for different networks
 
-ppo.set_manager_training(True)
-# ppo.set_manager_training(False)
+# ppo.set_manager_training(True)
+ppo.set_manager_training(False)
 # freeze_manager(ppo)
 # freeze_actors(ppo)
 
@@ -168,7 +168,7 @@ for update in range(max_iteration):
     done_sum = 0
     average_dones = 0.
 
-    env.curriculum_callback(update//2 + 5000)  # start with half height
+    env.curriculum_callback(update)  # start with half height
 
     if update % cfg['environment']['eval_every_n'] == 0:
         print("Visualizing and evaluating the current policy")
@@ -212,12 +212,12 @@ for update in range(max_iteration):
             est_out = stateEstimator.predict(torch.from_numpy(obs_estimator).to(device))
             concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
             concatenated_obs_critic = np.concatenate((obs, robotState), axis=1)
-            action = ppo.observe(concatenated_obs_actor)
+            action, run_bool = ppo.observe(concatenated_obs_actor)
 
             # action_ll, _ = actor.sample(torch.from_numpy(concatenated_obs_actor).to(device))  # stochastic action
             # action_ll = loaded_graph.architecture(torch.from_numpy(obs).cpu())
 
-            reward_ll, dones = env.step(action)  # in stochastic action case
+            reward_ll, dones = env.step(action, run_bool, ppo.manager_training)  # in stochastic action case
             env.go_straight_controller()
             frame_end = time.time()
             wait_time = cfg['environment']['control_dt'] - (frame_end-frame_start)
@@ -244,8 +244,8 @@ for update in range(max_iteration):
         est_out = stateEstimator.predict(torch.from_numpy(obs_estimator).to(device))
         concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
         concatenated_obs_critic = np.concatenate((obs, robotState), axis=1)
-        action = ppo.observe(concatenated_obs_actor)
-        reward, dones = env.step(action)
+        action, run_bool = ppo.observe(concatenated_obs_actor)
+        reward, dones = env.step(action, run_bool, ppo.manager_training)
         env.go_straight_controller()
         ppo.step(value_obs=concatenated_obs_critic, est_in=obs_estimator, robotState=robotState, rews=reward, dones=dones)
         done_sum = done_sum + np.sum(dones)
@@ -313,8 +313,8 @@ for update in range(max_iteration):
         np.savetxt("ones_action_jump_end.csv", temp_action_jump.cpu().numpy(), delimiter=",")
         np.savetxt("ones_action_manager_end.csv", temp_action_manager.cpu().numpy(), delimiter=",")
 
-    if update==1000 or update==3000 or update==5000 or update==7000 or update==9000:
-        ppo.set_manager_training(False)
-
-    if update==2000 or update==4000 or update==6000 or update==8000:
-        ppo.set_manager_training(True)
+    # if update==1000 or update==3000 or update==5000 or update==7000 or update==9000:
+    #     ppo.set_manager_training(False)
+    #
+    # if update==2000 or update==4000 or update==6000 or update==8000:
+    #     ppo.set_manager_training(True)

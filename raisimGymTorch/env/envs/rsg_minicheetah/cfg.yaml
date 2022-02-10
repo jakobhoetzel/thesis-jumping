@@ -33,6 +33,9 @@ environment:
     symmetryCoeff: -20.0
     bodyHeightCoeff: -2.0
     footContactCoeff: -0.001
+    networkChangeCoeff: -1.0
+    noNetworkChangeCoeff: -10.0
+
 
 architecture:
   policy_net: [512, 256, 64] #512, 256, 64

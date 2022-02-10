@@ -36,7 +36,9 @@ class MinicheetahController {
     HURDLES,
     SYMMETRY,
     BODYHEIGHT,
-    FOOTCONTACT
+    FOOTCONTACT,
+    NETWORKCHANGE,
+    NONETWORKCHANGE,
   };
 
   void setSeed(int seed) { gen_.seed(seed); }
@@ -101,7 +103,9 @@ class MinicheetahController {
 
     stepDataTag_ = {"rewBodyAngularVel", "rewLinearVel", "rewAirTime", "rewHurdles", "rewTorque", "rewJointSpeed", "rewFootSlip",
                     "rewBodyOri", "rewSmoothness1", "rewSmoothness2", "rewJointPosition", "rewJointAcc", "rewBaseMotion",
-                    "rewFootClearance", "rewSymmetry", "rewBodyHeight", "rewFootContact", "negativeRewardSum", "positiveRewardSum", "totalRewardSum"};
+                    "rewFootClearance", "rewSymmetry", "rewBodyHeight", "rewNetworkChange", "rewNoNetworkChange",  "rewFootContact",
+                    "negativeRewardSum", "positiveRewardSum", "totalRewardSum"};
+
     stepData_.resize(stepDataTag_.size());
 
     updateObservation(world);
@@ -112,7 +116,7 @@ class MinicheetahController {
     return true;
   }
 
-  bool advance(raisim::World *world, const Eigen::Ref<EigenVec>& action) {  // action is a position target. Eigen::Ref is for interchanging between c++ and python data types.
+  bool advance(raisim::World *world, const Eigen::Ref<EigenVec>& action, const bool& run_bool) {  // action is a position target. Eigen::Ref is for interchanging between c++ and python data types.
     auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world->getObject("robot"));
 
     /// action scaling
@@ -133,6 +137,10 @@ class MinicheetahController {
       else tau.tail(nJoints_)(i) = std::max(-jointFrictions_(i), jTorque);
     }
     cheetah->setGeneralizedForce(-tau);
+
+    // for manager network
+    previousNetworkSelection_ = networkSelection_;
+    networkSelection_ = run_bool;
 
     return true;
   }
@@ -256,7 +264,9 @@ class MinicheetahController {
 
     for(int i=0; i<4; i++) airTime_[i] = 0;
     for(int i=0; i<4; i++) stanceTime_[i] = 0;
-    maxBodyHeight = 0;
+    maxBodyHeight_ = 0;
+    startNetwork_ = -1; // -1 to show it's not yet initialized
+    networkEverChanged_ = false;
 
     return true;
   }
@@ -285,7 +295,7 @@ class MinicheetahController {
     cheetah->setCollisionObjectShapeParameters(foot_hl_idx, rand_radius);
   }
 
-  void getReward(raisim::World *world, const std::map<RewardType, float>& rewardCoeff, double simulation_dt, double rewCurriculumFactor, raisim::HeightMap* heightMap_) {
+  void getReward(raisim::World *world, const std::map<RewardType, float>& rewardCoeff, double simulation_dt, double rewCurriculumFactor, raisim::HeightMap* heightMap_, double xPosHurdles, bool managerTraining) {
     auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world->getObject("robot"));
 
     double desiredFootZPosition = 0.09;
@@ -341,13 +351,13 @@ class MinicheetahController {
     }
 
     /// A variable for hurdles reward calculation
-    maxBodyHeight = std::max(maxBodyHeight, gc_[2]);
+    maxBodyHeight_ = std::max(maxBodyHeight_, gc_[2]);
 
     /// A variable to calculate the symmetry of the motion ("cheetah instead of horse")
     double symmetryCoeff = (gc_.segment(7, 3) - gc_.segment(10, 3)).norm() + (gc_.segment(13, 3) - gc_.segment(16, 3)).norm();
     /// order: RF - LF - RH - LH
 
-    /// A variable reward the correct touching of the ground
+    /// A variable to reward the correct touching of the ground
     double footContactVar;
     double footContactNumber = std::accumulate(footContactState_.begin(), footContactState_.end(),0); //number of feet touching the ground
     if (footContactNumber == 0 || footContactNumber == 1){ //zero or one foot on the ground
@@ -363,6 +373,22 @@ class MinicheetahController {
       footContactVar = 1;
     }
 
+    /// A variable which shows if the manager changed the selected network in this step
+    if (startNetwork_ == -1){ // if was reset
+      previousNetworkSelection_ = networkSelection_;
+      startNetwork_ = networkSelection_;
+    }
+    bool networkChangeVar = (networkSelection_ != previousNetworkSelection_); //penalize when selected network changes often
+
+    /// A variable which shows if always the same network is used (no change before hurdle)
+    if (networkChangeVar){
+      networkEverChanged_ = true;
+    }
+    bool noNetworkChangeVar=false;
+    if (!networkEverChanged_ && gc_[0]>(xPosHurdles-0.1)){
+      noNetworkChangeVar = true; //penalize when selected does not change before hurdle
+    }
+
     /// Reward functions
     // curriculum factor in negative reward
     double rewBodyAngularVel = std::exp(-1.5 * pow((command_(2) - bodyAngularVel_(2)), 2)) * rewardCoeff.at(RewardType::ANGULARVELOCIY1);
@@ -370,6 +396,8 @@ class MinicheetahController {
     double rewLinearVel = std::exp(0.4 * bodyLinearVel_[0]) * rewardCoeff.at(RewardType::VELOCITY1);
     double rewAirTime = airtimeTotal * rewardCoeff.at(RewardType::AIRTIME);
     double rewHurdles = hurdlesVar * rewardCoeff.at(RewardType::HURDLES);
+    double rewNetworkChange = networkChangeVar * rewardCoeff.at(RewardType::NETWORKCHANGE) * managerTraining;
+    double rewNoNetworkChange = noNetworkChangeVar * rewardCoeff.at(RewardType::NONETWORKCHANGE) * managerTraining;
     double rewTorque = rewardCoeff.at(RewardType::TORQUE) * cheetah->getGeneralizedForce().squaredNorm();
     double rewJointSpeed = (gv_.tail(12)).squaredNorm() * rewardCoeff.at(RewardType::JOINTSPEED);
     double rewFootSlip = footTangentialForSlip * rewardCoeff.at(RewardType::FOOTSLIP);
@@ -381,33 +409,35 @@ class MinicheetahController {
     double rewBaseMotion = (0.3 * bodyLinearVel_[2] * bodyLinearVel_[2] + 0.2 * fabs(bodyAngularVel_[0]) + 0.2 * fabs(bodyAngularVel_[1])) * rewardCoeff.at(RewardType::BASEMOTION);
     double rewFootClearance = footClearanceTangential * rewardCoeff.at(RewardType::FOOTCLEARANCE);
     double rewSymmetry = (1 - rewCurriculumFactor) * symmetryCoeff * rewardCoeff.at(RewardType::SYMMETRY); /// curriculum 1->0
-    double rewBodyHeight = std::exp(-10 * (maxBodyHeight-0.5)) * rewardCoeff.at(RewardType::BODYHEIGHT);
+    double rewBodyHeight = std::exp(-10 * (maxBodyHeight_-0.5)) * rewardCoeff.at(RewardType::BODYHEIGHT);
     double rewFootContact = footContactVar * rewardCoeff.at(RewardType::FOOTCONTACT);
 
     stepData_[0] = rewBodyAngularVel;  /// positive reward; maximization
     stepData_[1] = rewLinearVel;  /// positive reward
     stepData_[2] = rewAirTime;  /// positive reward
     stepData_[3] = rewHurdles;  /// positive reward
-    stepData_[4] = rewTorque;
-    stepData_[5] = rewJointSpeed;
-    stepData_[6] = rewFootSlip;
-    stepData_[7] = rewBodyOri;
-    stepData_[8] = rewSmoothness1;
-    stepData_[9] = rewSmoothness2;
-    stepData_[10] = rewJointPosition;
-    stepData_[11] = rewJointAcc;
-    stepData_[12] = rewBaseMotion;
-    stepData_[13] = rewFootClearance;
-    stepData_[14] = rewSymmetry / (rewCurriculumFactor + 1e-5); /// not affected of curriculum
-    stepData_[15] = rewBodyHeight;
-    stepData_[16] = rewFootContact / (rewCurriculumFactor + 1e-5);
+    stepData_[4] = rewNetworkChange;  /// positive reward
+    stepData_[5] = rewNoNetworkChange;  /// positive reward
+    stepData_[6] = rewTorque;
+    stepData_[7] = rewJointSpeed;
+    stepData_[8] = rewFootSlip;
+    stepData_[9] = rewBodyOri;
+    stepData_[10] = rewSmoothness1;
+    stepData_[11] = rewSmoothness2;
+    stepData_[12] = rewJointPosition;
+    stepData_[13] = rewJointAcc;
+    stepData_[14] = rewBaseMotion;
+    stepData_[15] = rewFootClearance;
+    stepData_[16] = rewSymmetry / (rewCurriculumFactor + 1e-5); /// not affected of curriculum
+    stepData_[17] = rewBodyHeight;
+    stepData_[18] = rewFootContact / (rewCurriculumFactor + 1e-5);
 
-    double negativeRewardSum = stepData_.segment(4, stepDataTag_.size()-7).sum()* rewCurriculumFactor; /// curriculum 0->1
-    double positiveRewardSum = stepData_.head(4).sum();
+    double negativeRewardSum = stepData_.segment(6, stepDataTag_.size()-9).sum()* rewCurriculumFactor; /// curriculum 0->1
+    double positiveRewardSum = stepData_.head(6).sum();
 
-    stepData_[17] = negativeRewardSum;
-    stepData_[18] = positiveRewardSum;
-    stepData_[19] = std::exp(0.2 * negativeRewardSum) * positiveRewardSum;  // totalReward
+    stepData_[19] = negativeRewardSum;
+    stepData_[20] = positiveRewardSum;
+    stepData_[21] = std::exp(0.2 * negativeRewardSum) * positiveRewardSum;  // totalReward
   }
 
   const std::vector<std::string>& getStepDataTag() {
@@ -582,7 +612,9 @@ class MinicheetahController {
   Eigen::Vector3d command_;
   bool standingMode_;
   bool isHeightMap_;
-  double maxBodyHeight = 0;
+  double maxBodyHeight_ = 0;
+  bool networkSelection_, previousNetworkSelection_, networkEverChanged_;
+  int startNetwork_ = -1; // -1 to show it's not yet initialized
 
   thread_local static std::mt19937 gen_;
   thread_local static std::normal_distribution<double> normDist_;

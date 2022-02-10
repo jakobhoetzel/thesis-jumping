@@ -46,8 +46,8 @@ class RaisimGymVecEnv:
     def stop_video_recording(self):
         self.wrapper.stopRecordingVideo()
 
-    def step(self, action):
-        self.wrapper.step(action, self._reward, self._done)
+    def step(self, action, run_bool, manager_training):
+        self.wrapper.step(action, self._reward, self._done, run_bool[:,0].astype(bool), manager_training)
         return self._reward.copy(), self._done.copy()
 
     def load_scaling(self, dir_name, iteration, count=1e5):

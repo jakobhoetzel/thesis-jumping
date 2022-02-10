@@ -61,8 +61,10 @@ class ENVIRONMENT {
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::SYMMETRY], cfg["reward"]["symmetryCoeff"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::BODYHEIGHT], cfg["reward"]["bodyHeightCoeff"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::FOOTCONTACT], cfg["reward"]["footContactCoeff"])
+    READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::NETWORKCHANGE], cfg["reward"]["networkChangeCoeff"])
+    READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::NONETWORKCHANGE], cfg["reward"]["noNetworkChangeCoeff"])
 
-    terrain_curriculum_ = terCurriculumFactor_*0.0;
+    terrain_curriculum_ = terCurriculumFactor_*0.5;
     isHeightMap_ = cfg["isHeightMap"].template As<bool>();
     controller_.setIsHeightMap(isHeightMap_);
     if (isHeightMap_){
@@ -122,7 +124,7 @@ class ENVIRONMENT {
 
   void go_straight_controller() { controller_.go_straight_controller(); }
 
-  double step(const Eigen::Ref<EigenVec> &action) {
+  double step(const Eigen::Ref<EigenVec> &action, const bool run_bool, const bool managerTraining) {
     stepData_.setZero();
     int loopCount = int(control_dt_ / simulation_dt_ + 1e-10);
 //    delayDividedBySimdt = int((0.01 / simulation_dt_)*0.5*(uniDist_(gen_)+1));
@@ -130,12 +132,12 @@ class ENVIRONMENT {
 
     for (int i = 0; i < int(control_dt_ / simulation_dt_ + 1e-10); i++) {
       if(i == delayDividedBySimdt){
-        controller_.advance(world_.get(), action);
+        controller_.advance(world_.get(), action, run_bool);
       }
       if (server_) server_->lockVisualizationServerMutex();
       world_->integrate();  // What does integration do? A. Simulate robot states and motions for the next simulation time.
       if (server_) server_->unlockVisualizationServerMutex();
-      controller_.getReward(world_.get(), rewardCoeff_, simulation_dt_, rewCurriculumFactor_, heightMap_);
+      controller_.getReward(world_.get(), rewardCoeff_, simulation_dt_, rewCurriculumFactor_, heightMap_, xPos_Hurdles_, managerTraining);
       stepData_ += controller_.getStepData();
     }
 
@@ -184,7 +186,7 @@ class ENVIRONMENT {
     rewCurriculumFactor_ = 1 - rewCurriculumFactor2_;
     comCurriculumFactorT_ = 1 + comCurriculumFactor3_ / (1 + std::exp(-comCurriculumFactor1_ * (iter - comCurriculumFactor2_)));
     comCurriculumFactorT_ = std::fmax(1., comCurriculumFactorT_);
-    terrain_curriculum_ = iter * (terCurriculumFactor_*1.0) / 5000.0 + terCurriculumFactor_*0.0; // TODO: better curriculum function, adapt to number of iter
+    terrain_curriculum_ = iter * (terCurriculumFactor_*0.5) / 10000.0 + terCurriculumFactor_*0.5; // TODO: better curriculum function, adapt to number of iter
 
     if(isHeightMap_) {
       //groundType_ = (groundType_+1) % 2;
