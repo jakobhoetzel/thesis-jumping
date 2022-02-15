@@ -23,7 +23,9 @@ class RaisimGymVecEnv:
         self.num_acts = self.wrapper.getActionDim()
         self._observation = np.zeros([self.num_envs, self.num_obs], dtype=np.float32)
         self._robotState = np.zeros([self.num_envs, self.num_robotState], dtype=np.float32)
-        self.obs_rms = RunningMeanStd(shape=[self.num_envs, self.num_obs])
+        self.obs_rms_run = RunningMeanStd(shape=[self.num_envs, self.num_obs])
+        self.obs_rms_jump = RunningMeanStd(shape=[self.num_envs, self.num_obs])
+        self.obs_rms_manager = RunningMeanStd(shape=[self.num_envs, self.num_obs])
         self._reward = np.zeros(self.num_envs, dtype=np.float32)
         self._done = np.zeros(self.num_envs, dtype=np.bool)
         self.rewards = [[] for _ in range(self.num_envs)]
@@ -50,26 +52,56 @@ class RaisimGymVecEnv:
         self.wrapper.step(action, self._reward, self._done, run_bool[:,0].astype(bool), manager_training)
         return self._reward.copy(), self._done.copy()
 
-    def load_scaling(self, dir_name, iteration, count=1e5):
-        mean_file_name = dir_name + "/mean" + str(iteration) + ".csv"
-        var_file_name = dir_name + "/var" + str(iteration) + ".csv"
-        self.obs_rms.count = count
+    def load_scaling(self, dir_name_run, iteration_run, dir_name_jump, iteration_jump, dir_name_manager, iteration_manager, count=1e5, one_directory=True):
+        if one_directory:
+            mean_file_name_run = dir_name_run + "/mean" + str(iteration_run) + ".csv"
+            var_file_name_run = dir_name_run + "/var" + str(iteration_run) + ".csv"
+            mean_file_name_jump = dir_name_jump + "/mean" + str(iteration_jump) + ".csv"
+            var_file_name_jump = dir_name_jump + "/var" + str(iteration_jump) + ".csv"
+            mean_file_name_manager = dir_name_manager + "/mean" + str(iteration_manager) + ".csv"
+            var_file_name_manager = dir_name_manager + "/var" + str(iteration_manager) + ".csv"
+        else:
+            mean_file_name_run = dir_name_run + "/meanRun" + str(iteration_run) + ".csv"
+            var_file_name_run = dir_name_run + "/varRun" + str(iteration_run) + ".csv"
+            mean_file_name_jump = dir_name_jump + "/meanJump" + str(iteration_jump) + ".csv"
+            var_file_name_jump = dir_name_jump + "/varJump" + str(iteration_jump) + ".csv"
+            mean_file_name_manager = dir_name_manager + "/meanJump" + str(iteration_manager) + ".csv"
+            var_file_name_manager = dir_name_manager + "/varJump" + str(iteration_manager) + ".csv"
+        self.obs_rms_run.count = count
+        self.obs_rms_jump.count = count
+        self.obs_rms_manager.count = count
         for i in range(self.num_envs):
-            self.obs_rms.mean[i] = np.loadtxt(mean_file_name, dtype=np.float32)
-            self.obs_rms.var[i] = np.loadtxt(var_file_name, dtype=np.float32)
+            self.obs_rms_run.mean[i] = np.loadtxt(mean_file_name_run, dtype=np.float32)
+            self.obs_rms_run.var[i] = np.loadtxt(var_file_name_run, dtype=np.float32)
+            self.obs_rms_jump.mean[i] = np.loadtxt(mean_file_name_jump, dtype=np.float32)
+            self.obs_rms_jump.var[i] = np.loadtxt(var_file_name_jump, dtype=np.float32)
+            self.obs_rms_manager.mean[i] = np.loadtxt(mean_file_name_manager, dtype=np.float32)
+            self.obs_rms_manager.var[i] = np.loadtxt(var_file_name_manager, dtype=np.float32)
 
     def save_scaling(self, dir_name, iteration):
-        mean_file_name = dir_name + "/mean" + iteration + ".csv"
-        var_file_name = dir_name + "/var" + iteration + ".csv"
-        np.savetxt(mean_file_name, self.obs_rms.mean[0])
-        np.savetxt(var_file_name, self.obs_rms.var[0])
+        mean_file_name_run = dir_name + "/meanRun" + iteration + ".csv"
+        var_file_name_run = dir_name + "/varRun" + iteration + ".csv"
+        mean_file_name_jump = dir_name + "/meanJump" + iteration + ".csv"
+        var_file_name_jump = dir_name + "/varJump" + iteration + ".csv"
+        mean_file_name_manager = dir_name + "/meanManager" + iteration + ".csv"
+        var_file_name_manager = dir_name + "/varManager" + iteration + ".csv"
+        np.savetxt(mean_file_name_run, self.obs_rms_run.mean[0])
+        np.savetxt(var_file_name_run, self.obs_rms_run.var[0])
+        np.savetxt(mean_file_name_jump, self.obs_rms_jump.mean[0])
+        np.savetxt(var_file_name_jump, self.obs_rms_jump.var[0])
+        np.savetxt(mean_file_name_manager, self.obs_rms_manager.mean[0])
+        np.savetxt(var_file_name_manager, self.obs_rms_manager.var[0])
 
-    def observe(self, update_mean=True):
+    def observe(self, update_mean=True, update_manager=False):
         self.wrapper.observe(self._observation)
 
         if self.normalize_ob:
             if update_mean:
-                self.obs_rms.update(self._observation)
+                if update_manager:
+                    self.obs_rms_manager.update(self._observation)
+                else:
+                    self.obs_rms_run.update(self._observation)  # slight 'cheat' as only one is in use
+                    self.obs_rms_jump.update(self._observation)
 
             return self._normalize_observation(self._observation)
         else:
@@ -86,10 +118,15 @@ class RaisimGymVecEnv:
     def _normalize_observation(self, obs):
         if self.normalize_ob:
 
-            return np.clip((obs - self.obs_rms.mean) / np.sqrt(self.obs_rms.var + 1e-8), -self.clip_obs,
-                           self.clip_obs)
+            obs_run = np.clip((obs - self.obs_rms_run.mean) / np.sqrt(self.obs_rms_run.var + 1e-8), -self.clip_obs,
+                              self.clip_obs)
+            obs_jump = np.clip((obs - self.obs_rms_jump.mean) / np.sqrt(self.obs_rms_jump.var + 1e-8), -self.clip_obs,
+                              self.clip_obs)
+            obs_manager = np.clip((obs - self.obs_rms_manager.mean) / np.sqrt(self.obs_rms_manager.var + 1e-8), -self.clip_obs,
+                              self.clip_obs)
+            return obs_run, obs_jump, obs_manager
         else:
-            return obs
+            return obs, obs, obs
 
     def reset_and_update_info(self):
         return self.reset(), self._update_epi_info()

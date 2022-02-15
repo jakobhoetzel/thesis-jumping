@@ -124,7 +124,7 @@ class ENVIRONMENT {
 
   void go_straight_controller() { controller_.go_straight_controller(); }
 
-  double step(const Eigen::Ref<EigenVec> &action, const bool run_bool, const bool managerTraining) {
+  double step(const Eigen::Ref<EigenVec> &action, bool run_bool, bool managerTraining) {
     stepData_.setZero();
     int loopCount = int(control_dt_ / simulation_dt_ + 1e-10);
 //    delayDividedBySimdt = int((0.01 / simulation_dt_)*0.5*(uniDist_(gen_)+1));

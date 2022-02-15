@@ -78,7 +78,7 @@ else:
     estimator = ppo_module.MLP(cfg['architecture']['estimator_net'], torch.nn.LeakyReLU, ob_dim - sensor_dim, robotState_dim)
     estimator.load_state_dict(torch.load(weight_path)['estimator_architecture_state_dict'])
 
-    env.load_scaling(weight_dir, int(iteration_number))
+    env.load_scaling(weight_dir, int(iteration_number), weight_dir, int(iteration_number), weight_dir, int(iteration_number), one_directory=False)
     env.turn_on_visualization()
     env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy.mp4")
     time.sleep(2)
@@ -91,8 +91,6 @@ else:
     env.reset()
     env.printTest()
 
-    run_bool = np.ones((1,1))
-
     for step in range(max_steps):
         frame_start = time.time()
         # if step % 400 == 0:
@@ -102,28 +100,26 @@ else:
         #     command = np.array([command_Vx, command_Vy, command_yaw], dtype=np.float32)
         #     env.set_command(command)
 
-        obs = env.observe(False)
-        obs_estimator = obs[:,:ob_dim-sensor_dim]
+        obs_run, obs_jump, obs_manager = env.observe(update_mean=False)
+        obs_estimator = obs_run[:,:ob_dim-sensor_dim]  # as using run estimator
         robotState = env.getRobotState()
-        # robotState = np.ones((cfg['environment']['num_envs'],robotStatsoftmax=Falsee_dim), dtype=np.float32)  # for checking
         est_out = estimator.architecture(torch.from_numpy(obs_estimator).cpu())
-        concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
-        # run_bool = torch.from_numpy(run_bool_function(obs, act_dim, True, run_bool)).cpu()
-        # jump_bool = torch.add(torch.ones(run_bool.size()).cpu(), run_bool, alpha=-1)
-        # action_ll = run_bool * actor_run.architecture(torch.from_numpy(concatenated_obs_actor).cpu())\
-        #             + jump_bool * actor_jump.architecture(torch.from_numpy(concatenated_obs_actor).cpu())
-        action_probs = actor_manager.architecture(torch.from_numpy(concatenated_obs_actor).cpu())
+        concatenated_obs_actor_run = np.concatenate((obs_run, est_out.cpu().detach().numpy()), axis=1)
+        concatenated_obs_actor_jump = np.concatenate((obs_jump, est_out.cpu().detach().numpy()), axis=1)
+        concatenated_obs_actor_manager = np.concatenate((obs_manager, est_out.cpu().detach().numpy()), axis=1)
+
+        action_probs = actor_manager.architecture(torch.from_numpy(concatenated_obs_actor_manager).cpu())
         dist = Categorical(action_probs)
         bool_manager = dist.sample()
         run_bool = bool_manager.unsqueeze(1)
         previousNetwork = selectedNetwork
         selectedNetwork = bool_manager[0].item()
         jump_bool = torch.add(torch.ones(run_bool.size(), device='cpu'), run_bool, alpha=-1)  # 1-run_bool
-        actions_run = actor_run.architecture(torch.from_numpy(concatenated_obs_actor).cpu())
-        actions_jump = actor_jump.architecture(torch.from_numpy(concatenated_obs_actor).cpu())
+        actions_run = actor_run.architecture(torch.from_numpy(concatenated_obs_actor_run).cpu())
+        actions_jump = actor_jump.architecture(torch.from_numpy(concatenated_obs_actor_jump).cpu())
         action_ll = run_bool * actions_run + jump_bool * actions_jump
-        reward_ll, dones = env.step(action_ll.cpu().detach().numpy())
-        env.go_straight_controller()
+        reward_ll, dones = env.step(action_ll.detach().numpy(), run_bool=run_bool.detach().numpy(), manager_training=True)
+        # env.go_straight_controller()
 
         # f1 = open('randomCommandData.csv', 'a')
         # writer = csv.writer(f1)

@@ -101,9 +101,9 @@ class MinicheetahController {
     footFrameIndices_.push_back(cheetah->getFrameIdxByName("toe_hr_joint"));
     footFrameIndices_.push_back(cheetah->getFrameIdxByName("toe_hl_joint"));
 
-    stepDataTag_ = {"rewBodyAngularVel", "rewLinearVel", "rewAirTime", "rewHurdles", "rewTorque", "rewJointSpeed", "rewFootSlip",
-                    "rewBodyOri", "rewSmoothness1", "rewSmoothness2", "rewJointPosition", "rewJointAcc", "rewBaseMotion",
-                    "rewFootClearance", "rewSymmetry", "rewBodyHeight", "rewNetworkChange", "rewNoNetworkChange",  "rewFootContact",
+    stepDataTag_ = {"rewBodyAngularVel", "rewLinearVel", "rewAirTime", "rewHurdles", "rewNetworkChange", "rewNoNetworkChange",
+                    "rewTorque", "rewJointSpeed", "rewFootSlip", "rewBodyOri", "rewSmoothness1", "rewSmoothness2", "rewJointPosition", "rewJointAcc", "rewBaseMotion",
+                    "rewFootClearance", "rewSymmetry", "rewBodyHeight", "rewFootContact",
                     "negativeRewardSum", "positiveRewardSum", "totalRewardSum"};
 
     stepData_.resize(stepDataTag_.size());
@@ -352,6 +352,7 @@ class MinicheetahController {
 
     /// A variable for hurdles reward calculation
     maxBodyHeight_ = std::max(maxBodyHeight_, gc_[2]);
+    maxBodyHeight_ = std::max(maxBodyHeight_, 0.2);
 
     /// A variable to calculate the symmetry of the motion ("cheetah instead of horse")
     double symmetryCoeff = (gc_.segment(7, 3) - gc_.segment(10, 3)).norm() + (gc_.segment(13, 3) - gc_.segment(16, 3)).norm();
@@ -375,10 +376,10 @@ class MinicheetahController {
 
     /// A variable which shows if the manager changed the selected network in this step
     if (startNetwork_ == -1){ // if was reset
-      previousNetworkSelection_ = networkSelection_;
+      previousNetworkSelection_ = 1; //we want run at beginning
       startNetwork_ = networkSelection_;
     }
-    bool networkChangeVar = (networkSelection_ != previousNetworkSelection_); //penalize when selected network changes often
+    bool networkChangeVar = (networkSelection_ == previousNetworkSelection_); //reward if network doesn't change
 
     /// A variable which shows if always the same network is used (no change before hurdle)
     if (networkChangeVar){

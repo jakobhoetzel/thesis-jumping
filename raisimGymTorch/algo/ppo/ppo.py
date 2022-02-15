@@ -85,18 +85,22 @@ class PPO:
         # temps
         self.actions = None
         self.actions_log_prob = None
-        self.actor_obs = None
+        self.actor_obs_run = None
+        self.actor_obs_jump = None
+        self.actor_obs_manager = None
         self.run_bool = None
         self.jump_bool = None
 
-    def observe(self, actor_obs):  # run_bool = 1 when running network active; run_bool = 0 when jumping network active
-        self.actor_obs = actor_obs
-        bool_manager, actions_log_prob_manager = self.actor_manager.sample(torch.from_numpy(actor_obs).to(self.device))
+    def observe(self, actor_obs_run, actor_obs_jump, actor_obs_manager):  # run_bool = 1 when running network active; run_bool = 0 when jumping network active
+        self.actor_obs_run = actor_obs_run
+        self.actor_obs_jump = actor_obs_jump
+        self.actor_obs_manager = actor_obs_manager
+        bool_manager, actions_log_prob_manager = self.actor_manager.sample(torch.from_numpy(actor_obs_manager).to(self.device))
         self.run_bool = bool_manager.unsqueeze(1)
         self.jump_bool = torch.add(torch.ones(self.run_bool.size(), device=self.device), self.run_bool, alpha=-1)  # 1-run_bool
 
-        actions_run, actions_run_log_prob = self.actor_run.sample(torch.from_numpy(actor_obs).to(self.device))
-        actions_jump, actions_jump_log_prob = self.actor_jump.sample(torch.from_numpy(actor_obs).to(self.device))
+        actions_run, actions_run_log_prob = self.actor_run.sample(torch.from_numpy(actor_obs_run).to(self.device))
+        actions_jump, actions_jump_log_prob = self.actor_jump.sample(torch.from_numpy(actor_obs_jump).to(self.device))
         self.actions = self.run_bool * actions_run + self.jump_bool * actions_jump
 
         if self.manager_training:
@@ -118,26 +122,27 @@ class PPO:
         # self.actions = np.clip(self.actions.numpy(), self.env.action_space.low, self.env.action_space.high)
         return self.actions.cpu().numpy(), self.run_bool.cpu().numpy()
 
-    def step(self, value_obs, est_in, robotState, rews, dones):
+    def step(self, value_obs_run, value_obs_jump, value_obs_manager, est_in, robotState, rews, dones):
         if self.manager_training:
-            values = self.critic_manager.predict(torch.from_numpy(value_obs).to(self.device))
+            values = self.critic_manager.predict(torch.from_numpy(value_obs_manager).to(self.device))
         else:
-            values = self.run_bool * self.critic_run.predict(torch.from_numpy(value_obs).to(self.device)) \
-                     + self.jump_bool * self.critic_jump.predict(torch.from_numpy(value_obs).to(self.device))
-        self.storage.add_transitions(self.actor_obs, value_obs, self.actions, est_in, robotState, rews, dones, values,
+            values = self.run_bool * self.critic_run.predict(torch.from_numpy(value_obs_run).to(self.device)) \
+                     + self.jump_bool * self.critic_jump.predict(torch.from_numpy(value_obs_jump).to(self.device))
+        self.storage.add_transitions(self.actor_obs_run, self.actor_obs_jump, self.actor_obs_manager, value_obs_run,
+                                     value_obs_jump, value_obs_manager, self.actions, est_in, robotState, rews, dones, values,
                                      self.actions_log_prob, self.run_bool)
 
-    def update(self, actor_obs, value_obs, log_this_iteration, update):
-        bool_manager = self.actor_manager.sample(torch.from_numpy(actor_obs).to(self.device))[0]
+    def update(self, actor_obs_manager, value_obs_run, value_obs_jump, value_obs_manager, log_this_iteration, update):
+        bool_manager = self.actor_manager.sample(torch.from_numpy(actor_obs_manager).to(self.device))[0]
         # run_bool = bool_manager.unsqueeze(1)
         # jump_bool = torch.add(torch.ones(self.run_bool.size(), device=self.device), self.run_bool, alpha=-1)  # 1-run_bool
         if self.manager_training:
-            last_values = self.critic_manager.predict(torch.from_numpy(value_obs).to(self.device))
+            last_values = self.critic_manager.predict(torch.from_numpy(value_obs_manager).to(self.device))
         else:
             run_bool = bool_manager.unsqueeze(1)
             jump_bool = torch.add(torch.ones(run_bool[:,0:1].shape, device=self.device), run_bool[:,0:1], alpha=-1)
-            last_values = run_bool * self.critic_run.predict(torch.from_numpy(value_obs).to(self.device)) \
-                          + jump_bool * self.critic_jump.predict(torch.from_numpy(value_obs).to(self.device))
+            last_values = run_bool * self.critic_run.predict(torch.from_numpy(value_obs_run).to(self.device)) \
+                          + jump_bool * self.critic_jump.predict(torch.from_numpy(value_obs_jump).to(self.device))
 
         # Learning step
         self.storage.compute_returns(last_values, self.gamma, self.lam)
@@ -169,19 +174,20 @@ class PPO:
         mean_estimation_loss = 0
         mean_entropy = 0
         for epoch in range(self.num_learning_epochs):
-            for actor_obs_batch, critic_obs_batch, actions_batch, target_values_batch, est_in_batch, robotState_batch, \
+            for actor_obs_run_batch, actor_obs_jump_batch, actor_obs_manager_batch, critic_obs_run_batch, critic_obs_jump_batch, \
+                critic_obs_manager_batch, actions_batch, target_values_batch, est_in_batch, robotState_batch, \
                 advantages_batch, returns_batch, old_actions_log_prob_batch, run_bool_batch \
                     in self.batch_sampler(self.num_mini_batches):
                 if self.manager_training:
-                    actions_log_prob_batch, entropy_batch = self.actor_manager.evaluate(actor_obs_batch, run_bool_batch) #TODO: action_batch is joint values
-                    value_batch = self.critic_manager.evaluate(critic_obs_batch)
+                    actions_log_prob_batch, entropy_batch = self.actor_manager.evaluate(actor_obs_manager_batch, run_bool_batch)
+                    value_batch = self.critic_manager.evaluate(critic_obs_manager_batch)
                 else:
                     jump_bool_batch = torch.add(torch.ones(run_bool_batch.size()).to(self.device), run_bool_batch, alpha=-1)
-                    actions_run_log_prob_batch, entropy_run_batch = self.actor_run.evaluate(actor_obs_batch, actions_batch)
-                    actions_jump_log_prob_batch, entropy_jump_batch = self.actor_jump.evaluate(actor_obs_batch, actions_batch)
+                    actions_run_log_prob_batch, entropy_run_batch = self.actor_run.evaluate(actor_obs_run_batch, actions_batch)
+                    actions_jump_log_prob_batch, entropy_jump_batch = self.actor_jump.evaluate(actor_obs_jump_batch, actions_batch)
                     actions_log_prob_batch = run_bool_batch[:,0] * actions_run_log_prob_batch + jump_bool_batch[:,0] * actions_jump_log_prob_batch
-                    entropy_batch = run_bool_batch[:,0] * entropy_run_batch+ jump_bool_batch[:,0] * entropy_jump_batch
-                    value_batch = run_bool_batch * self.critic_run.evaluate(critic_obs_batch) + (1-run_bool_batch) * self.critic_jump.evaluate(critic_obs_batch)
+                    entropy_batch = run_bool_batch[:,0] * entropy_run_batch+ jump_bool_batch[:,0] * entropy_jump_batch #TODO: richtige zuordnung??
+                    value_batch = run_bool_batch * self.critic_run.evaluate(critic_obs_run_batch) + (1-run_bool_batch) * self.critic_jump.evaluate(critic_obs_jump_batch)
 
                 estimation_batch = self.estimator.evaluate(est_in_batch)
 

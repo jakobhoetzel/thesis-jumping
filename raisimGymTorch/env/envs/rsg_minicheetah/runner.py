@@ -105,7 +105,7 @@ critic_jump = ppo_module.Critic(ppo_module.MLP(cfg['architecture']['value_net'],
 critic_manager = ppo_module.Critic(ppo_module.MLP(cfg['architecture']['value_net'], nn.LeakyReLU, ob_dim + robotState_dim, 1),
                                 device)
 mlpEstimator = ppo_module.MLP(cfg['architecture']['estimator_net'], torch.nn.LeakyReLU, ob_dim - sensor_dim, robotState_dim).to(device)
-mlpEstimator.load_state_dict(torch.load(weight_path_run)['estimator_architecture_state_dict']) # or weight_path_jump??
+mlpEstimator.load_state_dict(torch.load(weight_path_run)['estimator_architecture_state_dict'])  # run estimator chosen, both should predict the same
 stateEstimator = ppo_module.StateEstimator(mlpEstimator,
                                            device)
 
@@ -142,7 +142,7 @@ ppo = PPO.PPO(actor_run=actor_run,
               device=device,
               log_dir=saver.data_dir,
               shuffle_batch=False,
-              manager_training=False,
+              # manager_training=False,
               )
 
 data_tags = env.get_step_data_tag()
@@ -154,10 +154,10 @@ scheduler = torch.optim.lr_scheduler.MultiStepLR(ppo.optimizer, milestones=[2000
 
 max_iteration = 10000 + 1 #5000+1
 
-env.load_scaling(weight_dir_run, int(iteration_number_run), 1e8) # 1e8 -> less disruption when retraining #TODO: different scaling for different networks
+env.load_scaling(weight_dir_run, int(iteration_number_run), weight_dir_jump, int(iteration_number_jump), weight_dir_run, int(iteration_number_run), 1e8) # 1e8 -> less disruption when retraining #TODO: different scaling for different networks
 
-# ppo.set_manager_training(True)
-ppo.set_manager_training(False)
+ppo.set_manager_training(True)
+# ppo.set_manager_training(False)
 # freeze_manager(ppo)
 # freeze_actors(ppo)
 
@@ -206,13 +206,17 @@ for update in range(max_iteration):
 
         for step in range(n_steps*1):  # n_steps*2
             frame_start = time.time()
-            obs = env.observe(False)  # don't compute rms
-            obs_estimator = obs[:,:ob_dim-sensor_dim]
+            obs_run, obs_jump, obs_manager = env.observe(update_mean=False, update_manager=ppo.manager_training)  # don't update mean and var
+            obs_estimator = obs_run[:,:ob_dim-sensor_dim]  # as using run estimator
             robotState = env.getRobotState()
             est_out = stateEstimator.predict(torch.from_numpy(obs_estimator).to(device))
-            concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
-            concatenated_obs_critic = np.concatenate((obs, robotState), axis=1)
-            action, run_bool = ppo.observe(concatenated_obs_actor)
+            concatenated_obs_actor_run = np.concatenate((obs_run, est_out.cpu().detach().numpy()), axis=1)
+            concatenated_obs_actor_jump = np.concatenate((obs_jump, est_out.cpu().detach().numpy()), axis=1)
+            concatenated_obs_actor_manager = np.concatenate((obs_manager, est_out.cpu().detach().numpy()), axis=1)
+            # concatenated_obs_critic_run = np.concatenate((obs_run, robotState), axis=1)
+            # concatenated_obs_critic_jump = np.concatenate((obs_jump, robotState), axis=1)
+            # concatenated_obs_critic_manager = np.concatenate((obs_manager, robotState), axis=1)
+            action, run_bool = ppo.observe(concatenated_obs_actor_run, concatenated_obs_actor_jump, concatenated_obs_actor_manager)
 
             # action_ll, _ = actor.sample(torch.from_numpy(concatenated_obs_actor).to(device))  # stochastic action
             # action_ll = loaded_graph.architecture(torch.from_numpy(obs).cpu())
@@ -238,16 +242,21 @@ for update in range(max_iteration):
 
     # actual training
     for step in range(n_steps):
-        obs = env.observe()
-        obs_estimator = obs[:,:ob_dim-sensor_dim]
+        obs_run, obs_jump, obs_manager = env.observe(update_manager=ppo.manager_training)  # observation differ due to normalisation
+        obs_estimator = obs_run[:,:ob_dim-sensor_dim]  # as using run estimator
         robotState = env.getRobotState()
         est_out = stateEstimator.predict(torch.from_numpy(obs_estimator).to(device))
-        concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
-        concatenated_obs_critic = np.concatenate((obs, robotState), axis=1)
-        action, run_bool = ppo.observe(concatenated_obs_actor)
+        concatenated_obs_actor_run = np.concatenate((obs_run, est_out.cpu().detach().numpy()), axis=1)
+        concatenated_obs_actor_jump = np.concatenate((obs_jump, est_out.cpu().detach().numpy()), axis=1)
+        concatenated_obs_actor_manager = np.concatenate((obs_manager, est_out.cpu().detach().numpy()), axis=1)
+        concatenated_obs_critic_run = np.concatenate((obs_run, robotState), axis=1)
+        concatenated_obs_critic_jump = np.concatenate((obs_jump, robotState), axis=1)
+        concatenated_obs_critic_manager = np.concatenate((obs_manager, robotState), axis=1)
+        action, run_bool = ppo.observe(concatenated_obs_actor_run, concatenated_obs_actor_jump, concatenated_obs_actor_manager)
         reward, dones = env.step(action, run_bool, ppo.manager_training)
         env.go_straight_controller()
-        ppo.step(value_obs=concatenated_obs_critic, est_in=obs_estimator, robotState=robotState, rews=reward, dones=dones)
+        ppo.step(value_obs_run=concatenated_obs_critic_run, value_obs_jump=concatenated_obs_critic_jump, value_obs_manager=concatenated_obs_critic_manager,
+                 est_in=obs_estimator, robotState=robotState, rews=reward, dones=dones)
         done_sum = done_sum + np.sum(dones)
         reward_ll_sum = reward_ll_sum + np.sum(reward)
         data_size = env.get_step_data(data_size, data_mean, data_square_sum, data_min, data_max)
@@ -262,12 +271,16 @@ for update in range(max_iteration):
             ppo.writer.add_scalar(data_tags[data_id]+'/max', data_max[data_id], global_step=update)
 
     # take st step to get value obs
-    obs = env.observe()
-    obs_estimator = obs[:,:ob_dim-sensor_dim]
+    obs_run, obs_jump, obs_manager = env.observe(update_manager=ppo.manager_training)
+    obs_estimator = obs_run[:,:ob_dim-sensor_dim]  # as using run estimator
     robotState = env.getRobotState()
     est_out = stateEstimator.predict(torch.from_numpy(obs_estimator).to(device))
-    concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
-    concatenated_obs_critic = np.concatenate((obs, robotState), axis=1)
+    concatenated_obs_actor_run = np.concatenate((obs_run, est_out.cpu().detach().numpy()), axis=1)
+    concatenated_obs_actor_jump = np.concatenate((obs_jump, est_out.cpu().detach().numpy()), axis=1)
+    concatenated_obs_actor_manager = np.concatenate((obs_manager, est_out.cpu().detach().numpy()), axis=1)
+    concatenated_obs_critic_run = np.concatenate((obs_run, robotState), axis=1)
+    concatenated_obs_critic_jump = np.concatenate((obs_jump, robotState), axis=1)
+    concatenated_obs_critic_manager = np.concatenate((obs_manager, robotState), axis=1)
 
     # a0 = list(actor_run.parameters())[0].grad
     # print("a0: ", a0)
@@ -276,7 +289,9 @@ for update in range(max_iteration):
     # a2 = list(actor_manager.parameters())[0].grad
     # print("a2: ", a2)
 
-    ppo.update(actor_obs=concatenated_obs_actor, value_obs=concatenated_obs_critic, log_this_iteration=update % 20 == 0, update=update)
+    ppo.update(actor_obs_manager=concatenated_obs_actor_manager, value_obs_run=concatenated_obs_critic_run,
+               value_obs_jump=concatenated_obs_critic_jump, value_obs_manager=concatenated_obs_critic_manager,
+               log_this_iteration=update % 20 == 0, update=update)
     average_ll_performance = reward_ll_sum / total_steps  # average reward per step per environment
     average_dones = done_sum / total_steps
     avg_rewards.append(average_ll_performance)
@@ -313,8 +328,8 @@ for update in range(max_iteration):
         np.savetxt("ones_action_jump_end.csv", temp_action_jump.cpu().numpy(), delimiter=",")
         np.savetxt("ones_action_manager_end.csv", temp_action_manager.cpu().numpy(), delimiter=",")
 
-    # if update==1000 or update==3000 or update==5000 or update==7000 or update==9000:
-    #     ppo.set_manager_training(False)
-    #
-    # if update==2000 or update==4000 or update==6000 or update==8000:
-    #     ppo.set_manager_training(True)
+    if update==1000 or update==3000 or update==5000 or update==7000 or update==9000:
+        ppo.set_manager_training(False)
+
+    if update==2000 or update==4000 or update==6000 or update==8000:
+        ppo.set_manager_training(True)
