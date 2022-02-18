@@ -75,7 +75,7 @@ class MinicheetahController {
     cheetah->setGeneralizedForce(Eigen::VectorXd::Zero(gvDim_));
 
     /// MUST BE DONE FOR ALL ENVIRONMENTS
-    obDim_ = 141 + 3;  //34 //106 //130 //133 //198
+    obDim_ = 141 + 2;  //34 //106 //130 //133 //198 //2 for sensor
     robotStateDim_ = 11;  //4
     historyLength_ = 6;
     actionDim_ = nJoints_; actionMean_.setZero(actionDim_); actionStd_.setZero(actionDim_);  // action dimension is the same as the number of joints(by applying torque)
@@ -346,7 +346,7 @@ class MinicheetahController {
 
     /// A variable for hurdles reward calculation
     bool hurdlesVar = 0;
-    if (gc_[0] > 10 ){
+    if (std::abs(gc_[0]) >= 0.05 ){
         hurdlesVar = 1;
     }
 
@@ -394,7 +394,7 @@ class MinicheetahController {
     // curriculum factor in negative reward
     double rewBodyAngularVel = std::exp(-1.5 * pow((command_(2) - bodyAngularVel_(2)), 2)) * rewardCoeff.at(RewardType::ANGULARVELOCIY1);
 //    double rewLinearVel = std::exp(-1.0 * (command_.head(2) - bodyLinearVel_.head(2)).squaredNorm()) * rewardCoeff.at(RewardType::VELOCITY1);
-    double rewLinearVel = std::exp(0.4 * bodyLinearVel_[0]) * rewardCoeff.at(RewardType::VELOCITY1);
+    double rewLinearVel = std::exp(0.4 * std::min(bodyLinearVel_[0],3.5)) * rewardCoeff.at(RewardType::VELOCITY1); //max reward limited
     double rewAirTime = airtimeTotal * rewardCoeff.at(RewardType::AIRTIME);
     double rewHurdles = hurdlesVar * rewardCoeff.at(RewardType::HURDLES);
     double rewNetworkChange = networkChangeVar * rewardCoeff.at(RewardType::NETWORKCHANGE) * managerTraining;
@@ -509,7 +509,7 @@ class MinicheetahController {
         rot_.e().transpose() * (footPos_[0].e() - gc_.head(3)), rot_.e().transpose() * (footPos_[1].e() - gc_.head(3)),
         rot_.e().transpose() * (footPos_[2].e() - gc_.head(3)), rot_.e().transpose() * (footPos_[3].e() - gc_.head(3)),  /// relative foot position with respect to the body COM, expressed in the body frame 12
         command_,  /// command 3
-        0.0, gc_(0), gc_(0); //x_pos; sensor observation in environment
+        0.0, gc_(0); //x_pos; sensor observation in environment
 
     /// Observation noise
     bool addObsNoise = true;

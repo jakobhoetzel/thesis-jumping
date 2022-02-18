@@ -44,7 +44,7 @@ class PPO:
         self.critic_jump = critic_jump
         self.critic_manager = critic_manager
         self.estimator = estimator
-        self.storage = RolloutStorage(num_envs, num_transitions_per_env, actor_run.obs_shape, critic_run.obs_shape, actor_run.action_shape, estimator.input_shape, estimator.output_shape, device)
+        self.storage = RolloutStorage(num_envs, num_transitions_per_env, actor_run.obs_shape, actor_jump.obs_shape, actor_manager.obs_shape, critic_run.obs_shape, actor_run.action_shape, estimator.input_shape, estimator.output_shape, device)
 
         if shuffle_batch:
             self.batch_sampler = self.storage.mini_batch_generator_shuffle
@@ -122,14 +122,14 @@ class PPO:
         # self.actions = np.clip(self.actions.numpy(), self.env.action_space.low, self.env.action_space.high)
         return self.actions.cpu().numpy(), self.run_bool.cpu().numpy()
 
-    def step(self, value_obs_run, value_obs_jump, value_obs_manager, est_in, robotState, rews, dones):
+    def step(self, value_obs_run, value_obs_jump, value_obs_manager, est_obs, robotState, rews, dones):
         if self.manager_training:
             values = self.critic_manager.predict(torch.from_numpy(value_obs_manager).to(self.device))
         else:
             values = self.run_bool * self.critic_run.predict(torch.from_numpy(value_obs_run).to(self.device)) \
                      + self.jump_bool * self.critic_jump.predict(torch.from_numpy(value_obs_jump).to(self.device))
         self.storage.add_transitions(self.actor_obs_run, self.actor_obs_jump, self.actor_obs_manager, value_obs_run,
-                                     value_obs_jump, value_obs_manager, self.actions, est_in, robotState, rews, dones, values,
+                                     value_obs_jump, value_obs_manager, self.actions, est_obs, robotState, rews, dones, values,
                                      self.actions_log_prob, self.run_bool)
 
     def update(self, actor_obs_manager, value_obs_run, value_obs_jump, value_obs_manager, log_this_iteration, update):
@@ -186,7 +186,7 @@ class PPO:
                     actions_run_log_prob_batch, entropy_run_batch = self.actor_run.evaluate(actor_obs_run_batch, actions_batch)
                     actions_jump_log_prob_batch, entropy_jump_batch = self.actor_jump.evaluate(actor_obs_jump_batch, actions_batch)
                     actions_log_prob_batch = run_bool_batch[:,0] * actions_run_log_prob_batch + jump_bool_batch[:,0] * actions_jump_log_prob_batch
-                    entropy_batch = run_bool_batch[:,0] * entropy_run_batch+ jump_bool_batch[:,0] * entropy_jump_batch #TODO: richtige zuordnung??
+                    entropy_batch = run_bool_batch[:,0] * entropy_run_batch + jump_bool_batch[:,0] * entropy_jump_batch
                     value_batch = run_bool_batch * self.critic_run.evaluate(critic_obs_run_batch) + (1-run_bool_batch) * self.critic_jump.evaluate(critic_obs_jump_batch)
 
                 estimation_batch = self.estimator.evaluate(est_in_batch)

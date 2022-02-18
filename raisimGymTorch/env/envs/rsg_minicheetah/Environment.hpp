@@ -64,7 +64,7 @@ class ENVIRONMENT {
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::NETWORKCHANGE], cfg["reward"]["networkChangeCoeff"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::NONETWORKCHANGE], cfg["reward"]["noNetworkChangeCoeff"])
 
-    terrain_curriculum_ = terCurriculumFactor_*0.5;
+    terrain_curriculum_ = terCurriculumFactor_*0.25;
     isHeightMap_ = cfg["isHeightMap"].template As<bool>();
     controller_.setIsHeightMap(isHeightMap_);
     if (isHeightMap_){
@@ -154,16 +154,15 @@ class ENVIRONMENT {
     ob = controller_.getObservation().cast<float>();
     //ob.tail(2) = {{terrain_curriculum_, xPos_Hurdles_-ob.tail(1)(0)}}; //height and distance to hurdle
     double dist_obs_next = 0;
-    double dist_obs_last = 0;
     if ((xPos_Hurdles_-ob.tail(1)(0)) >= 0) { // before hurdle
       dist_obs_next = std::min( std::max(xPos_Hurdles_-ob.tail(1)(0), 0.0), 8.0); //distance between 0 and 8
-      dist_obs_last = -8; //distance between -8 and 0
-    } else{ // after hurdle
+    } else if ((xPos_Hurdles_-ob.tail(1)(0)) >= -0.15){ // above hurdle
+      dist_obs_next = xPos_Hurdles_-ob.tail(1)(0);
+    } else { // after hurdle
       dist_obs_next = 8; //distance between 0 and 8
-      dist_obs_last = std::min( std::max(xPos_Hurdles_-ob.tail(1)(0), -8.0), 0.0); //distance between -8 and 0
     }
-    ob.tail(3) << terrain_curriculum_+uniDist_(gen_) * 0.05, dist_obs_next+uniDist_(gen_) * 0.05, dist_obs_last+uniDist_(gen_) * 0.05;
-    //height and distance to next and last hurdle
+    ob.tail(2) << terrain_curriculum_+uniDist_(gen_) * 0.05, dist_obs_next+uniDist_(gen_) * 0.05;
+    //height and distance to next hurdle
   }
 
   void getRobotState(Eigen::Ref<EigenVec> ob) {  // related to the estimator network learning
@@ -186,7 +185,7 @@ class ENVIRONMENT {
     rewCurriculumFactor_ = 1 - rewCurriculumFactor2_;
     comCurriculumFactorT_ = 1 + comCurriculumFactor3_ / (1 + std::exp(-comCurriculumFactor1_ * (iter - comCurriculumFactor2_)));
     comCurriculumFactorT_ = std::fmax(1., comCurriculumFactorT_);
-    terrain_curriculum_ = iter * (terCurriculumFactor_*0.5) / 10000.0 + terCurriculumFactor_*0.5; // TODO: better curriculum function, adapt to number of iter
+    terrain_curriculum_ = iter * (terCurriculumFactor_*0.75) / 10000.0 + terCurriculumFactor_*0.25; // TODO: better curriculum function, adapt to number of iter
 
     if(isHeightMap_) {
       //groundType_ = (groundType_+1) % 2;

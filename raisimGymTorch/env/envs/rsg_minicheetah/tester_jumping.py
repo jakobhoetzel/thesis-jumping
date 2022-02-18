@@ -49,8 +49,6 @@ robotState_dim = env.num_robotState
 act_dim = env.num_acts
 sensor_dim = 3
 
-selectedNetwork = None
-
 
 if weight_path == "":
     print("Can't find trained weight, please provide a trained weight with --weight switch\n")
@@ -89,7 +87,10 @@ else:
     env.set_command(command)
     env.curriculum_callback(5000)
     env.reset()
+    selectedNetwork = None
     env.printTest()
+
+    run_bool = None
 
     for step in range(max_steps):
         frame_start = time.time()
@@ -100,7 +101,7 @@ else:
         #     command = np.array([command_Vx, command_Vy, command_yaw], dtype=np.float32)
         #     env.set_command(command)
 
-        obs_run, obs_jump, obs_manager = env.observe(update_mean=False)
+        [obs_run, obs_jump, obs_manager], obs_notNorm = env.observe(update_mean=False)
         obs_estimator = obs_run[:,:ob_dim-sensor_dim]  # as using run estimator
         robotState = env.getRobotState()
         est_out = estimator.architecture(torch.from_numpy(obs_estimator).cpu())
@@ -112,6 +113,7 @@ else:
         dist = Categorical(action_probs)
         bool_manager = dist.sample()
         run_bool = bool_manager.unsqueeze(1)
+        #run_bool = torch.from_numpy(run_bool_function(obs_notNorm, output=True, old_bool=run_bool)) #only test!!!
         previousNetwork = selectedNetwork
         selectedNetwork = bool_manager[0].item()
         jump_bool = torch.add(torch.ones(run_bool.size(), device='cpu'), run_bool, alpha=-1)  # 1-run_bool
@@ -132,6 +134,7 @@ else:
         # f3 = open('estimatedVelocityData.csv', 'a')
         # writer = csv.writer(f3)
         # writer.writerow(est_in[0][0:2].cpu().detach().numpy())
+
         if step==0:
             if selectedNetwork == 0:
                 print("selected network in step ", step, ": jump")

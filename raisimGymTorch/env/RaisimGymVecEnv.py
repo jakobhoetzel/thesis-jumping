@@ -103,7 +103,7 @@ class RaisimGymVecEnv:
                     self.obs_rms_run.update(self._observation)  # slight 'cheat' as only one is in use
                     self.obs_rms_jump.update(self._observation)
 
-            return self._normalize_observation(self._observation)
+            return self._normalize_observation(self._observation), self._observation.copy()
         else:
             return self._observation.copy()
 

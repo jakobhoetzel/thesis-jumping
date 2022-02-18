@@ -3,16 +3,17 @@ from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 
 
 class RolloutStorage:
-    def __init__(self, num_envs, num_transitions_per_env, actor_obs_shape, critic_obs_shape, actions_shape, estimator_input_shape, robotState_shape, device):
+    def __init__(self, num_envs, num_transitions_per_env, actor_run_obs_shape, actor_jump_obs_shape, actor_manager_obs_shape,
+                 critic_obs_shape, actions_shape, estimator_input_shape, robotState_shape, device):
         self.device = device
 
         # Core
         self.critic_run_obs = torch.zeros(num_transitions_per_env, num_envs, *critic_obs_shape, device=self.device)
         self.critic_jump_obs = torch.zeros(num_transitions_per_env, num_envs, *critic_obs_shape, device=self.device)
         self.critic_manager_obs = torch.zeros(num_transitions_per_env, num_envs, *critic_obs_shape, device=self.device)
-        self.actor_run_obs = torch.zeros(num_transitions_per_env, num_envs, *actor_obs_shape, device=self.device)
-        self.actor_jump_obs = torch.zeros(num_transitions_per_env, num_envs, *actor_obs_shape, device=self.device)
-        self.actor_manager_obs = torch.zeros(num_transitions_per_env, num_envs, *actor_obs_shape, device=self.device)
+        self.actor_run_obs = torch.zeros(num_transitions_per_env, num_envs, *actor_run_obs_shape, device=self.device)
+        self.actor_jump_obs = torch.zeros(num_transitions_per_env, num_envs, *actor_jump_obs_shape, device=self.device)
+        self.actor_manager_obs = torch.zeros(num_transitions_per_env, num_envs, *actor_manager_obs_shape, device=self.device)
         self.estimator_input = torch.zeros(num_transitions_per_env, num_envs, *estimator_input_shape, device=self.device)
         self.robotState = torch.zeros(num_transitions_per_env, num_envs, *robotState_shape, device=self.device)
         self.rewards = torch.zeros(num_transitions_per_env, num_envs, 1, device=self.device)
