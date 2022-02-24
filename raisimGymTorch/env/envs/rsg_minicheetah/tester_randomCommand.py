@@ -62,20 +62,21 @@ else:
     start_step_id = 0
 
     print("Visualizing and evaluating the policy: ", weight_path)
-    actor = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, act_dim)
+    actor = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim - sensor_dim + robotState_dim, act_dim)
     actor.load_state_dict(torch.load(weight_path)['actor_architecture_state_dict'])
     print('actor of {} parameters'.format(sum(p.numel() for p in actor.parameters())))
 
     estimator = ppo_module.MLP(cfg['architecture']['estimator_net'], torch.nn.LeakyReLU,ob_dim - sensor_dim,robotState_dim)
     estimator.load_state_dict(torch.load(weight_path)['estimator_architecture_state_dict'])
 
-    env.load_scaling(weight_dir, int(iteration_number))
+    env.load_scaling(weight_dir, int(iteration_number), weight_dir, int(iteration_number), weight_dir, int(iteration_number), 1e8) # 1e8 -> less disruption when retraining
     env.turn_on_visualization()
     env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy.mp4")
     time.sleep(2)
 
     max_steps = 1000000
     ##max_steps = 400 ## 10 secs
+    env.curriculum_callback(10000)
 
     for step in range(max_steps):
         frame_start = time.time()
@@ -87,26 +88,26 @@ else:
             command = np.array([command_Vx, command_Vy, command_yaw], dtype=np.float32)
             env.set_command(command)
 
-        obs = env.observe(False)
+        [obs, _, _], _ = env.observe(update_mean=False)
         obs_estimator = obs[:,:ob_dim-sensor_dim]
         robotState = env.getRobotState()
         # robotState = np.ones((cfg['environment']['num_envs'],robotState_dim), dtype=np.float32)  # for checking
         est_out = estimator.architecture(torch.from_numpy(obs_estimator).cpu())
-        concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
+        concatenated_obs_actor = np.concatenate((obs_estimator, est_out.cpu().detach().numpy()), axis=1)
         action_ll = actor.architecture(torch.from_numpy(concatenated_obs_actor).cpu())
-        reward_ll, dones = env.step(action_ll.cpu().detach().numpy())
+        reward_ll, dones = env.step(action_ll.cpu().detach().numpy(), run_bool=np.ones(shape=(cfg['environment']['num_envs'], 1), dtype=np.intc), manager_training=False)
 
-        f1 = open('randomCommandData.csv', 'a')
-        writer = csv.writer(f1)
-        writer.writerow([command[0][0], command[1][0], command[2][0]])
-
-        f2 = open('velocityData.csv', 'a')
-        writer = csv.writer(f2)
-        writer.writerow([*robotState[0][0:2], obs[0][17]])
-
-        f3 = open('estimatedVelocityData.csv', 'a')
-        writer = csv.writer(f3)
-        writer.writerow(est_out[0][0:2].cpu().detach().numpy())
+        # f1 = open('randomCommandData.csv', 'a')
+        # writer = csv.writer(f1)
+        # writer.writerow([command[0][0], command[1][0], command[2][0]])
+        #
+        # f2 = open('velocityData.csv', 'a')
+        # writer = csv.writer(f2)
+        # writer.writerow([*robotState[0][0:2], obs[0][17]])
+        #
+        # f3 = open('estimatedVelocityData.csv', 'a')
+        # writer = csv.writer(f3)
+        # writer.writerow(est_out[0][0:2].cpu().detach().numpy())
 
         reward_ll_sum = reward_ll_sum + reward_ll[0]
         if dones or step == max_steps - 1:

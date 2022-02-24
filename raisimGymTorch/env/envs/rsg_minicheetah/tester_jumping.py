@@ -47,7 +47,7 @@ env = VecEnv(rsg_minicheetah.RaisimGymEnv(home_path + "/rsc", dump(cfg['environm
 ob_dim = env.num_obs
 robotState_dim = env.num_robotState
 act_dim = env.num_acts
-sensor_dim = 3
+sensor_dim = 2
 
 
 if weight_path == "":
@@ -66,7 +66,7 @@ else:
     print("Visualizing and evaluating the policy: ", weight_path)
     actor_run = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, act_dim)
     actor_jump = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, act_dim)
-    actor_manager = ppo_module.MLP(cfg['architecture']['manager_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, 2, softmax=True)
+    actor_manager = ppo_module.MLP(cfg['architecture']['manager_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim + 1, 2, softmax=True)
     actor_run.load_state_dict(torch.load(weight_path)['actor_run_architecture_state_dict'])
     actor_jump.load_state_dict(torch.load(weight_path)['actor_jump_architecture_state_dict'])
     actor_manager.load_state_dict(torch.load(weight_path)['actor_manager_architecture_state_dict'])
@@ -90,7 +90,7 @@ else:
     selectedNetwork = None
     env.printTest()
 
-    run_bool = None
+    run_bool = np.ones(shape=(cfg['environment']['num_envs'], 1), dtype=np.intc)
 
     for step in range(max_steps):
         frame_start = time.time()
@@ -107,7 +107,7 @@ else:
         est_out = estimator.architecture(torch.from_numpy(obs_estimator).cpu())
         concatenated_obs_actor_run = np.concatenate((obs_run, est_out.cpu().detach().numpy()), axis=1)
         concatenated_obs_actor_jump = np.concatenate((obs_jump, est_out.cpu().detach().numpy()), axis=1)
-        concatenated_obs_actor_manager = np.concatenate((obs_manager, est_out.cpu().detach().numpy()), axis=1)
+        concatenated_obs_actor_manager = np.concatenate((obs_manager, est_out.cpu().detach().numpy(), np.float32(run_bool)), axis=1)
 
         action_probs = actor_manager.architecture(torch.from_numpy(concatenated_obs_actor_manager).cpu())
         dist = Categorical(action_probs)

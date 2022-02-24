@@ -73,7 +73,7 @@ class ENVIRONMENT {
     else {
       world_->addGround();
       xPos_Hurdles_ = uniDist_(gen_)*0.5 + 5.0;
-      auto hurdle1_ = world_->addBox(0.1, 20, terrain_curriculum_, 100000); //x, y, z length, mass change also in reset
+      auto hurdle1_ = world_->addBox(0.1, 500, terrain_curriculum_, 100000); //x, y, z length, mass change also in reset
       hurdle1_->setPosition(xPos_Hurdles_, 0, terrain_curriculum_/2.0); //pos of cog
       hurdle1_->setOrientation(1., 0, 0, 0); //quaternion
       hurdle1_->setName("hurdle1");
@@ -106,7 +106,7 @@ class ENVIRONMENT {
     auto hurdle1_ = world_->getObject("hurdle1");
     xPos_Hurdles_ = uniDist_(gen_)*0.5 + 5.0;
     world_->removeObject(hurdle1_);
-    auto hurdle2_ = world_->addBox(0.1, 10, terrain_curriculum_, 100000); //x, y, z length, mass; change also in init
+    auto hurdle2_ = world_->addBox(0.1, 500, terrain_curriculum_, 100000); //x, y, z length, mass; change also in init
     hurdle2_->setPosition(xPos_Hurdles_, 0, terrain_curriculum_/2.0); //pos of cog
     hurdle2_->setOrientation(1., 0, 0, 0); //quaternion
     hurdle2_->setName("hurdle1");
@@ -154,10 +154,10 @@ class ENVIRONMENT {
     ob = controller_.getObservation().cast<float>();
     //ob.tail(2) = {{terrain_curriculum_, xPos_Hurdles_-ob.tail(1)(0)}}; //height and distance to hurdle
     double dist_obs_next = 0;
-    if ((xPos_Hurdles_-ob.tail(1)(0)) >= 0) { // before hurdle
-      dist_obs_next = std::min( std::max(xPos_Hurdles_-ob.tail(1)(0), 0.0), 8.0); //distance between 0 and 8
-    } else if ((xPos_Hurdles_-ob.tail(1)(0)) >= -0.15){ // above hurdle
-      dist_obs_next = xPos_Hurdles_-ob.tail(1)(0);
+    if ((xPos_Hurdles_-ob.tail(1)(0)-0.15) >= 0) { // head before hurdle
+      dist_obs_next = std::min( std::max(xPos_Hurdles_-ob.tail(1)(0)-0.15, 0.0), 8.0); //distance between 0 and 8
+    } else if ((xPos_Hurdles_-ob.tail(1)(0)-0.15) >= -0.3){ // before landing
+      dist_obs_next = xPos_Hurdles_-ob.tail(1)(0)-0.15;
     } else { // after hurdle
       dist_obs_next = 8; //distance between 0 and 8
     }

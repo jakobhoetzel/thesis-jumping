@@ -86,6 +86,11 @@ class MinicheetahController {
     jointPosErrorHist_.setZero(nJoints_ * historyLength_); jointVelHist_.setZero(nJoints_ * historyLength_);
     historyTempMem_.setZero(nJoints_ * historyLength_);
     jointFrictions_.setZero(nJoints_);
+    footOverHurdles = {false, false, false, false};
+    maxBodyHeight_ = 0.0;
+    maxXPos_ = 0.0;
+    startNetwork_ = -1; // -1 to show it's not yet initialized
+    networkEverChanged_ = false;
 
     /// action scaling
     actionMean_ = gc_init_.tail(nJoints_);
@@ -264,9 +269,11 @@ class MinicheetahController {
 
     for(int i=0; i<4; i++) airTime_[i] = 0;
     for(int i=0; i<4; i++) stanceTime_[i] = 0;
-    maxBodyHeight_ = 0;
+    maxBodyHeight_ = 0.0;
     startNetwork_ = -1; // -1 to show it's not yet initialized
     networkEverChanged_ = false;
+    maxXPos_ = 0.0;
+    footOverHurdles = {false, false, false, false};
 
     return true;
   }
@@ -345,22 +352,30 @@ class MinicheetahController {
     }
 
     /// A variable for hurdles reward calculation
-    bool hurdlesVar = 0;
-    if (std::abs(gc_[0]) >= 0.05 ){
-        hurdlesVar = 1;
+    double hurdlesVar = 0;
+    double footContactNumber = std::accumulate(footContactState_.begin(), footContactState_.end(),0); //number of feet touching the ground
+    if (gc_[0] >= xPosHurdles && maxXPos_ < xPosHurdles && footContactNumber == 0){ // get reward once when above hurdle
+      hurdlesVar = 1.0 + gc_[2]/2;
+    } else if ( gc_[0] >= xPosHurdles + 0.14 && maxXPos_ < xPosHurdles + 0.14 ){  // get reward once when behind
+      hurdlesVar = 1.0;
     }
+    maxXPos_ = std::max(maxXPos_, gc_[0]);
 
     /// A variable for hurdles reward calculation
     maxBodyHeight_ = std::max(maxBodyHeight_, gc_[2]);
     maxBodyHeight_ = std::max(maxBodyHeight_, 0.2);
 
     /// A variable to calculate the symmetry of the motion ("cheetah instead of horse")
-    double symmetryCoeff = (gc_.segment(7, 3) - gc_.segment(10, 3)).norm() + (gc_.segment(13, 3) - gc_.segment(16, 3)).norm();
-    /// order: RF - LF - RH - LH
+    Eigen::Vector3d anglesRF = gc_.segment(7, 3); /// order: RF - LF - RH - LH
+    Eigen::Vector3d anglesLF = gc_.segment(10, 3);
+    anglesLF[0] = -anglesLF[0]; // HAA joint angles must have different sign to be symmetric
+    Eigen::Vector3d anglesRH = gc_.segment(13, 3);
+    Eigen::Vector3d anglesLH = gc_.segment(16, 3);
+    anglesLH[0] = -anglesLH[0];
+    double symmetryCoeff = (anglesRF - anglesLF).norm() + (anglesRH - anglesLH).norm();
 
     /// A variable to reward the correct touching of the ground
     double footContactVar;
-    double footContactNumber = std::accumulate(footContactState_.begin(), footContactState_.end(),0); //number of feet touching the ground
     if (footContactNumber == 0 || footContactNumber == 1){ //zero or one foot on the ground
       footContactVar = -1; // good due to multiplication with negative coefficient
     }
@@ -394,7 +409,7 @@ class MinicheetahController {
     // curriculum factor in negative reward
     double rewBodyAngularVel = std::exp(-1.5 * pow((command_(2) - bodyAngularVel_(2)), 2)) * rewardCoeff.at(RewardType::ANGULARVELOCIY1);
 //    double rewLinearVel = std::exp(-1.0 * (command_.head(2) - bodyLinearVel_.head(2)).squaredNorm()) * rewardCoeff.at(RewardType::VELOCITY1);
-    double rewLinearVel = std::exp(0.4 * std::min(bodyLinearVel_[0],3.5)) * rewardCoeff.at(RewardType::VELOCITY1); //max reward limited
+    double rewLinearVel = std::exp(0.4 * std::min(bodyLinearVel_[0],3.5) - 0.4*std::abs(bodyLinearVel_[1])) * rewardCoeff.at(RewardType::VELOCITY1); //max reward limited
     double rewAirTime = airtimeTotal * rewardCoeff.at(RewardType::AIRTIME);
     double rewHurdles = hurdlesVar * rewardCoeff.at(RewardType::HURDLES);
     double rewNetworkChange = networkChangeVar * rewardCoeff.at(RewardType::NETWORKCHANGE) * managerTraining;
@@ -598,6 +613,7 @@ class MinicheetahController {
   Eigen::Vector3d bodyLinearVel_, bodyAngularVel_;
   std::vector<size_t> footIndices_;
   std::array<bool, 4> footContactState_;
+  std::array<bool, 4> footOverHurdles;
   std::vector<raisim::Vec<3>> footPos_, footVel_;
   std::vector<size_t> footFrameIndices_;
   int obDim_=0, actionDim_=0, robotStateDim_;
@@ -613,9 +629,9 @@ class MinicheetahController {
   Eigen::Vector3d command_;
   bool standingMode_;
   bool isHeightMap_;
-  double maxBodyHeight_ = 0;
+  double maxBodyHeight_,  maxXPos_;
   bool networkSelection_, previousNetworkSelection_, networkEverChanged_;
-  int startNetwork_ = -1; // -1 to show it's not yet initialized
+  int startNetwork_;
 
   thread_local static std::mt19937 gen_;
   thread_local static std::normal_distribution<double> normDist_;

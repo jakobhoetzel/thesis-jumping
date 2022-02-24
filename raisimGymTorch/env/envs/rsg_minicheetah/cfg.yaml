@@ -3,8 +3,8 @@ seed: 1
 environment:
   isHeightMap: False #True
   render: True
-  num_envs: 5 # 800
-  eval_every_n: 500 # 500
+  num_envs: 800 # 800
+  eval_every_n: 250 # 500
   num_threads: 36 # 128
   simulation_dt: 0.002 #     0.001
   control_dt: 0.01
@@ -14,25 +14,25 @@ environment:
   com_curriculum_factor1: 0.002
   com_curriculum_factor2: 1000
   com_curriculum_factor3: 2.5
-  ter_curriculum_factor: 0.25 #max height of hurdles, change in Environment also for tester
+  ter_curriculum_factor: 0.3 #max height of hurdles, change in Environment also for tester
   reward:
     bodyAngularVelCoeff1: 3 #1.5   3
     forwardVelCoeff1: 4 #3    3
     airTimeCoeff: 0.3 # 1.2      0.3
-    hurdlesCoeff: 100 #
+    hurdlesCoeff: 5000 #
     torqueCoeff: -6.e-4 #-2.e-5    -6.e-4
     jointSpeedCoeff: -6.e-4 #-3.25e-3        -6.e-4 
     footSlipCoeff: -8.e-2 #          -8.e-2
-    bodyOriCoeff: -0.1 #-5.0        -3.0
+    bodyOriCoeff: -0.5 #-5.0        -3.0
     smoothnessCoeff1: -0.1 #-5.0      -2.5
     smoothnessCoeff2: -0.1 #-1.6     -1.2
     jointPosCoeff: -0.75 #     -0.75
     jointAccCoeff: -2.e-2 #-3e-2      -2.e-2
     baseMotionCoeff: -0.1  #         -1.5
-    footClearanceCoeff: -15.0 #-10.0    -15
+    footClearanceCoeff: -2.0 #-10.0    -15
     symmetryCoeff: -5.0
-    bodyHeightCoeff: -0.002
-    footContactCoeff: -0.001
+    bodyHeightCoeff: -0.0 #-0.002, removed because not Markov
+    footContactCoeff: -0.05
     networkChangeCoeff: 25.0
     noNetworkChangeCoeff: -10.0
 

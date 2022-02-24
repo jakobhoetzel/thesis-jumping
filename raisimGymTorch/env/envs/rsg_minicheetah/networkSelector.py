@@ -4,6 +4,8 @@ import torch
 
 
 def run_bool_function(obs_, output=False, old_bool=None):
+    """ selects jump network when close to hurdle, selects jump otherwise
+    used when manager network is untrained"""
     run_bool_next = obs_[:,-2:-1].reshape(-1,1) > 0.7
     run_bool_last = obs_[:,-1:].reshape(-1,1) < -0.3
     run_bool = np.logical_and(run_bool_next, run_bool_last)

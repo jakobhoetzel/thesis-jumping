@@ -4,6 +4,7 @@ from adamp import AdamP
 
 
 def identity_learning(actor_manager, obs, guideline, device):
+    """ Trains untrained actor network with imitation learning to select jump network close to hurdle """
 
     criterion = torch.nn.MSELoss(reduction='sum')
     optimizer = AdamP(actor_manager.parameters(), lr=5e-2) #5e-4

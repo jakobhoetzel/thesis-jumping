@@ -44,7 +44,7 @@ class PPO:
         self.critic_jump = critic_jump
         self.critic_manager = critic_manager
         self.estimator = estimator
-        self.storage = RolloutStorage(num_envs, num_transitions_per_env, actor_run.obs_shape, actor_jump.obs_shape, actor_manager.obs_shape, critic_run.obs_shape, actor_run.action_shape, estimator.input_shape, estimator.output_shape, device)
+        self.storage = RolloutStorage(num_envs, num_transitions_per_env, actor_run.obs_shape, actor_jump.obs_shape, actor_manager.obs_shape, critic_run.obs_shape, critic_manager.obs_shape, actor_run.action_shape, estimator.input_shape, estimator.output_shape, device)
 
         if shuffle_batch:
             self.batch_sampler = self.storage.mini_batch_generator_shuffle
