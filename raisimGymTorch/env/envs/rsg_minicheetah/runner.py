@@ -54,11 +54,11 @@ home_path = task_path + "/../../../.."
 cfg = YAML().load(open(task_path + "/cfg.yaml", 'r'))
 
 # if runNumber == 0:
-#     cfg['environment']['ter_curriculum_factor'] = 0.0
+#     cfg['environment']['ter_curriculum_factor'] = 0.35
 # elif runNumber == 1:
-#     cfg['environment']['ter_curriculum_factor'] = 0.2
-# elif runNumber == 2:
 #     cfg['environment']['ter_curriculum_factor'] = 0.4
+# elif runNumber == 2:
+#     cfg['environment']['ter_curriculum_factor'] = 0.45
 
 # create environment from the configuration file
 env = VecEnv(rsg_minicheetah.RaisimGymEnv(home_path + "/rsc", dump(cfg['environment'], Dumper=RoundTripDumper)), cfg['environment'])
@@ -84,7 +84,7 @@ avg_rewards = []
 savedWeights_run = torch.load(weight_path_run)['actor_architecture_state_dict']['architecture.0.weight']
 savedWeights_run_obs = savedWeights_run[:, :ob_dim-sensor_dim]  # no sensor data in standard running
 savedWeights_run_robotState = savedWeights_run[:, -robotState_dim:]
-addedWeights_run = torch.randn(512,sensor_dim,device=device)*0.000001*0  # add nodes with low weights for sensor
+addedWeights_run = torch.randn(512,sensor_dim,device=device)*0.000001  # add nodes with low weights for sensor
 combinedWeights_run = torch.cat([savedWeights_run_obs, addedWeights_run, savedWeights_run_robotState], dim=1)
 savedDict_run = torch.load(weight_path_run)['actor_architecture_state_dict']
 savedDict_run['architecture.0.weight'] = torch.nn.Parameter(combinedWeights_run)
@@ -211,7 +211,7 @@ for update in range(max_iteration):
 
         env.turn_on_visualization()
         env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy_"+str(update)+'.mp4')
-        time.sleep(1)
+        time.sleep(2) #1
 
         for step in range(n_steps*1):  # n_steps*2
             frame_start = time.time()
@@ -227,7 +227,11 @@ for update in range(max_iteration):
             # concatenated_obs_critic_manager = np.concatenate((obs_manager, robotState), axis=1)
             action, run_bool = ppo.observe(concatenated_obs_actor_run, concatenated_obs_actor_jump, concatenated_obs_actor_manager)
             if update <= 1000:
-                run_bool = run_bool_function(obs_notNorm, output=False, old_bool=None)
+                if step ==0:
+                    old_bool=None
+                run_bool = run_bool_function(obs_notNorm, output=True, old_bool=old_bool)
+                action, _ = ppo.observe(concatenated_obs_actor_run, concatenated_obs_actor_jump, concatenated_obs_actor_manager, run_bool)
+                old_bool = run_bool
 
             # action_ll, _ = actor.sample(torch.from_numpy(concatenated_obs_actor).to(device))  # stochastic action
             # action_ll = loaded_graph.architecture(torch.from_numpy(obs).cpu())
@@ -268,6 +272,7 @@ for update in range(max_iteration):
         action, run_bool = ppo.observe(concatenated_obs_actor_run, concatenated_obs_actor_jump, concatenated_obs_actor_manager)
         if update <= 1000:
             run_bool = run_bool_function(obs_notNorm, output=False, old_bool=None)
+            action, _ = ppo.observe(concatenated_obs_actor_run, concatenated_obs_actor_jump, concatenated_obs_actor_manager, run_bool)
             loss_IL_sum += IL.identity_learning(actor_manager=actor_manager, guideline=run_bool, obs=concatenated_obs_actor_manager, device=device)
 
         reward, dones = env.step(action, run_bool, ppo.manager_training)
@@ -331,10 +336,10 @@ for update in range(max_iteration):
     print('{:<40} {:>6}'.format("fps: ", '{:6.0f}'.format(total_steps / (end - start))))
     print('{:<40} {:>6}'.format("real time factor: ", '{:6.0f}'.format(total_steps / (end - start)
                                                                        * cfg['environment']['control_dt'])))
-    print('std: ')
-    print(np.exp(actor_run.distribution.std.cpu().detach().numpy()))
-    print(np.exp(actor_jump.distribution.std.cpu().detach().numpy()))
-    print('----------------------------------------------------\n')
+    # print('std: ')
+    # print(np.exp(actor_run.distribution.std.cpu().detach().numpy()))
+    # print(np.exp(actor_jump.distribution.std.cpu().detach().numpy()))
+    # print('----------------------------------------------------\n')
 
     if update <= 1000:
         print('loss IL: ', loss_IL_sum/n_steps)

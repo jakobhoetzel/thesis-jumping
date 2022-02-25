@@ -91,12 +91,15 @@ class PPO:
         self.run_bool = None
         self.jump_bool = None
 
-    def observe(self, actor_obs_run, actor_obs_jump, actor_obs_manager):  # run_bool = 1 when running network active; run_bool = 0 when jumping network active
+    def observe(self, actor_obs_run, actor_obs_jump, actor_obs_manager, run_bool_input=None):  # run_bool = 1 when running network active; run_bool = 0 when jumping network active
         self.actor_obs_run = actor_obs_run
         self.actor_obs_jump = actor_obs_jump
         self.actor_obs_manager = actor_obs_manager
-        bool_manager, actions_log_prob_manager = self.actor_manager.sample(torch.from_numpy(actor_obs_manager).to(self.device))
-        self.run_bool = bool_manager.unsqueeze(1)
+        if run_bool_input is None:
+            bool_manager, actions_log_prob_manager = self.actor_manager.sample(torch.from_numpy(actor_obs_manager).to(self.device))
+            self.run_bool = bool_manager.unsqueeze(1)
+        else:
+            self.run_bool = torch.from_numpy(run_bool_input).to(self.device)
         self.jump_bool = torch.add(torch.ones(self.run_bool.size(), device=self.device), self.run_bool, alpha=-1)  # 1-run_bool
 
         actions_run, actions_run_log_prob = self.actor_run.sample(torch.from_numpy(actor_obs_run).to(self.device))

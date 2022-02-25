@@ -81,16 +81,17 @@ else:
     env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy.mp4")
     time.sleep(2)
 
-    max_steps = 1000000
-    ##max_steps = 400 ## 10 secs
+    # max_steps = 1000000
+    max_steps = 400 ## 10 secs
     command = np.array([4.0, 0, 0], dtype=np.float32)
     env.set_command(command)
-    env.curriculum_callback(5000)
+    env.curriculum_callback(0)
     env.reset()
     selectedNetwork = None
     env.printTest()
 
     run_bool = np.ones(shape=(cfg['environment']['num_envs'], 1), dtype=np.intc)
+    # run_bool = None
 
     for step in range(max_steps):
         frame_start = time.time()
@@ -113,7 +114,7 @@ else:
         dist = Categorical(action_probs)
         bool_manager = dist.sample()
         run_bool = bool_manager.unsqueeze(1)
-        #run_bool = torch.from_numpy(run_bool_function(obs_notNorm, output=True, old_bool=run_bool)) #only test!!!
+        # run_bool = torch.from_numpy(run_bool_function(obs_notNorm, output=True, old_bool=run_bool)) #only test!!!
         previousNetwork = selectedNetwork
         selectedNetwork = bool_manager[0].item()
         jump_bool = torch.add(torch.ones(run_bool.size(), device='cpu'), run_bool, alpha=-1)  # 1-run_bool
@@ -139,11 +140,14 @@ else:
             if selectedNetwork == 0:
                 print("selected network in step ", step, ": jump")
             else:
-                print("selected network in step ", step, ":")
+                print("selected network in step ", step, ": run")
         elif previousNetwork == 0 and selectedNetwork == 1:
             print("changed network in step ", step, ": jump -> run")
         elif previousNetwork == 1 and selectedNetwork == 0:
             print("changed network in step ", step, ": run -> jump")
+
+        if selectedNetwork == 0:
+            print("jump selected")
 
         reward_ll_sum = reward_ll_sum + reward_ll[0]
         if dones or step == max_steps - 1:
@@ -158,6 +162,7 @@ else:
         wait_time = cfg['environment']['control_dt'] - (frame_end-frame_start)
         if wait_time > 0.:
             time.sleep(wait_time)
+        # time.sleep(0.05) #0.05
 
     env.stop_video_recording()
     env.turn_off_visualization()

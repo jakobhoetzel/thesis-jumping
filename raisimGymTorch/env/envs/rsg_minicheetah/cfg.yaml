@@ -8,13 +8,13 @@ environment:
   num_threads: 36 # 128
   simulation_dt: 0.002 #     0.001
   control_dt: 0.01
-  max_time: 6.0 # 4.0
+  max_time: 4.0 # 4.0
   rew_curriculum_factor: 1
   rew_curriculum_rate: 0.9998
   com_curriculum_factor1: 0.002
   com_curriculum_factor2: 1000
   com_curriculum_factor3: 2.5
-  ter_curriculum_factor: 0.3 #max height of hurdles, change in Environment also for tester
+  ter_curriculum_factor: 0.4 #max height of hurdles, change in Environment also for tester
   reward:
     bodyAngularVelCoeff1: 3 #1.5   3
     forwardVelCoeff1: 4 #3    3

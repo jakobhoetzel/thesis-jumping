@@ -34,7 +34,7 @@ iteration_number = weight_path.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)
 weight_dir = weight_path.rsplit('/', 1)[0] + '/'
 
 # config
-cfg = YAML().load(open(weight_dir + "/cfg.yaml", 'r'))
+cfg = YAML().load(open(task_path + "/cfg.yaml", 'r'))
 
 # create environment from the configuration file
 cfg['environment']['num_envs'] = 1
@@ -69,7 +69,7 @@ else:
     estimator = ppo_module.MLP(cfg['architecture']['estimator_net'], torch.nn.LeakyReLU,ob_dim - sensor_dim,robotState_dim)
     estimator.load_state_dict(torch.load(weight_path)['estimator_architecture_state_dict'])
 
-    env.load_scaling(weight_dir, int(iteration_number), weight_dir, int(iteration_number), weight_dir, int(iteration_number), 1e8) # 1e8 -> less disruption when retraining
+    env.load_scaling(weight_dir, int(iteration_number), weight_dir, int(iteration_number), weight_dir, int(iteration_number), one_directory=True)
     env.turn_on_visualization()
     env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy.mp4")
     time.sleep(2)
@@ -91,7 +91,7 @@ else:
         [obs, _, _], _ = env.observe(update_mean=False)
         obs_estimator = obs[:,:ob_dim-sensor_dim]
         robotState = env.getRobotState()
-        # robotState = np.ones((cfg['environment']['num_envs'],robotState_dim), dtype=np.float32)  # for checking
+        robotState = np.ones((cfg['environment']['num_envs'],robotState_dim), dtype=np.float32)  # for checking
         est_out = estimator.architecture(torch.from_numpy(obs_estimator).cpu())
         concatenated_obs_actor = np.concatenate((obs_estimator, est_out.cpu().detach().numpy()), axis=1)
         action_ll = actor.architecture(torch.from_numpy(concatenated_obs_actor).cpu())

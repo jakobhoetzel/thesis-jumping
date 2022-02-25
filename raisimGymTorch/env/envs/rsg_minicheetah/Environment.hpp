@@ -200,6 +200,7 @@ class ENVIRONMENT {
   void setSeed(int seed) {
     controller_.setSeed(seed);
     terrainGenerator_.setSeed(seed);
+    gen_.seed(seed);
     //groundType_ = seed % 2;
   };
   ////////////////////////////////

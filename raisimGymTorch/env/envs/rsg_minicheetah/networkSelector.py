@@ -6,18 +6,19 @@ import torch
 def run_bool_function(obs_, output=False, old_bool=None):
     """ selects jump network when close to hurdle, selects jump otherwise
     used when manager network is untrained"""
-    run_bool_next = obs_[:,-2:-1].reshape(-1,1) > 0.7
-    run_bool_last = obs_[:,-1:].reshape(-1,1) < -0.3
-    run_bool = np.logical_and(run_bool_next, run_bool_last)
+    run_bool = obs_[:,-1:].reshape(-1,1) > 0.65  # select jump network when observation shows robot close to hurdle
+    # see observe in environment for definition
 
     # if not run_bool_last or not run_bool_next:
     #     time.sleep(0.1)
 
     if output:
         if old_bool is not None:
-            if (old_bool.cpu().numpy().reshape(-1,1)[0,0] is np.bool_(True)) and (run_bool[0,0] is np.bool_(False)):
+            if (old_bool.reshape(-1,1)[0,0] is np.bool_(True)) and (run_bool[0,0] is np.bool_(False)):
+            # if (old_bool.cpu().numpy().reshape(-1,1)[0,0] is np.bool_(True)) and (run_bool[0,0] is np.bool_(False)):
                 print("switch run -> jump")
-            elif (old_bool.cpu().numpy().reshape(-1,1)[0,0] is np.bool_(False)) and (run_bool[0,0] is np.bool_(True)):
+            # elif (old_bool.cpu().numpy().reshape(-1,1)[0,0] is np.bool_(False)) and (run_bool[0,0] is np.bool_(True)):
+            elif (old_bool.reshape(-1,1)[0,0] is np.bool_(False)) and (run_bool[0,0] is np.bool_(True)):
                 print("switch jump -> run")
         else:
             if run_bool[0,0] is np.bool_(False):
