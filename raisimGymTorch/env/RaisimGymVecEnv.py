@@ -23,7 +23,7 @@ class RaisimGymVecEnv:
         self.num_acts = self.wrapper.getActionDim()
         self._observation = np.zeros([self.num_envs, self.num_obs], dtype=np.float32)
         self._robotState = np.zeros([self.num_envs, self.num_robotState], dtype=np.float32)
-        self.obs_rms_run = RunningMeanStd(shape=[self.num_envs, self.num_obs])
+        self.obs_rms = RunningMeanStd(shape=[self.num_envs, self.num_obs])
         self._reward = np.zeros(self.num_envs, dtype=np.float32)
         self._done = np.zeros(self.num_envs, dtype=np.bool)
         self.rewards = [[] for _ in range(self.num_envs)]
@@ -50,30 +50,26 @@ class RaisimGymVecEnv:
         self.wrapper.step(action, self._reward, self._done)
         return self._reward.copy(), self._done.copy()
 
-    def load_scaling(self, dir_name_run, iteration_run, count=1e5, one_directory=True):
-        if one_directory:
-            mean_file_name_run = dir_name_run + "/mean" + str(iteration_run) + ".csv"
-            var_file_name_run = dir_name_run + "/var" + str(iteration_run) + ".csv"
-        else:
-            mean_file_name_run = dir_name_run + "/meanRun" + str(iteration_run) + ".csv"
-            var_file_name_run = dir_name_run + "/varRun" + str(iteration_run) + ".csv"
-        self.obs_rms_run.count = count
+    def load_scaling(self, dir_name, iteration, count=1e5):
+        mean_file_name = dir_name + "/mean" + str(iteration) + ".csv"
+        var_file_name = dir_name + "/var" + str(iteration) + ".csv"
+        self.obs_rms.count = count
         for i in range(self.num_envs):
-            self.obs_rms_run.mean[i] = np.loadtxt(mean_file_name_run, dtype=np.float32)
-            self.obs_rms_run.var[i] = np.loadtxt(var_file_name_run, dtype=np.float32)
+            self.obs_rms.mean[i] = np.loadtxt(mean_file_name, dtype=np.float32)
+            self.obs_rms.var[i] = np.loadtxt(var_file_name, dtype=np.float32)
 
     def save_scaling(self, dir_name, iteration):
-        mean_file_name_run = dir_name + "/meanRun" + iteration + ".csv"
-        var_file_name_run = dir_name + "/varRun" + iteration + ".csv"
-        np.savetxt(mean_file_name_run, self.obs_rms_run.mean[0])
-        np.savetxt(var_file_name_run, self.obs_rms_run.var[0])
+        mean_file_name = dir_name + "/mean" + iteration + ".csv"
+        var_file_name = dir_name + "/var" + iteration + ".csv"
+        np.savetxt(mean_file_name, self.obs_rms.mean[0])
+        np.savetxt(var_file_name, self.obs_rms.var[0])
 
     def observe(self, update_mean=True):
         self.wrapper.observe(self._observation)
 
         if self.normalize_ob:
             if update_mean:
-                self.obs_rms_run.update(self._observation)  # slight 'cheat' as only one is in use
+                self.obs_rms.update(self._observation)
 
             return self._normalize_observation(self._observation)
         else:
@@ -89,9 +85,9 @@ class RaisimGymVecEnv:
 
     def _normalize_observation(self, obs):
         if self.normalize_ob:
-            obs_run = np.clip((obs - self.obs_rms_run.mean) / np.sqrt(self.obs_rms_run.var + 1e-8), -self.clip_obs,
-                              self.clip_obs)
-            return obs_run
+
+            return np.clip((obs - self.obs_rms.mean) / np.sqrt(self.obs_rms.var + 1e-8), -self.clip_obs,
+                           self.clip_obs)
         else:
             return obs
 

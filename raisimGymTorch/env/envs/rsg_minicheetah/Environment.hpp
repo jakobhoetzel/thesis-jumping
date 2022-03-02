@@ -182,7 +182,7 @@ class ENVIRONMENT {
     rewCurriculumFactor_ = 1 - rewCurriculumFactor2_;
     comCurriculumFactorT_ = 1 + comCurriculumFactor3_ / (1 + std::exp(-comCurriculumFactor1_ * (iter - comCurriculumFactor2_)));
     comCurriculumFactorT_ = std::fmax(1., comCurriculumFactorT_);
-    terrain_curriculum_ = iter * (terCurriculumFactor_*0.75) / 10000.0 + terCurriculumFactor_*0.25; // TODO: better curriculum function, adapt to number of iter
+    terrain_curriculum_ = iter * (terCurriculumFactor_*0.75) / 5000.0 + terCurriculumFactor_*0.25;
 
     if(isHeightMap_) {
       //groundType_ = (groundType_+1) % 2;

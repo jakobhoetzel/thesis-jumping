@@ -1,7 +1,7 @@
 import torch.nn as nn
 import numpy as np
 import torch
-from torch.distributions import Normal, Categorical
+from torch.distributions import Normal
 
 
 class Actor:
@@ -28,52 +28,6 @@ class Actor:
 
     def noiseless_action(self, obs):
         return self.architecture.architecture(torch.from_numpy(obs).to(self.device))
-
-    def save_deterministic_graph(self, file_name, example_input, device='cpu'):
-        transferred_graph = torch.jit.trace(self.architecture.architecture.to(device), example_input)
-        torch.jit.save(transferred_graph, file_name)
-        self.architecture.architecture.to(self.device)
-
-    def deterministic_parameters(self):
-        return self.architecture.parameters()
-
-    @property
-    def obs_shape(self):
-        return self.architecture.input_shape
-
-    @property
-    def action_shape(self):
-        return self.architecture.output_shape
-
-
-class Manager: # https://github.com/nikhilbarhate99/PPO-PyTorch/blob/master/PPO.py
-    def __init__(self, architecture, device='cpu'):
-        super(Manager, self).__init__()
-
-        # self.architecture = nn.Sequential(architecture, nn.Softmax(1))
-        self.architecture = architecture
-        self.architecture.to(device)
-        self.device = device
-
-    def sample(self, obs):
-        # logits = self.architecture.architecture(obs)
-        # actions, log_prob = self.distribution.sample(logits)
-        action_probs = self.architecture.architecture(obs)
-        dist = Categorical(action_probs)
-        action = dist.sample()
-        log_prob = dist.log_prob(action)
-        return action.detach(), log_prob.detach()
-
-    def evaluate(self, obs, run_bool):
-        # action_mean = self.architecture.architecture(obs)
-        action_probs = self.architecture.architecture(obs)
-        dist = Categorical(action_probs)
-        action_logprobs = dist.log_prob(run_bool[:,0])
-        dist_entropy = dist.entropy()
-        return action_logprobs, dist_entropy
-
-    def parameters(self):
-        return [*self.architecture.parameters()]
 
     def save_deterministic_graph(self, file_name, example_input, device='cpu'):
         transferred_graph = torch.jit.trace(self.architecture.architecture.to(device), example_input)
@@ -143,7 +97,7 @@ class StateEstimator:
 
 
 class MLP(nn.Module):
-    def __init__(self, shape, actionvation_fn, input_size, output_size, softmax=False):
+    def __init__(self, shape, actionvation_fn, input_size, output_size):
         super(MLP, self).__init__()
         self.activation_fn = actionvation_fn
         self.shape = shape
@@ -158,8 +112,6 @@ class MLP(nn.Module):
                 scale.append(np.sqrt(2))
 
             modules.append(nn.Linear(shape[-1], output_size))
-            if softmax:
-                modules.append(nn.Softmax(1))
             self.architecture = nn.Sequential(*modules)
             scale.append(np.sqrt(2))
             self.init_weights(self.architecture, scale)

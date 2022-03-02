@@ -11,8 +11,8 @@ from adamp import AdamP
 
 class PPO:
     def __init__(self,
-                 actor_run,
-                 critic_run,
+                 actor,
+                 critic,
                  estimator,
                  num_envs,
                  num_transitions_per_env,
@@ -32,11 +32,11 @@ class PPO:
                  shuffle_batch=True):
 
         # PPO components
-        self.actor_run = actor_run
-        self.critic_run = critic_run
+        self.actor = actor
+        self.critic = critic
         self.estimator = estimator
-        self.storage = RolloutStorage(num_envs, num_transitions_per_env, actor_run.obs_shape, critic_run.obs_shape,
-                                      actor_run.action_shape, estimator.input_shape, estimator.output_shape, device)
+        self.storage = RolloutStorage(num_envs, num_transitions_per_env, actor.obs_shape, critic.obs_shape,
+                                      actor.action_shape, estimator.input_shape, estimator.output_shape, device)
 
         if shuffle_batch:
             self.batch_sampler = self.storage.mini_batch_generator_shuffle
@@ -44,10 +44,7 @@ class PPO:
             self.batch_sampler = self.storage.mini_batch_generator_inorder
 
         # self.optimizer = optim.Adam([*self.actor.parameters(), *self.critic.parameters()], lr=learning_rate)
-        self.optimizer = AdamP([*self.actor_run.parameters(), *self.critic_run.parameters(), *self.estimator.parameters()], lr=learning_rate)
-        # self.optimizer = torch.optim.Adam([
-        #     {'params': self.policy.actor.parameters(), 'lr': lr_actor},
-        #     {'params': self.policy.critic.parameters(), 'lr': lr_critic}])
+        self.optimizer = AdamP([*self.actor.parameters(), *self.critic.parameters(), *self.estimator.parameters()], lr=learning_rate)
         self.device = device
 
         # env parameters
@@ -75,27 +72,21 @@ class PPO:
         # temps
         self.actions = None
         self.actions_log_prob = None
-        self.actor_obs_run = None
+        self.actor_obs = None
 
-    def observe(self, actor_obs_run):
-        self.actor_obs_run = actor_obs_run
-
-        actions_run, actions_run_log_prob = self.actor_run.sample(torch.from_numpy(actor_obs_run).to(self.device))
-        self.actions = actions_run
-
-        self.actions_log_prob = actions_run_log_prob
-
+    def observe(self, actor_obs):
+        self.actor_obs = actor_obs
+        self.actions, self.actions_log_prob = self.actor.sample(torch.from_numpy(actor_obs).to(self.device))
         # self.actions = np.clip(self.actions.numpy(), self.env.action_space.low, self.env.action_space.high)
         return self.actions.cpu().numpy()
 
-    def step(self, value_obs_run, est_obs, robotState, rews, dones):
-        values = self.critic_run.predict(torch.from_numpy(value_obs_run).to(self.device))
-        self.storage.add_transitions(self.actor_obs_run, value_obs_run,
-                                     self.actions, est_obs, robotState, rews, dones, values,
+    def step(self, value_obs, est_in, robotState, rews, dones):
+        values = self.critic.predict(torch.from_numpy(value_obs).to(self.device))
+        self.storage.add_transitions(self.actor_obs, value_obs, self.actions, est_in, robotState, rews, dones, values,
                                      self.actions_log_prob)
 
-    def update(self, value_obs_run, log_this_iteration, update):
-        last_values = self.critic_run.predict(torch.from_numpy(value_obs_run).to(self.device))
+    def update(self, value_obs, log_this_iteration, update):
+        last_values = self.critic.predict(torch.from_numpy(value_obs).to(self.device))
 
         # Learning step
         self.storage.compute_returns(last_values, self.gamma, self.lam)
@@ -107,13 +98,13 @@ class PPO:
 
     def log(self, variables, width=80, pad=28):
         self.tot_timesteps += self.num_transitions_per_env * self.num_envs
+        mean_std = self.actor.distribution.std.mean()
 
         self.writer.add_scalar('Loss/value_function', variables['mean_value_loss'], variables['it'])
         self.writer.add_scalar('Loss/surrogate', variables['mean_surrogate_loss'], variables['it'])
         self.writer.add_scalar('Loss/estimation', variables['mean_estimation_loss'], variables['it'])
         self.writer.add_scalar('Policy/entropy', variables['mean_entropy'], variables['it'])
-        mean_std_run = self.actor_run.distribution.std.mean()
-        self.writer.add_scalar('Policy/mean_noise_std_run', mean_std_run.item(), variables['it'])
+        self.writer.add_scalar('Policy/mean_noise_std', mean_std.item(), variables['it'])
 
     def _train_step(self):
         mean_value_loss = 0
@@ -121,12 +112,12 @@ class PPO:
         mean_estimation_loss = 0
         mean_entropy = 0
         for epoch in range(self.num_learning_epochs):
-            for actor_obs_run_batch, critic_obs_run_batch, actions_batch, target_values_batch, est_in_batch, \
-                robotState_batch, advantages_batch, returns_batch, old_actions_log_prob_batch \
+            for actor_obs_batch, critic_obs_batch, actions_batch, target_values_batch, est_in_batch, robotState_batch, \
+                advantages_batch, returns_batch, old_actions_log_prob_batch \
                     in self.batch_sampler(self.num_mini_batches):
-                actions_log_prob_batch, entropy_batch = self.actor_run.evaluate(actor_obs_run_batch, actions_batch)
-                value_batch = self.critic_run.evaluate(critic_obs_run_batch)
 
+                actions_log_prob_batch, entropy_batch = self.actor.evaluate(actor_obs_batch, actions_batch)
+                value_batch = self.critic.evaluate(critic_obs_batch)
                 estimation_batch = self.estimator.evaluate(est_in_batch)
 
                 # Surrogate loss
@@ -154,7 +145,7 @@ class PPO:
                 # Gradient step
                 self.optimizer.zero_grad()
                 loss.backward()
-                nn.utils.clip_grad_norm_([*self.actor_run.parameters(), *self.critic_run.parameters()], self.max_grad_norm)
+                nn.utils.clip_grad_norm_([*self.actor.parameters(), *self.critic.parameters()], self.max_grad_norm)
                 self.optimizer.step()
 
                 mean_value_loss += value_loss.item()

@@ -83,7 +83,6 @@ class MinicheetahController {
     jointPosErrorHist_.setZero(nJoints_ * historyLength_); jointVelHist_.setZero(nJoints_ * historyLength_);
     historyTempMem_.setZero(nJoints_ * historyLength_);
     jointFrictions_.setZero(nJoints_);
-    footOverHurdles = {false, false, false, false};
     maxBodyHeight_ = 0.0;
     maxXPos_ = 0.0;
 
@@ -262,7 +261,6 @@ class MinicheetahController {
     for(int i=0; i<4; i++) stanceTime_[i] = 0;
     maxBodyHeight_ = 0.0;
     maxXPos_ = 0.0;
-    footOverHurdles = {false, false, false, false};
 
     return true;
   }
@@ -581,7 +579,6 @@ class MinicheetahController {
   Eigen::Vector3d bodyLinearVel_, bodyAngularVel_;
   std::vector<size_t> footIndices_;
   std::array<bool, 4> footContactState_;
-  std::array<bool, 4> footOverHurdles;
   std::vector<raisim::Vec<3>> footPos_, footVel_;
   std::vector<size_t> footFrameIndices_;
   int obDim_=0, actionDim_=0, robotStateDim_;
