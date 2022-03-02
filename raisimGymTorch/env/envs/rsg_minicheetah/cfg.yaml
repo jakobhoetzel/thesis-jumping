@@ -31,11 +31,7 @@ environment:
     baseMotionCoeff: -0.1  #         -1.5
     footClearanceCoeff: -2.0 #-10.0    -15
     symmetryCoeff: -5.0
-    bodyHeightCoeff: -0.0 #-0.002, removed because not Markov
     footContactCoeff: -0.05
-    networkChangeCoeff: 25.0
-    noNetworkChangeCoeff: -10.0
-
 
 architecture:
   policy_net: [512, 256, 64] #512, 256, 64

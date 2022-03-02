@@ -12,11 +12,7 @@ from adamp import AdamP
 class PPO:
     def __init__(self,
                  actor_run,
-                 actor_jump,
-                 actor_manager,
                  critic_run,
-                 critic_jump,
-                 critic_manager,
                  estimator,
                  num_envs,
                  num_transitions_per_env,
@@ -33,18 +29,14 @@ class PPO:
                  use_clipped_value_loss=True,
                  log_dir='run',
                  device='cpu',
-                 shuffle_batch=True,
-                 manager_training=False):
+                 shuffle_batch=True):
 
         # PPO components
         self.actor_run = actor_run
-        self.actor_jump = actor_jump
-        self.actor_manager = actor_manager
         self.critic_run = critic_run
-        self.critic_jump = critic_jump
-        self.critic_manager = critic_manager
         self.estimator = estimator
-        self.storage = RolloutStorage(num_envs, num_transitions_per_env, actor_run.obs_shape, actor_jump.obs_shape, actor_manager.obs_shape, critic_run.obs_shape, critic_manager.obs_shape, actor_run.action_shape, estimator.input_shape, estimator.output_shape, device)
+        self.storage = RolloutStorage(num_envs, num_transitions_per_env, actor_run.obs_shape, critic_run.obs_shape,
+                                      actor_run.action_shape, estimator.input_shape, estimator.output_shape, device)
 
         if shuffle_batch:
             self.batch_sampler = self.storage.mini_batch_generator_shuffle
@@ -52,13 +44,11 @@ class PPO:
             self.batch_sampler = self.storage.mini_batch_generator_inorder
 
         # self.optimizer = optim.Adam([*self.actor.parameters(), *self.critic.parameters()], lr=learning_rate)
-        self.optimizer = AdamP([*self.actor_run.parameters(), *self.actor_jump.parameters(), *self.critic_run.parameters(), *self.critic_jump.parameters(), *self.estimator.parameters()], lr=learning_rate)
-        self.optimizer_manager = AdamP([*self.actor_manager.parameters(), *self.critic_manager.parameters(), *self.estimator.parameters()], lr=learning_rate)
+        self.optimizer = AdamP([*self.actor_run.parameters(), *self.critic_run.parameters(), *self.estimator.parameters()], lr=learning_rate)
         # self.optimizer = torch.optim.Adam([
         #     {'params': self.policy.actor.parameters(), 'lr': lr_actor},
         #     {'params': self.policy.critic.parameters(), 'lr': lr_critic}])
         self.device = device
-        self.manager_training = manager_training
 
         # env parameters
         self.num_transitions_per_env = num_transitions_per_env
@@ -86,66 +76,26 @@ class PPO:
         self.actions = None
         self.actions_log_prob = None
         self.actor_obs_run = None
-        self.actor_obs_jump = None
-        self.actor_obs_manager = None
-        self.run_bool = None
-        self.jump_bool = None
 
-    def observe(self, actor_obs_run, actor_obs_jump, actor_obs_manager, run_bool_input=None):  # run_bool = 1 when running network active; run_bool = 0 when jumping network active
+    def observe(self, actor_obs_run):
         self.actor_obs_run = actor_obs_run
-        self.actor_obs_jump = actor_obs_jump
-        self.actor_obs_manager = actor_obs_manager
-        if run_bool_input is None:
-            bool_manager, actions_log_prob_manager = self.actor_manager.sample(torch.from_numpy(actor_obs_manager).to(self.device))
-            self.run_bool = bool_manager.unsqueeze(1)
-        else:
-            self.run_bool = torch.from_numpy(run_bool_input).to(self.device)
-        self.jump_bool = torch.add(torch.ones(self.run_bool.size(), device=self.device), self.run_bool, alpha=-1)  # 1-run_bool
 
         actions_run, actions_run_log_prob = self.actor_run.sample(torch.from_numpy(actor_obs_run).to(self.device))
-        actions_jump, actions_jump_log_prob = self.actor_jump.sample(torch.from_numpy(actor_obs_jump).to(self.device))
-        self.actions = self.run_bool * actions_run + self.jump_bool * actions_jump
+        self.actions = actions_run
 
-        if self.manager_training:
-            self.actions_log_prob = actions_log_prob_manager
-        else:
-            self.actions_log_prob = self.run_bool[:,0] * actions_run_log_prob + self.jump_bool[:,0] * actions_jump_log_prob
-
-        # if self.manager_training:
-        #     self.actions, self.actions_log_prob = self.actor_manager.sample(torch.from_numpy(actor_obs).to(self.device))
-        # else:
-        #     self.run_bool = torch.from_numpy(run_bool).to(self.device)
-        #     self.jump_bool = torch.add(torch.ones(self.run_bool.size()).to(self.device), self.run_bool, alpha=-1)  # 1-run_bool
-        #
-        #     actions_run, actions_run_log_prob = self.actor_run.sample(torch.from_numpy(actor_obs).to(self.device))
-        #     actions_jump, actions_jump_log_prob = self.actor_jump.sample(torch.from_numpy(actor_obs).to(self.device))
-        #     self.actions = self.run_bool * actions_run.to(self.device) + self.jump_bool * actions_jump.to(self.device)
-        #     self.actions_log_prob = self.run_bool[:,0] * actions_run_log_prob.to(self.device) + self.jump_bool[:,0] * actions_jump_log_prob.to(self.device)
+        self.actions_log_prob = actions_run_log_prob
 
         # self.actions = np.clip(self.actions.numpy(), self.env.action_space.low, self.env.action_space.high)
-        return self.actions.cpu().numpy(), self.run_bool.cpu().numpy()
+        return self.actions.cpu().numpy()
 
-    def step(self, value_obs_run, value_obs_jump, value_obs_manager, est_obs, robotState, rews, dones):
-        if self.manager_training:
-            values = self.critic_manager.predict(torch.from_numpy(value_obs_manager).to(self.device))
-        else:
-            values = self.run_bool * self.critic_run.predict(torch.from_numpy(value_obs_run).to(self.device)) \
-                     + self.jump_bool * self.critic_jump.predict(torch.from_numpy(value_obs_jump).to(self.device))
-        self.storage.add_transitions(self.actor_obs_run, self.actor_obs_jump, self.actor_obs_manager, value_obs_run,
-                                     value_obs_jump, value_obs_manager, self.actions, est_obs, robotState, rews, dones, values,
-                                     self.actions_log_prob, self.run_bool)
+    def step(self, value_obs_run, est_obs, robotState, rews, dones):
+        values = self.critic_run.predict(torch.from_numpy(value_obs_run).to(self.device))
+        self.storage.add_transitions(self.actor_obs_run, value_obs_run,
+                                     self.actions, est_obs, robotState, rews, dones, values,
+                                     self.actions_log_prob)
 
-    def update(self, actor_obs_manager, value_obs_run, value_obs_jump, value_obs_manager, log_this_iteration, update):
-        bool_manager = self.actor_manager.sample(torch.from_numpy(actor_obs_manager).to(self.device))[0]
-        # run_bool = bool_manager.unsqueeze(1)
-        # jump_bool = torch.add(torch.ones(self.run_bool.size(), device=self.device), self.run_bool, alpha=-1)  # 1-run_bool
-        if self.manager_training:
-            last_values = self.critic_manager.predict(torch.from_numpy(value_obs_manager).to(self.device))
-        else:
-            run_bool = bool_manager.unsqueeze(1)
-            jump_bool = torch.add(torch.ones(run_bool[:,0:1].shape, device=self.device), run_bool[:,0:1], alpha=-1)
-            last_values = run_bool * self.critic_run.predict(torch.from_numpy(value_obs_run).to(self.device)) \
-                          + jump_bool * self.critic_jump.predict(torch.from_numpy(value_obs_jump).to(self.device))
+    def update(self, value_obs_run, log_this_iteration, update):
+        last_values = self.critic_run.predict(torch.from_numpy(value_obs_run).to(self.device))
 
         # Learning step
         self.storage.compute_returns(last_values, self.gamma, self.lam)
@@ -162,14 +112,8 @@ class PPO:
         self.writer.add_scalar('Loss/surrogate', variables['mean_surrogate_loss'], variables['it'])
         self.writer.add_scalar('Loss/estimation', variables['mean_estimation_loss'], variables['it'])
         self.writer.add_scalar('Policy/entropy', variables['mean_entropy'], variables['it'])
-        if self.manager_training:
-            mean_std_manager = self.actor_jump.distribution.std.mean()
-            self.writer.add_scalar('Policy/mean_noise_std_manager', mean_std_manager.item(), variables['it'])
-        else:
-            mean_std_run = self.actor_run.distribution.std.mean()
-            mean_std_jump = self.actor_jump.distribution.std.mean()
-            self.writer.add_scalar('Policy/mean_noise_std_run', mean_std_run.item(), variables['it'])
-            self.writer.add_scalar('Policy/mean_noise_std_jump', mean_std_jump.item(), variables['it'])
+        mean_std_run = self.actor_run.distribution.std.mean()
+        self.writer.add_scalar('Policy/mean_noise_std_run', mean_std_run.item(), variables['it'])
 
     def _train_step(self):
         mean_value_loss = 0
@@ -177,20 +121,11 @@ class PPO:
         mean_estimation_loss = 0
         mean_entropy = 0
         for epoch in range(self.num_learning_epochs):
-            for actor_obs_run_batch, actor_obs_jump_batch, actor_obs_manager_batch, critic_obs_run_batch, critic_obs_jump_batch, \
-                critic_obs_manager_batch, actions_batch, target_values_batch, est_in_batch, robotState_batch, \
-                advantages_batch, returns_batch, old_actions_log_prob_batch, run_bool_batch \
+            for actor_obs_run_batch, critic_obs_run_batch, actions_batch, target_values_batch, est_in_batch, \
+                robotState_batch, advantages_batch, returns_batch, old_actions_log_prob_batch \
                     in self.batch_sampler(self.num_mini_batches):
-                if self.manager_training:
-                    actions_log_prob_batch, entropy_batch = self.actor_manager.evaluate(actor_obs_manager_batch, run_bool_batch)
-                    value_batch = self.critic_manager.evaluate(critic_obs_manager_batch)
-                else:
-                    jump_bool_batch = torch.add(torch.ones(run_bool_batch.size()).to(self.device), run_bool_batch, alpha=-1)
-                    actions_run_log_prob_batch, entropy_run_batch = self.actor_run.evaluate(actor_obs_run_batch, actions_batch)
-                    actions_jump_log_prob_batch, entropy_jump_batch = self.actor_jump.evaluate(actor_obs_jump_batch, actions_batch)
-                    actions_log_prob_batch = run_bool_batch[:,0] * actions_run_log_prob_batch + jump_bool_batch[:,0] * actions_jump_log_prob_batch
-                    entropy_batch = run_bool_batch[:,0] * entropy_run_batch + jump_bool_batch[:,0] * entropy_jump_batch
-                    value_batch = run_bool_batch * self.critic_run.evaluate(critic_obs_run_batch) + (1-run_bool_batch) * self.critic_jump.evaluate(critic_obs_jump_batch)
+                actions_log_prob_batch, entropy_batch = self.actor_run.evaluate(actor_obs_run_batch, actions_batch)
+                value_batch = self.critic_run.evaluate(critic_obs_run_batch)
 
                 estimation_batch = self.estimator.evaluate(est_in_batch)
 
@@ -217,16 +152,10 @@ class PPO:
                        - self.entropy_coef * entropy_batch.mean()
 
                 # Gradient step
-                if self.manager_training:
-                    self.optimizer_manager.zero_grad()
-                    loss.backward()
-                    nn.utils.clip_grad_norm_([*self.actor_manager.parameters(), *self.critic_manager.parameters()], self.max_grad_norm)
-                    self.optimizer_manager.step()
-                else:
-                    self.optimizer.zero_grad()
-                    loss.backward()
-                    nn.utils.clip_grad_norm_([*self.actor_run.parameters(), *self.actor_jump.parameters(), *self.critic_run.parameters(), *self.critic_jump.parameters()], self.max_grad_norm)
-                    self.optimizer.step()
+                self.optimizer.zero_grad()
+                loss.backward()
+                nn.utils.clip_grad_norm_([*self.actor_run.parameters(), *self.critic_run.parameters()], self.max_grad_norm)
+                self.optimizer.step()
 
                 mean_value_loss += value_loss.item()
                 mean_surrogate_loss += surrogate_loss.item()
@@ -240,6 +169,3 @@ class PPO:
         mean_entropy /= num_updates
 
         return mean_value_loss, mean_surrogate_loss, mean_estimation_loss, mean_entropy, locals()
-
-    def set_manager_training(self, manager_training):
-        self.manager_training = manager_training

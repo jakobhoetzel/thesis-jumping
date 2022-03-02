@@ -2,14 +2,11 @@ from ruamel.yaml import YAML, dump, RoundTripDumper
 from raisimGymTorch.env.bin import rsg_minicheetah
 from raisimGymTorch.env.RaisimGymVecEnv import RaisimGymVecEnv as VecEnv
 from raisimGymTorch.helper.raisim_gym_helper import ConfigurationSaver, load_param, tensorboard_launcher
-from networkSelector import run_bool_function
-from freeze import freeze_actors, freeze_manager
 import os
 import math
 import time
 import raisimGymTorch.algo.ppo.module as ppo_module
 import raisimGymTorch.algo.ppo.ppo as PPO
-import raisimGymTorch.algo.ppo.IdentityLearning as IL
 import torch.nn as nn
 import numpy as np
 import torch
@@ -38,10 +35,6 @@ runNumber = args.runNumber
 weight_path_run = "../../../data/minicheetah_locomotion/baselineRun2/full_5000.pt"
 iteration_number_run = weight_path_run.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_run = weight_path_run.rsplit('/', 1)[0] + '/'
-
-weight_path_jump = "../../../data/minicheetah_locomotion/baselineJump1/full_10000.pt"
-iteration_number_jump = weight_path_jump.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
-weight_dir_jump = weight_path_jump.rsplit('/', 1)[0] + '/'
 
 # check if gpu is available
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -94,23 +87,8 @@ actor_run = ppo_module.Actor(mlpActor_run,
                              ppo_module.MultivariateGaussianDiagonalCovariance(act_dim, 1.0),  # 1.0
                              device)
 
-savedWeights_jump = torch.load(weight_path_jump)['actor_architecture_state_dict']['architecture.0.weight']
-savedDict_jump = torch.load(weight_path_jump)['actor_architecture_state_dict']
-savedDict_jump['architecture.0.weight'] = torch.nn.Parameter(savedWeights_jump)
-mlpActor_jump = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, act_dim).to(device)
-mlpActor_jump.load_state_dict(savedDict_jump)
-actor_jump = ppo_module.Actor(mlpActor_jump,
-                              ppo_module.MultivariateGaussianDiagonalCovariance(act_dim, 1.0),  # 1.0
-                              device)
-
-actor_manager = ppo_module.Manager(ppo_module.MLP(cfg['architecture']['manager_net'], nn.LeakyReLU, ob_dim + robotState_dim + 1, 2, softmax=True),  # +1 for former network
-                         device)
 critic_run = ppo_module.Critic(ppo_module.MLP(cfg['architecture']['value_net'], nn.LeakyReLU, ob_dim + robotState_dim, 1),
                               device)
-critic_jump = ppo_module.Critic(ppo_module.MLP(cfg['architecture']['value_net'], nn.LeakyReLU, ob_dim + robotState_dim, 1),
-                                device)
-critic_manager = ppo_module.Critic(ppo_module.MLP(cfg['architecture']['value_net'], nn.LeakyReLU, ob_dim + robotState_dim + 1, 1),
-                                device)
 mlpEstimator = ppo_module.MLP(cfg['architecture']['estimator_net'], torch.nn.LeakyReLU, ob_dim - sensor_dim, robotState_dim).to(device)
 mlpEstimator.load_state_dict(torch.load(weight_path_run)['estimator_architecture_state_dict'])  # run estimator chosen, both should predict the same
 stateEstimator = ppo_module.StateEstimator(mlpEstimator,
@@ -131,11 +109,7 @@ file.close()
 tensorboard_launcher(saver.data_dir+"/..")  # press refresh (F5) after the first ppo update
 
 ppo = PPO.PPO(actor_run=actor_run,
-              actor_jump=actor_jump,
-              actor_manager=actor_manager,
               critic_run=critic_run,
-              critic_jump=critic_jump,
-              critic_manager=critic_manager,
               estimator=stateEstimator,
               num_envs=cfg['environment']['num_envs'],
               num_transitions_per_env=n_steps,
@@ -149,7 +123,6 @@ ppo = PPO.PPO(actor_run=actor_run,
               device=device,
               log_dir=saver.data_dir,
               shuffle_batch=False,
-              # manager_training=False,
               )
 
 data_tags = env.get_step_data_tag()
@@ -157,17 +130,12 @@ data_tags = env.get_step_data_tag()
 scheduler = torch.optim.lr_scheduler.MultiStepLR(ppo.optimizer, milestones=[2000], gamma=0.333333)
 
 # if mode == 'retrain':
-#     load_param(weight_path, env, actor_run, actor_jump, critic_run, critic_jump, stateEstimator, ppo.optimizer, saver.data_dir)
+#     load_param(weight_path, env, actor_run, critic_run, stateEstimator, ppo.optimizer, saver.data_dir)
 
-max_iteration = 10000 + 1 #5000+1
+max_iteration = 5000 + 1 #5000+1
 
-env.load_scaling(weight_dir_run, int(iteration_number_run), weight_dir_jump, int(iteration_number_jump), weight_dir_run, int(iteration_number_run), 1e8) # 1e8 -> less disruption when retraining
+env.load_scaling(weight_dir_run, int(iteration_number_run), 1e8) # 1e8 -> less disruption when retraining
                                                                                 # for normalisation of observation
-
-# ppo.set_manager_training(True)
-ppo.set_manager_training(False)  # train run and jump network
-# freeze_manager(ppo)
-# freeze_actors(ppo)
 
 for update in range(max_iteration):
     start = time.time()
@@ -175,7 +143,6 @@ for update in range(max_iteration):
     reward_ll_sum = 0
     done_sum = 0
     average_dones = 0.
-    run_bool = np.ones(shape=(cfg['environment']['num_envs'], 1), dtype=np.intc)
 
     env.curriculum_callback(update)  # start with half height
 
@@ -184,26 +151,16 @@ for update in range(max_iteration):
         torch.save({
             'actor_run_architecture_state_dict': actor_run.architecture.state_dict(),
             'actor_run_distribution_state_dict': actor_run.distribution.state_dict(),
-            'actor_jump_architecture_state_dict': actor_jump.architecture.state_dict(),
-            'actor_jump_distribution_state_dict': actor_jump.distribution.state_dict(),
-            'actor_manager_architecture_state_dict': actor_manager.architecture.state_dict(),
             'critic_run_architecture_state_dict': critic_run.architecture.state_dict(),
-            'critic_jump_architecture_state_dict': critic_jump.architecture.state_dict(),
             'estimator_architecture_state_dict': stateEstimator.architecture.state_dict(),
             'optimizer_state_dict': ppo.optimizer.state_dict(),
         }, saver.data_dir+"/full_"+str(update)+'.pt')
         actor_run.save_deterministic_graph(saver.data_dir + "/actor_run_" + str(update) + ".pt", torch.rand(1, ob_dim + robotState_dim).cpu())
-        actor_jump.save_deterministic_graph(saver.data_dir + "/actor_jump_" + str(update) + ".pt", torch.rand(1, ob_dim + robotState_dim).cpu())
-        actor_jump.save_deterministic_graph(saver.data_dir + "/actor_manager_" + str(update) + ".pt", torch.rand(1, ob_dim + robotState_dim).cpu())
         stateEstimator.save_deterministic_graph(saver.data_dir + "/estimator_" + str(update) + ".pt", torch.rand(1, ob_dim-sensor_dim).cpu())
 
         # temp_obs = np.ones((cfg['environment']['num_envs'], ob_dim + robotState_dim), dtype=np.float32)  # to see if input network changes
         # temp_action_run = actor_run.architecture.architecture(torch.from_numpy(temp_obs).to(device)).detach()
-        # temp_action_jump = actor_jump.architecture.architecture(torch.from_numpy(temp_obs).to(device)).detach()
-        # temp_action_manager = actor_manager.architecture.architecture(torch.from_numpy(temp_obs).to(device)).detach()
         # np.savetxt("ones_action_run_beg.csv", temp_action_run.cpu().numpy(), delimiter=",")
-        # np.savetxt("ones_action_jump_beg.csv", temp_action_jump.cpu().numpy(), delimiter=",")
-        # np.savetxt("ones_action_manager_beg.csv", temp_action_manager.cpu().numpy(), delimiter=",")
 
         # we create another graph just to demonstrate the save/load method
         # loaded_graph = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, act_dim)
@@ -211,32 +168,22 @@ for update in range(max_iteration):
 
         env.turn_on_visualization()
         env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy_"+str(update)+'.mp4')
-        time.sleep(2) #1
+        time.sleep(1) #1
 
         for step in range(n_steps*1):  # n_steps*2
             frame_start = time.time()
-            [obs_run, obs_jump, obs_manager], obs_notNorm = env.observe(update_mean=False, update_manager=ppo.manager_training)  # don't update mean and var
+            obs_run = env.observe(update_mean=False)  # don't update mean and var
             obs_estimator = obs_run[:,:ob_dim-sensor_dim]  # as using run estimator
             robotState = env.getRobotState()
             est_out = stateEstimator.predict(torch.from_numpy(obs_estimator).to(device))
             concatenated_obs_actor_run = np.concatenate((obs_run, est_out.cpu().detach().numpy()), axis=1)  # different observation due to different normalisation
-            concatenated_obs_actor_jump = np.concatenate((obs_jump, est_out.cpu().detach().numpy()), axis=1)
-            concatenated_obs_actor_manager = np.concatenate((obs_manager, est_out.cpu().detach().numpy(), np.float32(run_bool)), axis=1)
             # concatenated_obs_critic_run = np.concatenate((obs_run, robotState), axis=1)
-            # concatenated_obs_critic_jump = np.concatenate((obs_jump, robotState), axis=1)
-            # concatenated_obs_critic_manager = np.concatenate((obs_manager, robotState), axis=1)
-            action, run_bool = ppo.observe(concatenated_obs_actor_run, concatenated_obs_actor_jump, concatenated_obs_actor_manager)
-            if update <= 1000:
-                if step ==0:
-                    old_bool=None
-                run_bool = run_bool_function(obs_notNorm, output=True, old_bool=old_bool)
-                action, _ = ppo.observe(concatenated_obs_actor_run, concatenated_obs_actor_jump, concatenated_obs_actor_manager, run_bool)
-                old_bool = run_bool
+            action = ppo.observe(concatenated_obs_actor_run)
 
             # action_ll, _ = actor.sample(torch.from_numpy(concatenated_obs_actor).to(device))  # stochastic action
             # action_ll = loaded_graph.architecture(torch.from_numpy(obs).cpu())
 
-            reward_ll, dones = env.step(action, run_bool, ppo.manager_training)  # in stochastic action case
+            reward_ll, dones = env.step(action)  # in stochastic action case
             # env.go_straight_controller()
             frame_end = time.time()
             wait_time = cfg['environment']['control_dt'] - (frame_end-frame_start)
@@ -245,6 +192,7 @@ for update in range(max_iteration):
 
         env.stop_video_recording()
         env.turn_off_visualization()
+        time.sleep(1) #1
 
         env.reset()
         env.save_scaling(saver.data_dir, str(update))
@@ -254,30 +202,21 @@ for update in range(max_iteration):
     data_square_sum = np.zeros(shape=(len(data_tags), 1), dtype=np.double)
     data_min = np.inf * np.ones(shape=(len(data_tags), 1), dtype=np.double)
     data_max = -np.inf * np.ones(shape=(len(data_tags), 1), dtype=np.double)
-    run_bool = np.ones(shape=(cfg['environment']['num_envs'], 1), dtype=np.float32)
     loss_IL_sum = 0
 
     # actual training
     for step in range(n_steps):
-        [obs_run, obs_jump, obs_manager], obs_notNorm = env.observe(update_manager=ppo.manager_training)  # observation differ due to normalisation
+        obs_run= env.observe()  # observation differ due to normalisation
         obs_estimator = obs_run[:,:ob_dim-sensor_dim]  # as using run estimator
         robotState = env.getRobotState()
         est_out = stateEstimator.predict(torch.from_numpy(obs_estimator).to(device))
         concatenated_obs_actor_run = np.concatenate((obs_run, est_out.cpu().detach().numpy()), axis=1)
-        concatenated_obs_actor_jump = np.concatenate((obs_jump, est_out.cpu().detach().numpy()), axis=1)
-        concatenated_obs_actor_manager = np.concatenate((obs_manager, est_out.cpu().detach().numpy(), np.float32(run_bool)), axis=1)
         concatenated_obs_critic_run = np.concatenate((obs_run, robotState), axis=1)
-        concatenated_obs_critic_jump = np.concatenate((obs_jump, robotState), axis=1)
-        concatenated_obs_critic_manager = np.concatenate((obs_manager, robotState, np.float32(run_bool)), axis=1)
-        action, run_bool = ppo.observe(concatenated_obs_actor_run, concatenated_obs_actor_jump, concatenated_obs_actor_manager)
-        if update <= 1000:
-            run_bool = run_bool_function(obs_notNorm, output=False, old_bool=None)
-            action, _ = ppo.observe(concatenated_obs_actor_run, concatenated_obs_actor_jump, concatenated_obs_actor_manager, run_bool)
-            loss_IL_sum += IL.identity_learning(actor_manager=actor_manager, guideline=run_bool, obs=concatenated_obs_actor_manager, device=device)
+        action = ppo.observe(concatenated_obs_actor_run)
 
-        reward, dones = env.step(action, run_bool, ppo.manager_training)
+        reward, dones = env.step(action)
         # env.go_straight_controller()
-        ppo.step(value_obs_run=concatenated_obs_critic_run, value_obs_jump=concatenated_obs_critic_jump, value_obs_manager=concatenated_obs_critic_manager,
+        ppo.step(value_obs_run=concatenated_obs_critic_run,
                  est_obs=obs_estimator, robotState=robotState, rews=reward, dones=dones)
         done_sum = done_sum + np.sum(dones)
         reward_ll_sum = reward_ll_sum + np.sum(reward)
@@ -293,26 +232,17 @@ for update in range(max_iteration):
             ppo.writer.add_scalar(data_tags[data_id]+'/max', data_max[data_id], global_step=update)
 
     # take st step to get value obs
-    [obs_run, obs_jump, obs_manager], obs_notNorm = env.observe(update_manager=ppo.manager_training)
+    obs_run = env.observe()
     obs_estimator = obs_run[:,:ob_dim-sensor_dim]  # as using run estimator
     robotState = env.getRobotState()
     est_out = stateEstimator.predict(torch.from_numpy(obs_estimator).to(device))
     concatenated_obs_actor_run = np.concatenate((obs_run, est_out.cpu().detach().numpy()), axis=1)
-    concatenated_obs_actor_jump = np.concatenate((obs_jump, np.zeros((cfg['environment']['num_envs'],1), dtype=np.float32), est_out.cpu().detach().numpy()), axis=1)
-    concatenated_obs_actor_manager = np.concatenate((obs_manager, est_out.cpu().detach().numpy(), np.float32(run_bool)), axis=1)
     concatenated_obs_critic_run = np.concatenate((obs_run, robotState), axis=1)
-    concatenated_obs_critic_jump = np.concatenate((obs_jump, robotState), axis=1)
-    concatenated_obs_critic_manager = np.concatenate((obs_manager, robotState, np.float32(run_bool)), axis=1)
 
     # a0 = list(actor_run.parameters())[0].grad
     # print("a0: ", a0)
-    # a1 = list(actor_jump.parameters())[0].grad
-    # print("a1: ", a1)
-    # a2 = list(actor_manager.parameters())[0].grad
-    # print("a2: ", a2)
 
-    ppo.update(actor_obs_manager=concatenated_obs_actor_manager, value_obs_run=concatenated_obs_critic_run,
-               value_obs_jump=concatenated_obs_critic_jump, value_obs_manager=concatenated_obs_critic_manager,
+    ppo.update(value_obs_run=concatenated_obs_critic_run,
                log_this_iteration=update % 20 == 0, update=update)
     average_ll_performance = reward_ll_sum / total_steps  # average reward per step per environment
     average_dones = done_sum / total_steps
@@ -320,7 +250,6 @@ for update in range(max_iteration):
 
 
     actor_run.distribution.enforce_minimum_std(torch.ones(12, device=device)*0.25)
-    actor_jump.distribution.enforce_minimum_std(torch.ones(12, device=device)*0.25)
 
     # env.curriculum_callback(update) # at the beginning now
 
@@ -338,25 +267,10 @@ for update in range(max_iteration):
                                                                        * cfg['environment']['control_dt'])))
     # print('std: ')
     # print(np.exp(actor_run.distribution.std.cpu().detach().numpy()))
-    # print(np.exp(actor_jump.distribution.std.cpu().detach().numpy()))
     # print('----------------------------------------------------\n')
-
-    if update <= 1000:
-        print('loss IL: ', loss_IL_sum/n_steps)
-        print('----------------------------------------------------\n')
 
 
     # if update % cfg['environment']['eval_every_n'] == 0:
     #     temp_obs = np.ones((cfg['environment']['num_envs'], ob_dim + robotState_dim), dtype=np.float32)  # to see if input network changes
     #     temp_action_run = actor_run.architecture.architecture(torch.from_numpy(temp_obs).to(device)).detach()
-    #     temp_action_jump = actor_jump.architecture.architecture(torch.from_numpy(temp_obs).to(device)).detach()
-    #     temp_action_manager = actor_manager.architecture.architecture(torch.from_numpy(temp_obs).to(device)).detach()
     #     np.savetxt("ones_action_run_end.csv", temp_action_run.cpu().numpy(), delimiter=",")
-    #     np.savetxt("ones_action_jump_end.csv", temp_action_jump.cpu().numpy(), delimiter=",")
-    #     np.savetxt("ones_action_manager_end.csv", temp_action_manager.cpu().numpy(), delimiter=",")
-
-    if update==1000 or update==3000 or update==5000 or update==7000 or update==9000:
-        ppo.set_manager_training(True)
-
-    if update==2000 or update==4000 or update==6000 or update==8000:
-        ppo.set_manager_training(False)

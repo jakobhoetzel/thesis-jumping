@@ -59,10 +59,7 @@ class ENVIRONMENT {
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::FOOTCLEARANCE], cfg["reward"]["footClearanceCoeff"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::HURDLES], cfg["reward"]["hurdlesCoeff"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::SYMMETRY], cfg["reward"]["symmetryCoeff"])
-    READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::BODYHEIGHT], cfg["reward"]["bodyHeightCoeff"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::FOOTCONTACT], cfg["reward"]["footContactCoeff"])
-    READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::NETWORKCHANGE], cfg["reward"]["networkChangeCoeff"])
-    READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::NONETWORKCHANGE], cfg["reward"]["noNetworkChangeCoeff"])
 
     terrain_curriculum_ = terCurriculumFactor_*0.25;
     isHeightMap_ = cfg["isHeightMap"].template As<bool>();
@@ -124,7 +121,7 @@ class ENVIRONMENT {
 
   void go_straight_controller() { controller_.go_straight_controller(); }
 
-  double step(const Eigen::Ref<EigenVec> &action, bool run_bool, bool managerTraining) {
+  double step(const Eigen::Ref<EigenVec> &action) {
     stepData_.setZero();
     int loopCount = int(control_dt_ / simulation_dt_ + 1e-10);
 //    delayDividedBySimdt = int((0.01 / simulation_dt_)*0.5*(uniDist_(gen_)+1));
@@ -132,12 +129,12 @@ class ENVIRONMENT {
 
     for (int i = 0; i < int(control_dt_ / simulation_dt_ + 1e-10); i++) {
       if(i == delayDividedBySimdt){
-        controller_.advance(world_.get(), action, run_bool);
+        controller_.advance(world_.get(), action);
       }
       if (server_) server_->lockVisualizationServerMutex();
       world_->integrate();  // What does integration do? A. Simulate robot states and motions for the next simulation time.
       if (server_) server_->unlockVisualizationServerMutex();
-      controller_.getReward(world_.get(), rewardCoeff_, simulation_dt_, rewCurriculumFactor_, heightMap_, xPos_Hurdles_, managerTraining);
+      controller_.getReward(world_.get(), rewardCoeff_, simulation_dt_, rewCurriculumFactor_, heightMap_, xPos_Hurdles_);
       stepData_ += controller_.getStepData();
     }
 

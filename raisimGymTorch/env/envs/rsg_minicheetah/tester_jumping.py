@@ -77,15 +77,15 @@ else:
     estimator.load_state_dict(torch.load(weight_path)['estimator_architecture_state_dict'])
 
     env.load_scaling(weight_dir, int(iteration_number), weight_dir, int(iteration_number), weight_dir, int(iteration_number), one_directory=False)
-    env.turn_on_visualization()
-    env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy.mp4")
-    time.sleep(2)
+    # env.turn_on_visualization()
+    # env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy.mp4")
+    time.sleep(1)
 
     # max_steps = 1000000
     max_steps = 400 ## 10 secs
     command = np.array([4.0, 0, 0], dtype=np.float32)
     env.set_command(command)
-    env.curriculum_callback(0)
+    env.curriculum_callback(10000)
     env.reset()
     selectedNetwork = None
     env.printTest()
@@ -146,8 +146,8 @@ else:
         elif previousNetwork == 1 and selectedNetwork == 0:
             print("changed network in step ", step, ": run -> jump")
 
-        if selectedNetwork == 0:
-            print("jump selected")
+        # if selectedNetwork == 0:
+        #     print("jump selected")
 
         reward_ll_sum = reward_ll_sum + reward_ll[0]
         if dones or step == max_steps - 1:
@@ -164,7 +164,7 @@ else:
             time.sleep(wait_time)
         # time.sleep(0.05) #0.05
 
-    env.stop_video_recording()
-    env.turn_off_visualization()
+    # env.stop_video_recording()
+    # env.turn_off_visualization()
     env.reset()
     print("Finished at the maximum visualization steps")
