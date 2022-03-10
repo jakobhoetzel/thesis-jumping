@@ -62,21 +62,21 @@ else:
     start_step_id = 0
 
     print("Visualizing and evaluating the policy: ", weight_path)
-    actor = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim - sensor_dim + robotState_dim, act_dim)
+    actor = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, act_dim)
     actor.load_state_dict(torch.load(weight_path)['actor_architecture_state_dict'])
     print('actor of {} parameters'.format(sum(p.numel() for p in actor.parameters())))
 
     estimator = ppo_module.MLP(cfg['architecture']['estimator_net'], torch.nn.LeakyReLU,ob_dim - sensor_dim,robotState_dim)
     estimator.load_state_dict(torch.load(weight_path)['estimator_architecture_state_dict'])
 
-    env.load_scaling(weight_dir, int(iteration_number), weight_dir, int(iteration_number), weight_dir, int(iteration_number), one_directory=True)
-    env.turn_on_visualization()
-    env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy.mp4")
-    time.sleep(2)
+    env.load_scaling(weight_dir, int(iteration_number), weight_dir)
+    # env.turn_on_visualization()
+    # env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy.mp4")
+    time.sleep(1)
 
     max_steps = 1000000
     ##max_steps = 400 ## 10 secs
-    env.curriculum_callback(10000)
+    env.curriculum_callback(5000)
 
     for step in range(max_steps):
         frame_start = time.time()
@@ -86,16 +86,16 @@ else:
             command_Vy = np.random.uniform(-1., 1., 1)
             command_yaw = np.random.uniform(-2., 2., 1)
             command = np.array([command_Vx, command_Vy, command_yaw], dtype=np.float32)
-            env.set_command(command)
+            env.set_command(command, testNumber=2)
 
-        [obs, _, _], _ = env.observe(update_mean=False)
+        obs = env.observe(update_mean=False)
         obs_estimator = obs[:,:ob_dim-sensor_dim]
         robotState = env.getRobotState()
-        robotState = np.ones((cfg['environment']['num_envs'],robotState_dim), dtype=np.float32)  # for checking
+        # robotState = np.ones((cfg['environment']['num_envs'],robotState_dim), dtype=np.float32)  # for checking
         est_out = estimator.architecture(torch.from_numpy(obs_estimator).cpu())
-        concatenated_obs_actor = np.concatenate((obs_estimator, est_out.cpu().detach().numpy()), axis=1)
+        concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
         action_ll = actor.architecture(torch.from_numpy(concatenated_obs_actor).cpu())
-        reward_ll, dones = env.step(action_ll.cpu().detach().numpy(), run_bool=np.ones(shape=(cfg['environment']['num_envs'], 1), dtype=np.intc), manager_training=False)
+        reward_ll, dones = env.step(action_ll.cpu().detach().numpy())
 
         # f1 = open('randomCommandData.csv', 'a')
         # writer = csv.writer(f1)

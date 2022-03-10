@@ -1,8 +1,8 @@
 from ruamel.yaml import YAML, dump, RoundTripDumper
 from raisimGymTorch.env.bin import rsg_minicheetah
 from raisimGymTorch.env.RaisimGymVecEnv import RaisimGymVecEnv as VecEnv
-from torch.distributions import Categorical
-from networkSelector import run_bool_function
+# from torch.distributions import Categorical
+# from networkSelector import run_bool_function
 import os
 import math
 import time
@@ -64,34 +64,25 @@ else:
     start_step_id = 0
 
     print("Visualizing and evaluating the policy: ", weight_path)
-    actor_run = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, act_dim)
-    actor_jump = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, act_dim)
-    actor_manager = ppo_module.MLP(cfg['architecture']['manager_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim + 1, 2, softmax=True)
-    actor_run.load_state_dict(torch.load(weight_path)['actor_run_architecture_state_dict'])
-    actor_jump.load_state_dict(torch.load(weight_path)['actor_jump_architecture_state_dict'])
-    actor_manager.load_state_dict(torch.load(weight_path)['actor_manager_architecture_state_dict'])
-    print('actor of {} parameters'.format(sum(p.numel() for p in actor_run.parameters())))
-    print('actor of {} parameters'.format(sum(p.numel() for p in actor_jump.parameters())))
+    actor = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, act_dim)
+    actor.load_state_dict(torch.load(weight_path)['actor_architecture_state_dict'])
+    print('actor of {} parameters'.format(sum(p.numel() for p in actor.parameters())))
 
     estimator = ppo_module.MLP(cfg['architecture']['estimator_net'], torch.nn.LeakyReLU, ob_dim - sensor_dim, robotState_dim)
     estimator.load_state_dict(torch.load(weight_path)['estimator_architecture_state_dict'])
 
-    env.load_scaling(weight_dir, int(iteration_number), weight_dir, int(iteration_number), weight_dir, int(iteration_number), one_directory=False)
+    env.load_scaling(weight_dir, int(iteration_number))
     # env.turn_on_visualization()
     # env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy.mp4")
     time.sleep(1)
 
     # max_steps = 1000000
     max_steps = 400 ## 10 secs
-    command = np.array([4.0, 0, 0], dtype=np.float32)
-    env.set_command(command)
-    env.curriculum_callback(10000)
+    command = np.array([3.5, 0, 0], dtype=np.float32)
+    env.set_command(command, testNumber=1)
+    env.curriculum_callback(5000)
     env.reset()
-    selectedNetwork = None
     env.printTest()
-
-    run_bool = np.ones(shape=(cfg['environment']['num_envs'], 1), dtype=np.intc)
-    # run_bool = None
 
     for step in range(max_steps):
         frame_start = time.time()
@@ -102,26 +93,14 @@ else:
         #     command = np.array([command_Vx, command_Vy, command_yaw], dtype=np.float32)
         #     env.set_command(command)
 
-        [obs_run, obs_jump, obs_manager], obs_notNorm = env.observe(update_mean=False)
-        obs_estimator = obs_run[:,:ob_dim-sensor_dim]  # as using run estimator
+        obs = env.observe(update_mean=False)
+        obs_estimator = obs[:,:ob_dim-sensor_dim]
         robotState = env.getRobotState()
         est_out = estimator.architecture(torch.from_numpy(obs_estimator).cpu())
-        concatenated_obs_actor_run = np.concatenate((obs_run, est_out.cpu().detach().numpy()), axis=1)
-        concatenated_obs_actor_jump = np.concatenate((obs_jump, est_out.cpu().detach().numpy()), axis=1)
-        concatenated_obs_actor_manager = np.concatenate((obs_manager, est_out.cpu().detach().numpy(), np.float32(run_bool)), axis=1)
+        concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
 
-        action_probs = actor_manager.architecture(torch.from_numpy(concatenated_obs_actor_manager).cpu())
-        dist = Categorical(action_probs)
-        bool_manager = dist.sample()
-        run_bool = bool_manager.unsqueeze(1)
-        # run_bool = torch.from_numpy(run_bool_function(obs_notNorm, output=True, old_bool=run_bool)) #only test!!!
-        previousNetwork = selectedNetwork
-        selectedNetwork = bool_manager[0].item()
-        jump_bool = torch.add(torch.ones(run_bool.size(), device='cpu'), run_bool, alpha=-1)  # 1-run_bool
-        actions_run = actor_run.architecture(torch.from_numpy(concatenated_obs_actor_run).cpu())
-        actions_jump = actor_jump.architecture(torch.from_numpy(concatenated_obs_actor_jump).cpu())
-        action_ll = run_bool * actions_run + jump_bool * actions_jump
-        reward_ll, dones = env.step(action_ll.detach().numpy(), run_bool=run_bool.detach().numpy(), manager_training=True)
+        action_ll = actor.architecture(torch.from_numpy(concatenated_obs_actor).cpu())
+        reward_ll, dones = env.step(action_ll.detach().numpy())
         # env.go_straight_controller()
 
         # f1 = open('randomCommandData.csv', 'a')
@@ -136,19 +115,6 @@ else:
         # writer = csv.writer(f3)
         # writer.writerow(est_in[0][0:2].cpu().detach().numpy())
 
-        if step==0:
-            if selectedNetwork == 0:
-                print("selected network in step ", step, ": jump")
-            else:
-                print("selected network in step ", step, ": run")
-        elif previousNetwork == 0 and selectedNetwork == 1:
-            print("changed network in step ", step, ": jump -> run")
-        elif previousNetwork == 1 and selectedNetwork == 0:
-            print("changed network in step ", step, ": run -> jump")
-
-        # if selectedNetwork == 0:
-        #     print("jump selected")
-
         reward_ll_sum = reward_ll_sum + reward_ll[0]
         if dones or step == max_steps - 1:
             print('----------------------------------------------------')
@@ -162,7 +128,7 @@ else:
         wait_time = cfg['environment']['control_dt'] - (frame_end-frame_start)
         if wait_time > 0.:
             time.sleep(wait_time)
-        # time.sleep(0.05) #0.05
+        time.sleep(0.01) #0.05
 
     # env.stop_video_recording()
     # env.turn_off_visualization()

@@ -74,7 +74,7 @@ class PPO:
         self.actions_log_prob = None
         self.actor_obs = None
 
-    def observe(self, actor_obs):
+    def act(self, actor_obs):
         self.actor_obs = actor_obs
         self.actions, self.actions_log_prob = self.actor.sample(torch.from_numpy(actor_obs).to(self.device))
         # self.actions = np.clip(self.actions.numpy(), self.env.action_space.low, self.env.action_space.high)
@@ -82,21 +82,21 @@ class PPO:
 
     def step(self, value_obs, est_in, robotState, rews, dones):
         values = self.critic.predict(torch.from_numpy(value_obs).to(self.device))
-        self.storage.add_transitions(self.actor_obs, value_obs, self.actions, est_in, robotState, rews, dones, values,
+        self.storage.add_transitions(self.actor_obs, value_obs, self.actions, est_in, robotState, rews, dones,
                                      self.actions_log_prob)
 
     def update(self, value_obs, log_this_iteration, update):
         last_values = self.critic.predict(torch.from_numpy(value_obs).to(self.device))
 
         # Learning step
-        self.storage.compute_returns(last_values, self.gamma, self.lam)
+        self.storage.compute_returns(last_values.to(self.device), self.critic, self.gamma, self.lam)
         mean_value_loss, mean_surrogate_loss, mean_estimation_loss, mean_entropy, infos = self._train_step()
         self.storage.clear()
 
         if log_this_iteration:
             self.log({**locals(), **infos, 'it': update})
 
-    def log(self, variables, width=80, pad=28):
+    def log(self, variables):
         self.tot_timesteps += self.num_transitions_per_env * self.num_envs
         mean_std = self.actor.distribution.std.mean()
 

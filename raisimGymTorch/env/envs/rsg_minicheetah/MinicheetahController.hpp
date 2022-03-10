@@ -137,6 +137,35 @@ class MinicheetahController {
     }
     cheetah->setGeneralizedForce(-tau);
 
+    if(false) { //output if max joint speed or torque is exceeded
+//      std::cout << gv_.tail(nJoints_)  << std::endl;
+//      std::cout << cheetah->getGeneralizedForce() << std::endl;
+      if (std::abs(gv_.tail(nJoints_)(0)) > 40 or std::abs(gv_.tail(nJoints_)(3)) > 40
+          or std::abs(gv_.tail(nJoints_)(6)) > 40 or std::abs(gv_.tail(nJoints_)(9)) > 40) {
+        std::cout << "Exceeds maximum joint speed at hip actuator" << std::endl;
+      }
+      if (std::abs(gv_.tail(nJoints_)(1)) > 40 or std::abs(gv_.tail(nJoints_)(4)) > 40
+          or std::abs(gv_.tail(nJoints_)(7)) > 40 or std::abs(gv_.tail(nJoints_)(10)) > 40) {
+        std::cout << "Exceeds maximum joint speed at ab/ad actuator" << std::endl;
+      }
+      if (std::abs(gv_.tail(nJoints_)(2)) > 30 or std::abs(gv_.tail(nJoints_)(5)) > 30
+          or std::abs(gv_.tail(nJoints_)(8)) > 30 or std::abs(gv_.tail(nJoints_)(11)) > 30) {
+        std::cout << "Exceeds maximum joint speed at knee actuator" << std::endl;
+      }
+//      if (std::abs(cheetah->getGeneralizedForce()[6]) > 17 or std::abs(cheetah->getGeneralizedForce()[9]) > 17
+//          or std::abs(cheetah->getGeneralizedForce()[12]) > 17 or std::abs(cheetah->getGeneralizedForce()[15]) > 17) {
+//        std::cout << "Exceeds maximum joint torque at hip actuator" << std::endl;
+//      }
+//      if (std::abs(cheetah->getGeneralizedForce()[7]) > 17 or std::abs(cheetah->getGeneralizedForce()[10]) > 17
+//          or std::abs(cheetah->getGeneralizedForce()[13]) > 17 or std::abs(cheetah->getGeneralizedForce()[16]) > 17) {
+//        std::cout << "Exceeds maximum joint torque at ab/ad actuator" << std::endl;
+//      }
+//      if (std::abs(cheetah->getGeneralizedForce()[8]) > 17 or std::abs(cheetah->getGeneralizedForce()[11]) > 17
+//          or std::abs(cheetah->getGeneralizedForce()[14]) > 17 or std::abs(cheetah->getGeneralizedForce()[17]) > 17) {
+//        std::cout << "Exceeds maximum joint torque at knee actuator" << std::endl;
+//      }
+    }
+
     return true;
   }
 
@@ -145,7 +174,8 @@ class MinicheetahController {
     command_(2) = -2 * gv_(1);
   }
 
-  bool reset(raisim::World *world, double comCurriculumFactor, raisim::HeightMap* heightMap_) {
+  bool reset(raisim::World *world, double comCurriculumFactor, raisim::HeightMap* heightMap_, bool hurdleTraining) {
+    hurdleTraining_ = hurdleTraining;
     auto *cheetah = reinterpret_cast<raisim::ArticulatedSystem *>(world->getObject("robot"));
 
     /// pd gain randomization
@@ -155,20 +185,25 @@ class MinicheetahController {
 
     /// command generation
     double p = uniDist_(gen_);
-    command_ << 4.0, 0.0, 0.0; // 4.0, 0, 0
-//    if(fabs(p) < 0.1) {  // 10%
-//      command_.setZero();
-//      standingMode_ = true;
-//    }
-//    else {
-//      do {
-//        command_ << comCurriculumFactor * uniDist_(gen_), 0.5 * uniDist_(gen_), 0.5 * uniDist_(gen_); // comCurriculumFactor, 1.0, 2.0
-//        if (command_(0) < 0) {
-//          command_(0) *= 0.5;
-//        }
-//      } while (command_.norm() < 0.3);
-//      standingMode_ = false;
-//    }
+    if(hurdleTraining_){
+      command_ << 3.5, 0.0, 0.0; // 4.0, 0, 0
+    }
+    else{
+      if(fabs(p) < 0.2) {  // 10%
+        command_.setZero();
+        standingMode_ = true;
+      }
+      else {
+        do {
+          command_ << comCurriculumFactor * uniDist_(gen_), 0.5 * uniDist_(gen_), 0.5 * uniDist_(gen_); // comCurriculumFactor, 1.0, 2.0
+          if (command_(0) < 0) {
+            command_(0) *= 0.5;
+          }
+        } while (command_.norm() < 0.3);
+        standingMode_ = false;
+      }
+    }
+
 
     bool keep_state = fabs(uniDist_(gen_)) < 0.25; /// keep state and only change command. 25%
     if (keep_state){
@@ -380,12 +415,12 @@ class MinicheetahController {
     /// Reward functions
     // curriculum factor in negative reward
     double rewBodyAngularVel = std::exp(-1.5 * pow((command_(2) - bodyAngularVel_(2)), 2)) * rewardCoeff.at(RewardType::ANGULARVELOCIY1);
-//    double rewLinearVel = std::exp(-1.0 * (command_.head(2) - bodyLinearVel_.head(2)).squaredNorm()) * rewardCoeff.at(RewardType::VELOCITY1);
-    double rewLinearVel = std::exp(0.4 * std::min(bodyLinearVel_[0],3.5) - 0.4*std::abs(bodyLinearVel_[1])) * rewardCoeff.at(RewardType::VELOCITY1); //max reward limited
+    double rewLinearVel = std::exp(-1.0 * (command_.head(2) - bodyLinearVel_.head(2)).squaredNorm()) * rewardCoeff.at(RewardType::VELOCITY1);
+//    double rewLinearVel = std::exp(0.4 * std::min(bodyLinearVel_[0],3.5) - 0.4*std::abs(bodyLinearVel_[1])) * rewardCoeff.at(RewardType::VELOCITY1); //max reward limited
     double rewAirTime = airtimeTotal * rewardCoeff.at(RewardType::AIRTIME);
     double rewHurdles = hurdlesVar * rewardCoeff.at(RewardType::HURDLES);
-    double rewTorque = rewardCoeff.at(RewardType::TORQUE) * cheetah->getGeneralizedForce().squaredNorm();
-    double rewJointSpeed = (gv_.tail(12)).squaredNorm() * rewardCoeff.at(RewardType::JOINTSPEED);
+    double rewTorque = rewardCoeff.at(RewardType::TORQUE) * cheetah->getGeneralizedForce().squaredNorm(); //max torque: 17, 17, 26(?) Nm (last is knee)
+    double rewJointSpeed = (gv_.tail(12)).squaredNorm() * rewardCoeff.at(RewardType::JOINTSPEED); // max joint speed: 40, 40, 30(?) rad/s
     double rewFootSlip = footTangentialForSlip * rewardCoeff.at(RewardType::FOOTSLIP);
     double rewBodyOri = std::acos(rot_(8)) * std::acos(rot_(8)) * rewardCoeff.at(RewardType::ORIENTATION);
     double rewSmoothness1 = rewardCoeff.at(RewardType::SMOOTHNESS1) * (pTarget12_ - previousAction_).squaredNorm();
@@ -411,8 +446,8 @@ class MinicheetahController {
     stepData_[11] = rewJointAcc;
     stepData_[12] = rewBaseMotion;
     stepData_[13] = rewFootClearance;
-    stepData_[14] = rewSymmetry / (rewCurriculumFactor + 1e-5); /// not affected of curriculum
-    stepData_[15] = rewFootContact / (rewCurriculumFactor + 1e-5);
+    stepData_[14] = rewSymmetry / (rewCurriculumFactor + 1e-3); /// not affected of curriculum
+    stepData_[15] = rewFootContact / (rewCurriculumFactor + 1e-3);
 
     double negativeRewardSum = stepData_.segment(4, stepDataTag_.size()-7).sum()* rewCurriculumFactor; /// curriculum 0->1
     double positiveRewardSum = stepData_.head(4).sum();
@@ -595,6 +630,7 @@ class MinicheetahController {
   bool standingMode_;
   bool isHeightMap_;
   double maxBodyHeight_,  maxXPos_;
+  bool hurdleTraining_;
 
   thread_local static std::mt19937 gen_;
   thread_local static std::normal_distribution<double> normDist_;

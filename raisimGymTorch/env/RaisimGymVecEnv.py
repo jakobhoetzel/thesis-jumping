@@ -31,8 +31,8 @@ class RaisimGymVecEnv:
     def seed(self, seed=None):
         self.wrapper.setSeed(seed)
 
-    def set_command(self, command):
-        self.wrapper.setCommand(command)
+    def set_command(self, command, testNumber=0):
+        self.wrapper.setCommand(command, testNumber)
 
     def turn_on_visualization(self):
         self.wrapper.turnOnVisualization()

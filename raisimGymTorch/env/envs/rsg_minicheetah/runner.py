@@ -47,11 +47,23 @@ home_path = task_path + "/../../../.."
 cfg = YAML().load(open(task_path + "/cfg.yaml", 'r'))
 
 # if runNumber == 0:
-#     cfg['environment']['ter_curriculum_factor'] = 0.35
+#     cfg['environment']['reward']['airTimeCoeff'] = 0.0
+#     cfg['environment']['reward']['bodyOriCoeff'] = 0.0
+#     cfg['environment']['reward']['symmetryCoeff'] = 0.0
+#     cfg['environment']['reward']['footContactCoeff'] = 0.0
 # elif runNumber == 1:
-#     cfg['environment']['ter_curriculum_factor'] = 0.4
+#     cfg['environment']['reward']['airTimeCoeff'] = 0.0
+#     cfg['environment']['reward']['bodyOriCoeff'] = 0.0
 # elif runNumber == 2:
-#     cfg['environment']['ter_curriculum_factor'] = 0.45
+#     cfg['environment']['reward']['airTimeCoeff'] = 0.0
+# elif runNumber == 3:
+#     cfg['environment']['rew_curriculum_rate'] = 0.9995
+# elif runNumber == 4:
+#     cfg['environment']['rew_curriculum_rate'] = 0.9995
+#     cfg['environment']['reward']['airTimeCoeff'] = 0.0
+#     cfg['environment']['reward']['bodyOriCoeff'] = 0.0
+#     cfg['environment']['reward']['symmetryCoeff'] = 0.0
+#     cfg['environment']['reward']['footContactCoeff'] = 0.0
 
 # create environment from the configuration file
 env = VecEnv(rsg_minicheetah.RaisimGymEnv(home_path + "/rsc", dump(cfg['environment'], Dumper=RoundTripDumper)), cfg['environment'])
@@ -132,7 +144,7 @@ scheduler = torch.optim.lr_scheduler.MultiStepLR(ppo.optimizer, milestones=[2000
 # if mode == 'retrain':
 #     load_param(weight_path, env, actor, critic, stateEstimator, ppo.optimizer, saver.data_dir)
 
-max_iteration = 5000 + 1 #5000+1
+max_iteration = 7500 + 1 #5000+1
 
 env.load_scaling(weight_dir, int(iteration_number), 1e8) # 1e8 -> less disruption when retraining
                                                                                 # for normalisation of observation
@@ -177,7 +189,7 @@ for update in range(max_iteration):
             robotState = env.getRobotState()
             est_out = stateEstimator.predict(torch.from_numpy(obs_estimator).to(device))
             concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)  # different observation due to different normalisation
-            action = ppo.observe(concatenated_obs_actor)
+            action = ppo.act(concatenated_obs_actor)
 
             # action_ll, _ = actor.sample(torch.from_numpy(concatenated_obs_actor).to(device))  # stochastic action
             # action_ll = loaded_graph.architecture(torch.from_numpy(obs).cpu())
@@ -211,7 +223,7 @@ for update in range(max_iteration):
         est_out = stateEstimator.predict(torch.from_numpy(obs_estimator).to(device))
         concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
         concatenated_obs_critic = np.concatenate((obs, robotState), axis=1)
-        action = ppo.observe(concatenated_obs_actor)
+        action = ppo.act(concatenated_obs_actor)
 
         reward, dones = env.step(action)
         # env.go_straight_controller()

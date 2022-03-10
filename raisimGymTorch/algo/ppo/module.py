@@ -15,8 +15,8 @@ class Actor:
         self.device = device
 
     def sample(self, obs):
-        logits = self.architecture.architecture(obs)
-        actions, log_prob = self.distribution.sample(logits)
+        action_mean = self.architecture.architecture(obs)
+        actions, log_prob = self.distribution.sample(action_mean)
         return actions.detach(), log_prob.detach()
 
     def evaluate(self, obs, actions):
