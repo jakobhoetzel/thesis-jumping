@@ -85,6 +85,7 @@ class ENVIRONMENT {
       server_->focusOn(robot);
     }
     testNumber = 0;
+    iteration = 0;
   }
 
   ~ENVIRONMENT() {
@@ -95,9 +96,9 @@ class ENVIRONMENT {
   }
 
   void reset() {
-    double p = uniDist_(gen_);
+    double p = uniDist_(gen_); //p between -1 and 1
     hurdleTraining = true; // testNumber = 1: test of jumping -> always hurdles
-    if (p < 0.2 and testNumber==0){ // training -> hurdles according to probability
+    if (p < -1.0 and testNumber==0){ // training -> hurdles according to probability (set probability here)
       hurdleTraining = false;
     } else if(testNumber==2){
       hurdleTraining = false; // test of running without hurdles
@@ -157,7 +158,7 @@ class ENVIRONMENT {
       if (server_) server_->lockVisualizationServerMutex();
       world_->integrate();  // What does integration do? A. Simulate robot states and motions for the next simulation time.
       if (server_) server_->unlockVisualizationServerMutex();
-      controller_.getReward(world_.get(), rewardCoeff_, simulation_dt_, rewCurriculumFactor_, heightMap_, xPos_Hurdles_);
+      controller_.getReward(world_.get(), rewardCoeff_, simulation_dt_, rewCurriculumFactor_, heightMap_, xPos_Hurdles_, iteration);
       stepData_ += controller_.getStepData();
     }
 
@@ -196,7 +197,7 @@ class ENVIRONMENT {
   }
 
   bool isTerminalState(float &terminalReward) {
-    if(controller_.isTerminalState(world_.get())) {
+    if(controller_.isTerminalState(world_.get(), iteration, testNumber)){
       terminalReward = terminalRewardCoeff_;
       return true;
     }
@@ -211,7 +212,7 @@ class ENVIRONMENT {
     comCurriculumFactorT_ = 1 + comCurriculumFactor3_ / (1 + std::exp(-comCurriculumFactor1_ * (iter - comCurriculumFactor2_)));
     comCurriculumFactorT_ = std::fmax(1., comCurriculumFactorT_);
     terrain_curriculum_ = std::min(iter * (terCurriculumFactor_*0.75) / 5000.0 + terCurriculumFactor_*0.25, terCurriculumFactor_);
-
+    iteration = iter;
     if(isHeightMap_) {
       //groundType_ = (groundType_+1) % 2;
       world_->removeObject(heightMap_);
@@ -279,7 +280,7 @@ class ENVIRONMENT {
   int groundType_ = 5; //0  Set ground Type
   int delayDividedBySimdt;
   bool hurdleTraining;
-  int testNumber;
+  int testNumber, iteration;
   std::unique_ptr<raisim::RaisimServer> server_;
   Eigen::VectorXd stepData_;
   RandomHeightMapGenerator terrainGenerator_;

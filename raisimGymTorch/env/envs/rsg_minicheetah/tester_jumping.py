@@ -129,6 +129,7 @@ else:
         if wait_time > 0.:
             time.sleep(wait_time)
         time.sleep(0.01) #0.05
+        # print(step)
 
     # env.stop_video_recording()
     # env.turn_off_visualization()

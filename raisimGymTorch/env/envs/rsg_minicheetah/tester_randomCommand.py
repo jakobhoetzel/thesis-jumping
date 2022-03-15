@@ -77,6 +77,9 @@ else:
     max_steps = 1000000
     ##max_steps = 400 ## 10 secs
     env.curriculum_callback(5000)
+    command = np.array([0.0, 0, 0], dtype=np.float32)
+    env.set_command(command, testNumber=2)  # to set test Number
+    env.reset()
 
     for step in range(max_steps):
         frame_start = time.time()
@@ -123,7 +126,7 @@ else:
         if wait_time > 0.:
             time.sleep(wait_time)
 
-    env.stop_video_recording()
-    env.turn_off_visualization()
+    # env.stop_video_recording()
+    # env.turn_off_visualization()
     env.reset()
     print("Finished at the maximum visualization steps")
