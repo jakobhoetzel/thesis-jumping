@@ -2,6 +2,7 @@ import torch.nn as nn
 import numpy as np
 import torch
 from torch.distributions import Normal
+import time
 
 
 class Actor:
@@ -138,10 +139,12 @@ class MultivariateGaussianDiagonalCovariance(nn.Module):
         self.distribution = None
 
     def sample(self, logits):
+        # start_time = time.time()
         self.distribution = Normal(logits, self.std.reshape(self.dim))
 
         samples = self.distribution.sample()
         log_prob = self.distribution.log_prob(samples).sum(dim=1)
+        # print(time.time()-start_time)
 
         return samples, log_prob
 
