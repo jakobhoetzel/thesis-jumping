@@ -17,7 +17,8 @@ class PPO:
                  critic_run,
                  critic_jump,
                  critic_manager,
-                 estimator,
+                 estimator_run,
+                 estimator_jump,
                  num_envs,
                  num_transitions_per_env,
                  num_learning_epochs,
@@ -43,8 +44,13 @@ class PPO:
         self.critic_run = critic_run
         self.critic_jump = critic_jump
         self.critic_manager = critic_manager
-        self.estimator = estimator
-        self.storage = RolloutStorage(num_envs, num_transitions_per_env, actor_run.obs_shape, actor_jump.obs_shape, actor_manager.obs_shape, critic_run.obs_shape, critic_manager.obs_shape, actor_run.action_shape, estimator.input_shape, estimator.output_shape, device)
+        # self.estimator_run = estimator_run
+        # self.estimator_jump = estimator_jump
+        # self.storage = RolloutStorage(num_envs, num_transitions_per_env, actor_run.obs_shape, actor_jump.obs_shape, actor_manager.obs_shape,
+        #                               critic_run.obs_shape, critic_jump.obs_shape, critic_manager.obs_shape, actor_run.action_shape, estimator_run.input_shape, estimator_run.output_shape, device)
+        self.storage = RolloutStorage(num_envs, num_transitions_per_env, actor_run.obs_shape, actor_jump.obs_shape, actor_manager.obs_shape,
+                                      critic_run.obs_shape, critic_jump.obs_shape, critic_manager.obs_shape, actor_run.action_shape, device)
+
 
         if shuffle_batch:
             self.batch_sampler = self.storage.mini_batch_generator_shuffle
@@ -52,8 +58,8 @@ class PPO:
             self.batch_sampler = self.storage.mini_batch_generator_inorder
 
         # self.optimizer = optim.Adam([*self.actor.parameters(), *self.critic.parameters()], lr=learning_rate)
-        self.optimizer = AdamP([*self.actor_run.parameters(), *self.actor_jump.parameters(), *self.critic_run.parameters(), *self.critic_jump.parameters(), *self.estimator.parameters()], lr=learning_rate)
-        self.optimizer_manager = AdamP([*self.actor_manager.parameters(), *self.critic_manager.parameters(), *self.estimator.parameters()], lr=learning_rate)
+        # self.optimizer = AdamP([*self.actor_run.parameters(), *self.actor_jump.parameters(), *self.critic_run.parameters(), *self.critic_jump.parameters(), *self.estimator.parameters()], lr=learning_rate)
+        self.optimizer_manager = AdamP([*self.actor_manager.parameters(), *self.critic_manager.parameters()], lr=learning_rate)
         # self.optimizer = torch.optim.Adam([
         #     {'params': self.policy.actor.parameters(), 'lr': lr_actor},
         #     {'params': self.policy.critic.parameters(), 'lr': lr_critic}])
@@ -69,7 +75,7 @@ class PPO:
         self.num_learning_epochs = num_learning_epochs
         self.num_mini_batches = num_mini_batches
         self.value_loss_coef = value_loss_coef
-        self.estimator_loss_coef = estimator_loss_coef
+        # self.estimator_loss_coef = estimator_loss_coef
         self.entropy_coef = entropy_coef
         self.gamma = gamma
         self.lam = lam
@@ -149,7 +155,8 @@ class PPO:
 
         # Learning step
         self.storage.compute_returns(last_values, self.gamma, self.lam)
-        mean_value_loss, mean_surrogate_loss, mean_estimation_loss, mean_entropy, infos = self._train_step()
+        # mean_value_loss, mean_surrogate_loss, mean_estimation_loss, mean_entropy, infos = self._train_step()
+        mean_value_loss, mean_surrogate_loss, mean_entropy, infos = self._train_step()
         self.storage.clear()
 
         if log_this_iteration:
@@ -160,39 +167,38 @@ class PPO:
 
         self.writer.add_scalar('Loss/value_function', variables['mean_value_loss'], variables['it'])
         self.writer.add_scalar('Loss/surrogate', variables['mean_surrogate_loss'], variables['it'])
-        self.writer.add_scalar('Loss/estimation', variables['mean_estimation_loss'], variables['it'])
+        # self.writer.add_scalar('Loss/estimation', variables['mean_estimation_loss'], variables['it'])
         self.writer.add_scalar('Policy/entropy', variables['mean_entropy'], variables['it'])
         if self.manager_training:
             mean_std_manager = self.actor_jump.distribution.std.mean()
             self.writer.add_scalar('Policy/mean_noise_std_manager', mean_std_manager.item(), variables['it'])
-        else:
-            mean_std_run = self.actor_run.distribution.std.mean()
-            mean_std_jump = self.actor_jump.distribution.std.mean()
-            self.writer.add_scalar('Policy/mean_noise_std_run', mean_std_run.item(), variables['it'])
-            self.writer.add_scalar('Policy/mean_noise_std_jump', mean_std_jump.item(), variables['it'])
+        # else:
+        #     mean_std_run = self.actor_run.distribution.std.mean()
+        #     mean_std_jump = self.actor_jump.distribution.std.mean()
+        #     self.writer.add_scalar('Policy/mean_noise_std_run', mean_std_run.item(), variables['it'])
+        #     self.writer.add_scalar('Policy/mean_noise_std_jump', mean_std_jump.item(), variables['it'])
 
     def _train_step(self):
         mean_value_loss = 0
         mean_surrogate_loss = 0
-        mean_estimation_loss = 0
+        # mean_estimation_loss = 0
         mean_entropy = 0
         for epoch in range(self.num_learning_epochs):
-            for actor_obs_run_batch, actor_obs_jump_batch, actor_obs_manager_batch, critic_obs_run_batch, critic_obs_jump_batch, \
-                critic_obs_manager_batch, actions_batch, target_values_batch, est_in_batch, robotState_batch, \
+            for actor_obs_manager_batch, critic_obs_manager_batch, actions_batch, target_values_batch, \
                 advantages_batch, returns_batch, old_actions_log_prob_batch, run_bool_batch \
                     in self.batch_sampler(self.num_mini_batches):
                 if self.manager_training:
                     actions_log_prob_batch, entropy_batch = self.actor_manager.evaluate(actor_obs_manager_batch, run_bool_batch)
                     value_batch = self.critic_manager.evaluate(critic_obs_manager_batch)
-                else:
-                    jump_bool_batch = torch.add(torch.ones(run_bool_batch.size()).to(self.device), run_bool_batch, alpha=-1)
-                    actions_run_log_prob_batch, entropy_run_batch = self.actor_run.evaluate(actor_obs_run_batch, actions_batch)
-                    actions_jump_log_prob_batch, entropy_jump_batch = self.actor_jump.evaluate(actor_obs_jump_batch, actions_batch)
-                    actions_log_prob_batch = run_bool_batch[:,0] * actions_run_log_prob_batch + jump_bool_batch[:,0] * actions_jump_log_prob_batch
-                    entropy_batch = run_bool_batch[:,0] * entropy_run_batch + jump_bool_batch[:,0] * entropy_jump_batch
-                    value_batch = run_bool_batch * self.critic_run.evaluate(critic_obs_run_batch) + (1-run_bool_batch) * self.critic_jump.evaluate(critic_obs_jump_batch)
+                # else:
+                #     jump_bool_batch = torch.add(torch.ones(run_bool_batch.size()).to(self.device), run_bool_batch, alpha=-1)
+                #     actions_run_log_prob_batch, entropy_run_batch = self.actor_run.evaluate(actor_obs_run_batch, actions_batch)
+                #     actions_jump_log_prob_batch, entropy_jump_batch = self.actor_jump.evaluate(actor_obs_jump_batch, actions_batch)
+                #     actions_log_prob_batch = run_bool_batch[:,0] * actions_run_log_prob_batch + jump_bool_batch[:,0] * actions_jump_log_prob_batch
+                #     entropy_batch = run_bool_batch[:,0] * entropy_run_batch + jump_bool_batch[:,0] * entropy_jump_batch
+                #     value_batch = run_bool_batch * self.critic_run.evaluate(critic_obs_run_batch) + (1-run_bool_batch) * self.critic_jump.evaluate(critic_obs_jump_batch)
 
-                estimation_batch = self.estimator.evaluate(est_in_batch)
+                # estimation_batch = self.estimator.evaluate(est_in_batch)
 
                 # Surrogate loss
                 ratio = torch.exp(actions_log_prob_batch - torch.squeeze(old_actions_log_prob_batch))
@@ -211,10 +217,11 @@ class PPO:
                 else:
                     value_loss = (returns_batch - value_batch).pow(2).mean()
 
-                estimator_loss = (robotState_batch - estimation_batch).pow(2).mean()
+                # estimator_loss = (robotState_batch - estimation_batch).pow(2).mean()
 
-                loss = surrogate_loss + self.value_loss_coef * value_loss + self.estimator_loss_coef * estimator_loss\
-                       - self.entropy_coef * entropy_batch.mean()
+                # loss = surrogate_loss + self.value_loss_coef * value_loss + self.estimator_loss_coef * estimator_loss\
+                #        - self.entropy_coef * entropy_batch.mean()
+                loss = surrogate_loss + self.value_loss_coef * value_loss - self.entropy_coef * entropy_batch.mean()
 
                 # Gradient step
                 if self.manager_training:
@@ -222,24 +229,25 @@ class PPO:
                     loss.backward()
                     nn.utils.clip_grad_norm_([*self.actor_manager.parameters(), *self.critic_manager.parameters()], self.max_grad_norm)
                     self.optimizer_manager.step()
-                else:
-                    self.optimizer.zero_grad()
-                    loss.backward()
-                    nn.utils.clip_grad_norm_([*self.actor_run.parameters(), *self.actor_jump.parameters(), *self.critic_run.parameters(), *self.critic_jump.parameters()], self.max_grad_norm)
-                    self.optimizer.step()
+                # else:
+                #     self.optimizer.zero_grad()
+                #     loss.backward()
+                #     nn.utils.clip_grad_norm_([*self.actor_run.parameters(), *self.actor_jump.parameters(), *self.critic_run.parameters(), *self.critic_jump.parameters()], self.max_grad_norm)
+                #     self.optimizer.step()
 
                 mean_value_loss += value_loss.item()
                 mean_surrogate_loss += surrogate_loss.item()
-                mean_estimation_loss += estimator_loss.item()
+                # mean_estimation_loss += estimator_loss.item()
                 mean_entropy += entropy_batch.mean()
 
         num_updates = self.num_learning_epochs * self.num_mini_batches
         mean_value_loss /= num_updates
         mean_surrogate_loss /= num_updates
-        mean_estimation_loss /= num_updates
+        # mean_estimation_loss /= num_updates
         mean_entropy /= num_updates
 
-        return mean_value_loss, mean_surrogate_loss, mean_estimation_loss, mean_entropy, locals()
+        return mean_value_loss, mean_surrogate_loss, mean_entropy, locals()
+        # return mean_value_loss, mean_surrogate_loss, mean_estimation_loss, mean_entropy, locals()
 
     def set_manager_training(self, manager_training):
         self.manager_training = manager_training

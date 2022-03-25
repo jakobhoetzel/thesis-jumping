@@ -10,7 +10,7 @@ import os
 
 class RaisimGymVecEnv:
 
-    def __init__(self, impl, cfg, normalize_ob=True, seed=0, normalize_rew=True, clip_obs=10.):
+    def __init__(self, impl, cfg, normalize_ob=True, seed=0, normalize_rew=True, clip_obs=10., sensor_dim=0):
         if platform.system() == "Darwin":
             os.environ['KMP_DUPLICATE_LIB_OK']='True'
         self.normalize_ob = normalize_ob
@@ -19,11 +19,12 @@ class RaisimGymVecEnv:
         self.wrapper = impl
         self.wrapper.init()
         self.num_obs = self.wrapper.getObDim()
+        self.num_sens = sensor_dim
         self.num_robotState = self.wrapper.getRobotStateDim()
         self.num_acts = self.wrapper.getActionDim()
         self._observation = np.zeros([self.num_envs, self.num_obs], dtype=np.float32)
         self._robotState = np.zeros([self.num_envs, self.num_robotState], dtype=np.float32)
-        self.obs_rms_run = RunningMeanStd(shape=[self.num_envs, self.num_obs])
+        self.obs_rms_run = RunningMeanStd(shape=[self.num_envs, self.num_obs-self.num_sens])
         self.obs_rms_jump = RunningMeanStd(shape=[self.num_envs, self.num_obs])
         self.obs_rms_manager = RunningMeanStd(shape=[self.num_envs, self.num_obs])
         self._reward = np.zeros(self.num_envs, dtype=np.float32)
@@ -33,8 +34,8 @@ class RaisimGymVecEnv:
     def seed(self, seed=None):
         self.wrapper.setSeed(seed)
 
-    def set_command(self, command):
-        self.wrapper.setCommand(command)
+    def set_command(self, command, testNumber=0):
+        self.wrapper.setCommand(command, testNumber)
 
     def turn_on_visualization(self):
         self.wrapper.turnOnVisualization()
@@ -53,7 +54,7 @@ class RaisimGymVecEnv:
         return self._reward.copy(), self._done.copy()
 
     def load_scaling(self, dir_name_run, iteration_run, dir_name_jump, iteration_jump, dir_name_manager, iteration_manager, count=1e5, one_directory=True):
-        if one_directory:
+        if not one_directory:
             mean_file_name_run = dir_name_run + "/mean" + str(iteration_run) + ".csv"
             var_file_name_run = dir_name_run + "/var" + str(iteration_run) + ".csv"
             mean_file_name_jump = dir_name_jump + "/mean" + str(iteration_jump) + ".csv"
@@ -65,8 +66,8 @@ class RaisimGymVecEnv:
             var_file_name_run = dir_name_run + "/varRun" + str(iteration_run) + ".csv"
             mean_file_name_jump = dir_name_jump + "/meanJump" + str(iteration_jump) + ".csv"
             var_file_name_jump = dir_name_jump + "/varJump" + str(iteration_jump) + ".csv"
-            mean_file_name_manager = dir_name_manager + "/meanJump" + str(iteration_manager) + ".csv"
-            var_file_name_manager = dir_name_manager + "/varJump" + str(iteration_manager) + ".csv"
+            mean_file_name_manager = dir_name_manager + "/meanManager" + str(iteration_manager) + ".csv"
+            var_file_name_manager = dir_name_manager + "/varManager" + str(iteration_manager) + ".csv"
         self.obs_rms_run.count = count
         self.obs_rms_jump.count = count
         self.obs_rms_manager.count = count
@@ -79,16 +80,18 @@ class RaisimGymVecEnv:
             self.obs_rms_manager.var[i] = np.loadtxt(var_file_name_manager, dtype=np.float32)
 
     def save_scaling(self, dir_name, iteration):
-        mean_file_name_run = dir_name + "/meanRun" + iteration + ".csv"
-        var_file_name_run = dir_name + "/varRun" + iteration + ".csv"
-        mean_file_name_jump = dir_name + "/meanJump" + iteration + ".csv"
-        var_file_name_jump = dir_name + "/varJump" + iteration + ".csv"
-        mean_file_name_manager = dir_name + "/meanManager" + iteration + ".csv"
-        var_file_name_manager = dir_name + "/varManager" + iteration + ".csv"
-        np.savetxt(mean_file_name_run, self.obs_rms_run.mean[0])
-        np.savetxt(var_file_name_run, self.obs_rms_run.var[0])
-        np.savetxt(mean_file_name_jump, self.obs_rms_jump.mean[0])
-        np.savetxt(var_file_name_jump, self.obs_rms_jump.var[0])
+        # mean_file_name_run = dir_name + "/meanRun" + iteration + ".csv"
+        # var_file_name_run = dir_name + "/varRun" + iteration + ".csv"
+        # mean_file_name_jump = dir_name + "/meanJump" + iteration + ".csv"
+        # var_file_name_jump = dir_name + "/varJump" + iteration + ".csv"
+        # mean_file_name_manager = dir_name + "/meanManager" + iteration + ".csv"
+        # var_file_name_manager = dir_name + "/varManager" + iteration + ".csv"
+        mean_file_name_manager = dir_name + "/mean" + iteration + ".csv"
+        var_file_name_manager = dir_name + "/var" + iteration + ".csv"
+        # np.savetxt(mean_file_name_run, self.obs_rms_run.mean[0])
+        # np.savetxt(var_file_name_run, self.obs_rms_run.var[0])
+        # np.savetxt(mean_file_name_jump, self.obs_rms_jump.mean[0])
+        # np.savetxt(var_file_name_jump, self.obs_rms_jump.var[0])
         np.savetxt(mean_file_name_manager, self.obs_rms_manager.mean[0])
         np.savetxt(var_file_name_manager, self.obs_rms_manager.var[0])
 
@@ -118,7 +121,7 @@ class RaisimGymVecEnv:
     def _normalize_observation(self, obs):
         if self.normalize_ob:
 
-            obs_run = np.clip((obs - self.obs_rms_run.mean) / np.sqrt(self.obs_rms_run.var + 1e-8), -self.clip_obs,
+            obs_run = np.clip((obs[:,:-self.num_sens] - self.obs_rms_run.mean) / np.sqrt(self.obs_rms_run.var + 1e-8), -self.clip_obs,
                               self.clip_obs)
             obs_jump = np.clip((obs - self.obs_rms_jump.mean) / np.sqrt(self.obs_rms_jump.var + 1e-8), -self.clip_obs,
                               self.clip_obs)
@@ -126,7 +129,7 @@ class RaisimGymVecEnv:
                               self.clip_obs)
             return obs_run, obs_jump, obs_manager
         else:
-            return obs, obs, obs
+            return obs[:,:-self.num_sens], obs, obs
 
     def reset_and_update_info(self):
         return self.reset(), self._update_epi_info()

@@ -64,7 +64,7 @@ class ENVIRONMENT {
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::NETWORKCHANGE], cfg["reward"]["networkChangeCoeff"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::NONETWORKCHANGE], cfg["reward"]["noNetworkChangeCoeff"])
 
-    terrain_curriculum_ = terCurriculumFactor_*0.25;
+    terrain_curriculum_ = terCurriculumFactor_*1.0;
     isHeightMap_ = cfg["isHeightMap"].template As<bool>();
     controller_.setIsHeightMap(isHeightMap_);
     if (isHeightMap_){
@@ -87,6 +87,8 @@ class ENVIRONMENT {
       server_->launchServer();
       server_->focusOn(robot);
     }
+    testNumber = 0;
+    iteration = 0;
   }
 
   ~ENVIRONMENT() {
@@ -97,7 +99,14 @@ class ENVIRONMENT {
   }
 
   void reset() {
-    controller_.reset(world_.get(), comCurriculumFactorT_, heightMap_);
+    double p = uniDist_(gen_); //p between -1 and 1
+    hurdleTraining = true; // testNumber = 1: test of jumping -> always hurdles
+    if (fabs(p) < 0.5 and testNumber==0){ // training -> hurdles according to probability (set probability here)
+      hurdleTraining = false;
+    } else if(testNumber==2){
+      hurdleTraining = false; // test of running without hurdles
+    }
+    controller_.reset(world_.get(), comCurriculumFactorT_, heightMap_, hurdleTraining);
     controller_.collisionRandomization(world_.get());
 
     mu_ = 0.4 + 0.3 * (uniDist_(gen_) + 1);  // [0.4, 1.0]
@@ -106,10 +115,18 @@ class ENVIRONMENT {
     auto hurdle1_ = world_->getObject("hurdle1");
     xPos_Hurdles_ = uniDist_(gen_)*0.5 + 5.0;
     world_->removeObject(hurdle1_);
-    auto hurdle2_ = world_->addBox(0.1, 500, terrain_curriculum_, 100000); //x, y, z length, mass; change also in init
-    hurdle2_->setPosition(xPos_Hurdles_, 0, terrain_curriculum_/2.0); //pos of cog
-    hurdle2_->setOrientation(1., 0, 0, 0); //quaternion
-    hurdle2_->setName("hurdle1");
+    if (hurdleTraining){
+      auto hurdle2_ = world_->addBox(0.1, 500, terrain_curriculum_, 100000); //x, y, z length, mass; change also in init
+      hurdle2_->setPosition(xPos_Hurdles_, 0, terrain_curriculum_/2.0); //pos of cog
+      hurdle2_->setOrientation(1., 0, 0, 0); //quaternion
+      hurdle2_->setName("hurdle1");
+    }else{
+      auto hurdle2_ = world_->addBox(0, 0, 0, 0); //no hurdle
+      hurdle2_->setPosition(xPos_Hurdles_, 0, 0.0); //pos of cog
+      hurdle2_->setOrientation(1., 0, 0, 0); //quaternion
+      hurdle2_->setName("hurdle1");
+    }
+
   }
 
   const std::vector<std::string>& getStepDataTag() {
@@ -120,7 +137,14 @@ class ENVIRONMENT {
     return stepData_;
   }
 
-  void setCommand(const Eigen::Ref<EigenVec>& command) { controller_.setCommand(command); }
+  void setCommand(const Eigen::Ref<EigenVec>& command, int testNumber_=0) {
+    controller_.setCommand(command);
+    if (testNumber_==0 or testNumber_==1 or testNumber_==2){
+      testNumber = testNumber_; // 0=training(hurdles according to probability), 1=test jumping(with hurdle), 0=train run (without hurdle)
+    } else{
+      std::cout << "Unknown test number: " << testNumber_ << std:: endl;
+    }
+  }
 
   void go_straight_controller() { controller_.go_straight_controller(); }
 
@@ -137,9 +161,10 @@ class ENVIRONMENT {
       if (server_) server_->lockVisualizationServerMutex();
       world_->integrate();  // What does integration do? A. Simulate robot states and motions for the next simulation time.
       if (server_) server_->unlockVisualizationServerMutex();
-      controller_.getReward(world_.get(), rewardCoeff_, simulation_dt_, rewCurriculumFactor_, heightMap_, xPos_Hurdles_, managerTraining);
+      controller_.getReward(world_.get(), rewardCoeff_, simulation_dt_, rewCurriculumFactor_, heightMap_, xPos_Hurdles_, iteration, managerTraining);
       stepData_ += controller_.getStepData();
     }
+
 
     controller_.updateHistory();  /// update every control_dt
     controller_.updatePreviousActions();  /// update every control_dt
@@ -155,13 +180,18 @@ class ENVIRONMENT {
     //ob.tail(2) = {{terrain_curriculum_, xPos_Hurdles_-ob.tail(1)(0)}}; //height and distance to hurdle
     double dist_obs_next = 0;
     if ((xPos_Hurdles_-ob.tail(1)(0)-0.15) >= 0) { // head before hurdle
-      dist_obs_next = std::min( std::max(xPos_Hurdles_-ob.tail(1)(0)-0.15, 0.0), 8.0); //distance between 0 and 8
+      dist_obs_next = std::min( std::max(xPos_Hurdles_-ob.tail(1)(0)-0.15, 0.0), 5.0); //distance between 0 and 5
     } else if ((xPos_Hurdles_-ob.tail(1)(0)-0.15) >= -0.3){ // before landing
       dist_obs_next = xPos_Hurdles_-ob.tail(1)(0)-0.15;
     } else { // after hurdle
-      dist_obs_next = 8; //distance between 0 and 8
+      dist_obs_next = 5; //distance between 0 and 8
     }
-    ob.tail(2) << terrain_curriculum_+uniDist_(gen_) * 0.05, dist_obs_next+uniDist_(gen_) * 0.05;
+    if(hurdleTraining){
+      ob.tail(2) << terrain_curriculum_+uniDist_(gen_) * 0.05, dist_obs_next+uniDist_(gen_) * 0.05;
+    } else{
+      ob.tail(2) << uniDist_(gen_) * 0.05, 5 + uniDist_(gen_) * 0.05; //no hurdle
+
+    }
     //height and distance to next hurdle
   }
 
@@ -171,7 +201,7 @@ class ENVIRONMENT {
   }
 
   bool isTerminalState(float &terminalReward) {
-    if(controller_.isTerminalState(world_.get())) {
+    if(controller_.isTerminalState(world_.get(), iteration, testNumber)){
       terminalReward = terminalRewardCoeff_;
       return true;
     }
@@ -181,19 +211,21 @@ class ENVIRONMENT {
   /////// optional methods ///////
   void curriculumUpdate(int iter) {
 //    rewCurriculumFactor_ = pow(rewCurriculumFactor_+1, rewCurriculumRate_);
-    rewCurriculumFactor2_ = rewCurriculumFactor2_*rewCurriculumRate_;
-    rewCurriculumFactor_ = 1 - rewCurriculumFactor2_;
-    comCurriculumFactorT_ = 1 + comCurriculumFactor3_ / (1 + std::exp(-comCurriculumFactor1_ * (iter - comCurriculumFactor2_)));
-    comCurriculumFactorT_ = std::fmax(1., comCurriculumFactorT_);
-    terrain_curriculum_ = iter * (terCurriculumFactor_*0.75) / 10000.0 + terCurriculumFactor_*0.25; // TODO: better curriculum function, adapt to number of iter
-
-    if(isHeightMap_) {
-      //groundType_ = (groundType_+1) % 2;
-      world_->removeObject(heightMap_);
-      //double terrain_curriculum_ = 1 * std::min(1., iter / terCurriculumFactor_);
-      heightMap_ = terrainGenerator_.generateTerrain(world_.get(), RandomHeightMapGenerator::GroundType(groundType_), terrain_curriculum_, false, gen_, uniDist_);
-      //std::cout << std::setprecision( 6 ) << "terrain_corriculum: " << terrain_curriculum_ << std::endl;
-    }
+//    rewCurriculumFactor2_ = rewCurriculumFactor2_*rewCurriculumRate_;
+//    rewCurriculumFactor_ = 1 - rewCurriculumFactor2_;
+//    comCurriculumFactorT_ = 1 + comCurriculumFactor3_ / (1 + std::exp(-comCurriculumFactor1_ * (iter - comCurriculumFactor2_)));
+//    comCurriculumFactorT_ = std::fmax(1., comCurriculumFactorT_);
+    comCurriculumFactorT_ = 1.0;
+//    terrain_curriculum_ = std::min(iter * (terCurriculumFactor_*0.0) / 5000.0 + terCurriculumFactor_*1.0, terCurriculumFactor_);
+    terrain_curriculum_ = terCurriculumFactor_;
+    iteration = iter;
+//    if(isHeightMap_) {
+//      //groundType_ = (groundType_+1) % 2;
+//      world_->removeObject(heightMap_);
+//      //double terrain_curriculum_ = 1 * std::min(1., iter / terCurriculumFactor_);
+//      heightMap_ = terrainGenerator_.generateTerrain(world_.get(), RandomHeightMapGenerator::GroundType(groundType_), terrain_curriculum_, false, gen_, uniDist_);
+//      //std::cout << std::setprecision( 6 ) << "terrain_corriculum: " << terrain_curriculum_ << std::endl;
+//    }
   };
   float getCurriculumFactor() {return float(rewCurriculumFactor_);};
   void close() { if (server_) server_->killServer(); };
@@ -253,6 +285,8 @@ class ENVIRONMENT {
   double mu_;
   int groundType_ = 5; //0  Set ground Type
   int delayDividedBySimdt;
+  bool hurdleTraining;
+  int testNumber, iteration;
   std::unique_ptr<raisim::RaisimServer> server_;
   Eigen::VectorXd stepData_;
   RandomHeightMapGenerator terrainGenerator_;

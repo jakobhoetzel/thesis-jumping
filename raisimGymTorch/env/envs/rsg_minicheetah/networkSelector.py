@@ -26,3 +26,17 @@ def run_bool_function(obs_, output=False, old_bool=None):
             elif run_bool[0,0] is np.bool_(True):
                 print("First selected network: run")
     return run_bool
+
+def run_bool_function_0(obs_):
+    """ always runner network"""
+    rows, _ = obs_.shape
+    run_bool = np.zeros((rows, 1)).astype(bool)
+
+    return run_bool
+
+def run_bool_function_1(obs_):
+    """ always jump network"""
+    rows, _ = obs_.shape
+    run_bool = np.ones((rows, 1)).astype(bool)
+
+    return run_bool
