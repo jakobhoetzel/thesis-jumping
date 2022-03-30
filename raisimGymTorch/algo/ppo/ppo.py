@@ -48,9 +48,10 @@ class PPO:
         # self.estimator_jump = estimator_jump
         # self.storage = RolloutStorage(num_envs, num_transitions_per_env, actor_run.obs_shape, actor_jump.obs_shape, actor_manager.obs_shape,
         #                               critic_run.obs_shape, critic_jump.obs_shape, critic_manager.obs_shape, actor_run.action_shape, estimator_run.input_shape, estimator_run.output_shape, device)
-        self.storage = RolloutStorage(num_envs, num_transitions_per_env, actor_run.obs_shape, actor_jump.obs_shape, actor_manager.obs_shape,
-                                      critic_run.obs_shape, critic_jump.obs_shape, critic_manager.obs_shape, actor_run.action_shape, device)
-
+        self.storage = RolloutStorage(num_envs, num_transitions_per_env, actor_run.obs_shape, actor_jump.obs_shape,
+                                      actor_manager.obs_shape,
+                                      critic_run.obs_shape, critic_jump.obs_shape, critic_manager.obs_shape,
+                                      actor_run.action_shape, device)
 
         if shuffle_batch:
             self.batch_sampler = self.storage.mini_batch_generator_shuffle
@@ -59,7 +60,8 @@ class PPO:
 
         # self.optimizer = optim.Adam([*self.actor.parameters(), *self.critic.parameters()], lr=learning_rate)
         # self.optimizer = AdamP([*self.actor_run.parameters(), *self.actor_jump.parameters(), *self.critic_run.parameters(), *self.critic_jump.parameters(), *self.estimator.parameters()], lr=learning_rate)
-        self.optimizer_manager = AdamP([*self.actor_manager.parameters(), *self.critic_manager.parameters()], lr=learning_rate)
+        self.optimizer_manager = AdamP([*self.actor_manager.parameters(), *self.critic_manager.parameters()],
+                                       lr=learning_rate)
         # self.optimizer = torch.optim.Adam([
         #     {'params': self.policy.actor.parameters(), 'lr': lr_actor},
         #     {'params': self.policy.critic.parameters(), 'lr': lr_critic}])
@@ -97,25 +99,30 @@ class PPO:
         self.run_bool = None
         self.jump_bool = None
 
-    def observe(self, actor_obs_run, actor_obs_jump, actor_obs_manager, run_bool_input=None):  # run_bool = 1 when running network active; run_bool = 0 when jumping network active
+    def observe(self, actor_obs_run, actor_obs_jump, actor_obs_manager,
+                run_bool_input=None):  # run_bool = 1 when running network active; run_bool = 0 when jumping network active
         self.actor_obs_run = actor_obs_run
         self.actor_obs_jump = actor_obs_jump
         self.actor_obs_manager = actor_obs_manager
+        actions_log_prob_manager = None
         if run_bool_input is None:
-            bool_manager, actions_log_prob_manager = self.actor_manager.sample(torch.from_numpy(actor_obs_manager).to(self.device))
+            bool_manager, actions_log_prob_manager = self.actor_manager.sample(
+                torch.from_numpy(actor_obs_manager).to(self.device))
             self.run_bool = bool_manager.unsqueeze(1)
         else:
             self.run_bool = torch.from_numpy(run_bool_input).to(self.device)
-        self.jump_bool = torch.add(torch.ones(self.run_bool.size(), device=self.device), self.run_bool, alpha=-1)  # 1-run_bool
+        self.jump_bool = torch.add(torch.ones(self.run_bool.size(), device=self.device), self.run_bool,
+                                   alpha=-1)  # 1-run_bool
 
         actions_run, actions_run_log_prob = self.actor_run.sample(torch.from_numpy(actor_obs_run).to(self.device))
         actions_jump, actions_jump_log_prob = self.actor_jump.sample(torch.from_numpy(actor_obs_jump).to(self.device))
         self.actions = self.run_bool * actions_run + self.jump_bool * actions_jump
 
-        if self.manager_training:
+        if self.manager_training and actions_log_prob_manager is not None:
             self.actions_log_prob = actions_log_prob_manager
         else:
-            self.actions_log_prob = self.run_bool[:,0] * actions_run_log_prob + self.jump_bool[:,0] * actions_jump_log_prob
+            self.actions_log_prob = self.run_bool[:, 0] * actions_run_log_prob + self.jump_bool[:,
+                                                                                 0] * actions_jump_log_prob
 
         # if self.manager_training:
         #     self.actions, self.actions_log_prob = self.actor_manager.sample(torch.from_numpy(actor_obs).to(self.device))
@@ -138,10 +145,12 @@ class PPO:
             values = self.run_bool * self.critic_run.predict(torch.from_numpy(value_obs_run).to(self.device)) \
                      + self.jump_bool * self.critic_jump.predict(torch.from_numpy(value_obs_jump).to(self.device))
         self.storage.add_transitions(self.actor_obs_run, self.actor_obs_jump, self.actor_obs_manager, value_obs_run,
-                                     value_obs_jump, value_obs_manager, self.actions, est_obs, robotState, rews, dones, values,
+                                     value_obs_jump, value_obs_manager, self.actions, est_obs, robotState, rews, dones,
+                                     values,
                                      self.actions_log_prob, self.run_bool)
 
-    def update(self, actor_obs_manager, value_obs_run, value_obs_jump, value_obs_manager, log_this_iteration, update):
+    def update(self, actor_obs_manager, value_obs_run, value_obs_jump, value_obs_manager, log_this_iteration, update,
+               actor_manager_update=True):
         bool_manager = self.actor_manager.sample(torch.from_numpy(actor_obs_manager).to(self.device))[0]
         # run_bool = bool_manager.unsqueeze(1)
         # jump_bool = torch.add(torch.ones(self.run_bool.size(), device=self.device), self.run_bool, alpha=-1)  # 1-run_bool
@@ -149,14 +158,14 @@ class PPO:
             last_values = self.critic_manager.predict(torch.from_numpy(value_obs_manager).to(self.device))
         else:
             run_bool = bool_manager.unsqueeze(1)
-            jump_bool = torch.add(torch.ones(run_bool[:,0:1].shape, device=self.device), run_bool[:,0:1], alpha=-1)
+            jump_bool = torch.add(torch.ones(run_bool[:, 0:1].shape, device=self.device), run_bool[:, 0:1], alpha=-1)
             last_values = run_bool * self.critic_run.predict(torch.from_numpy(value_obs_run).to(self.device)) \
                           + jump_bool * self.critic_jump.predict(torch.from_numpy(value_obs_jump).to(self.device))
 
         # Learning step
         self.storage.compute_returns(last_values, self.gamma, self.lam)
         # mean_value_loss, mean_surrogate_loss, mean_estimation_loss, mean_entropy, infos = self._train_step()
-        mean_value_loss, mean_surrogate_loss, mean_entropy, infos = self._train_step()
+        mean_value_loss, mean_surrogate_loss, mean_entropy, infos = self._train_step(actor_manager_update)
         self.storage.clear()
 
         if log_this_iteration:
@@ -178,7 +187,7 @@ class PPO:
         #     self.writer.add_scalar('Policy/mean_noise_std_run', mean_std_run.item(), variables['it'])
         #     self.writer.add_scalar('Policy/mean_noise_std_jump', mean_std_jump.item(), variables['it'])
 
-    def _train_step(self):
+    def _train_step(self, actor_manager_update=True):
         mean_value_loss = 0
         mean_surrogate_loss = 0
         # mean_estimation_loss = 0
@@ -188,7 +197,8 @@ class PPO:
                 advantages_batch, returns_batch, old_actions_log_prob_batch, run_bool_batch \
                     in self.batch_sampler(self.num_mini_batches):
                 if self.manager_training:
-                    actions_log_prob_batch, entropy_batch = self.actor_manager.evaluate(actor_obs_manager_batch, run_bool_batch)
+                    actions_log_prob_batch, entropy_batch = self.actor_manager.evaluate(actor_obs_manager_batch,
+                                                                                        run_bool_batch)
                     value_batch = self.critic_manager.evaluate(critic_obs_manager_batch)
                 # else:
                 #     jump_bool_batch = torch.add(torch.ones(run_bool_batch.size()).to(self.device), run_bool_batch, alpha=-1)
@@ -221,13 +231,15 @@ class PPO:
 
                 # loss = surrogate_loss + self.value_loss_coef * value_loss + self.estimator_loss_coef * estimator_loss\
                 #        - self.entropy_coef * entropy_batch.mean()
-                loss = surrogate_loss + self.value_loss_coef * value_loss - self.entropy_coef * entropy_batch.mean()
+                loss = surrogate_loss * actor_manager_update + self.value_loss_coef * value_loss\
+                       - self.entropy_coef * entropy_batch.mean() * actor_manager_update  # train only critic at the beginning
 
                 # Gradient step
                 if self.manager_training:
                     self.optimizer_manager.zero_grad()
                     loss.backward()
-                    nn.utils.clip_grad_norm_([*self.actor_manager.parameters(), *self.critic_manager.parameters()], self.max_grad_norm)
+                    nn.utils.clip_grad_norm_([*self.actor_manager.parameters(), *self.critic_manager.parameters()],
+                                             self.max_grad_norm)
                     self.optimizer_manager.step()
                 # else:
                 #     self.optimizer.zero_grad()

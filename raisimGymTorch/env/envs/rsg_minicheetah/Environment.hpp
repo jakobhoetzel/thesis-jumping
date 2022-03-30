@@ -101,7 +101,7 @@ class ENVIRONMENT {
   void reset() {
     double p = uniDist_(gen_); //p between -1 and 1
     hurdleTraining = true; // testNumber = 1: test of jumping -> always hurdles
-    if (fabs(p) < 0.5 and testNumber==0){ // training -> hurdles according to probability (set probability here)
+    if (fabs(p) < 0.2 and testNumber==0){ // training -> hurdles according to probability (set probability here)
       hurdleTraining = false;
     } else if(testNumber==2){
       hurdleTraining = false; // test of running without hurdles
@@ -180,11 +180,11 @@ class ENVIRONMENT {
     //ob.tail(2) = {{terrain_curriculum_, xPos_Hurdles_-ob.tail(1)(0)}}; //height and distance to hurdle
     double dist_obs_next = 0;
     if ((xPos_Hurdles_-ob.tail(1)(0)-0.15) >= 0) { // head before hurdle
-      dist_obs_next = std::min( std::max(xPos_Hurdles_-ob.tail(1)(0)-0.15, 0.0), 5.0); //distance between 0 and 5
+      dist_obs_next = std::min( std::max(xPos_Hurdles_-ob.tail(1)(0)-0.15, 0.0), 5.0); //output between -0.3 and 5
     } else if ((xPos_Hurdles_-ob.tail(1)(0)-0.15) >= -0.3){ // before landing
       dist_obs_next = xPos_Hurdles_-ob.tail(1)(0)-0.15;
     } else { // after hurdle
-      dist_obs_next = 5; //distance between 0 and 8
+      dist_obs_next = 5; //output between -0.3 and 5
     }
     if(hurdleTraining){
       ob.tail(2) << terrain_curriculum_+uniDist_(gen_) * 0.05, dist_obs_next+uniDist_(gen_) * 0.05;

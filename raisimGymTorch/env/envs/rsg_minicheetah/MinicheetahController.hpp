@@ -464,31 +464,31 @@ class MinicheetahController {
 
     double forcePenalty = 0.0;
     raisim::VecDyn genForce = cheetah->getGeneralizedForce(); // knee is critical joint -> increase factor
-      for (int i = 6; i < genForce.size(); i++){
-        if(genForce[i]>=(17-4) and (i%3==0 or i%3==1)){ //cut max torque
-          forcePenalty += std::exp((genForce[i]-17)/3);
-        }else if(genForce[i]<=-(17-4) and (i%3==0 or i%3==1)){
-          forcePenalty += std::exp((-genForce[i]-17)/3);
-        }else if(genForce[i]>=(26.3-5) and i%3==2){ //knee
-          forcePenalty += std::exp((genForce[i]-26.3)/2);
-        }else if(genForce[i]<=-(26.3-5) and i%3==2){
-          forcePenalty += std::exp((-genForce[i]-26.3)/2);
-        }
-      }
-
+//      for (int i = 6; i < genForce.size(); i++){
+//        if(genForce[i]>=(17-4) and (i%3==0 or i%3==1)){ //cut max torque
+//          forcePenalty += std::exp((genForce[i]-17)/3);
+//        }else if(genForce[i]<=-(17-4) and (i%3==0 or i%3==1)){
+//          forcePenalty += std::exp((-genForce[i]-17)/3);
+//        }else if(genForce[i]>=(26.3-5) and i%3==2){ //knee
+//          forcePenalty += std::exp((genForce[i]-26.3)/2);
+//        }else if(genForce[i]<=-(26.3-5) and i%3==2){
+//          forcePenalty += std::exp((-genForce[i]-26.3)/2);
+//        }
+//      }
+//
     double speedPenalty = 0.0;
     Eigen::VectorXd genVel = gv_.tail(12); // knee is critical joint -> increase factor
-    for (int i = 0; i < genVel.size(); i++){
-      if(genVel[i]>=(40-6) and (i%3==0 or i%3==1)){ //cut max torque
-        speedPenalty += std::exp((genVel[i]-40)/3);
-      }else if(genVel[i]<=-(40-6) and (i%3==0 or i%3==1)){
-        speedPenalty += std::exp((-genVel[i]-40)/3);
-      }else if(genVel[i]>=(25.8-4) and i%3==2){ //knee
-        speedPenalty += std::exp((genVel[i]-25.8)/2);
-      }else if(genVel[i]<=-(25.8-4) and i%3==2){
-        speedPenalty += std::exp((-genVel[i]-25.8)/2);
-      }
-    }
+//    for (int i = 0; i < genVel.size(); i++){
+//      if(genVel[i]>=(40-6) and (i%3==0 or i%3==1)){ //cut max torque
+//        speedPenalty += std::exp((genVel[i]-40)/3);
+//      }else if(genVel[i]<=-(40-6) and (i%3==0 or i%3==1)){
+//        speedPenalty += std::exp((-genVel[i]-40)/3);
+//      }else if(genVel[i]>=(25.8-4) and i%3==2){ //knee
+//        speedPenalty += std::exp((genVel[i]-25.8)/2);
+//      }else if(genVel[i]<=-(25.8-4) and i%3==2){
+//        speedPenalty += std::exp((-genVel[i]-25.8)/2);
+//      }
+//    }
 
     /// A variable which shows if the manager changed the selected network in this step
     if (startNetwork_ == -1){ // if was reset
