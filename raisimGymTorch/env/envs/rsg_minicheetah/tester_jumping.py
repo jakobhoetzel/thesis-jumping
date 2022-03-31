@@ -35,11 +35,11 @@ weight_path_run = "../../../data/minicheetah_locomotion/baselineRun2/full_5000.p
 iteration_number_run = weight_path_run.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_run = weight_path_run.rsplit('/', 1)[0] + '/'
 
-weight_path_jump = "../../../data/minicheetah_locomotion/2022-03-22-10-46-16/full_7500.pt"
+weight_path_jump = "../../../data/minicheetah_locomotion/baselineJump1-2/full_7500.pt"
 iteration_number_jump = weight_path_jump.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_jump = weight_path_jump.rsplit('/', 1)[0] + '/'
 
-weight_path_manager = "../../../data/minicheetah_locomotion/2022-03-25-13-34-48/full_0.pt"
+weight_path_manager = "../../../data/minicheetah_locomotion/2022-03-30-13-46-35/full_2000.pt"
 iteration_number_manager = weight_path_manager.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_manager = weight_path_manager.rsplit('/', 1)[0] + '/'
 
@@ -102,6 +102,7 @@ else:
     # env.printTest()
 
     run_bool = np.ones(shape=(cfg['environment']['num_envs'], 1), dtype=np.intc)
+    selectionCalculation = -1 * np.ones(shape=(cfg['environment']['num_envs'], 1), dtype=np.intc)
     # run_bool = None
 
     for step in range(max_steps):
@@ -127,9 +128,12 @@ else:
         dist = Categorical(action_probs)
         bool_manager = dist.sample()
         run_bool = bool_manager.unsqueeze(1)
-        # run_bool = torch.from_numpy(run_bool_function(obs_notNorm, output=True, old_bool=run_bool)) #only test!!!
+        # if step==0:
+        #     run_bool = None
+        # run_bool, selectionCalculation = run_bool_function(obs_notNorm, selectionCalculation, output=True, old_bool=run_bool)#only test!!!
+        # run_bool = torch.from_numpy(run_bool)
         # run_bool = torch.from_numpy(run_bool_function_0(obs_notNorm)) #only test!!!
-        run_bool = torch.from_numpy(run_bool_function_1(obs_notNorm)) #only test!!!
+        # run_bool = torch.from_numpy(run_bool_function_1(obs_notNorm)) #only test!!!
         previousNetwork = selectedNetwork
         selectedNetwork = bool_manager[0].item()
         jump_bool = torch.add(torch.ones(run_bool.size(), device='cpu'), run_bool, alpha=-1)  # 1-run_bool
@@ -151,15 +155,15 @@ else:
         # writer = csv.writer(f3)
         # writer.writerow(est_in[0][0:2].cpu().detach().numpy())
 
-        # if step==0:
-        #     if selectedNetwork == 0:
-        #         print("selected network in step ", step, ": jump")
-        #     else:
-        #         print("selected network in step ", step, ": run")
-        # elif previousNetwork == 0 and selectedNetwork == 1:
-        #     print("changed network in step ", step, ": jump -> run")
-        # elif previousNetwork == 1 and selectedNetwork == 0:
-        #     print("changed network in step ", step, ": run -> jump")
+        if step==0:
+            if selectedNetwork == 0:
+                print("selected network in step ", step, ": jump")
+            else:
+                print("selected network in step ", step, ": run")
+        elif previousNetwork == 0 and selectedNetwork == 1:
+            print("changed network in step ", step, ": jump -> run")
+        elif previousNetwork == 1 and selectedNetwork == 0:
+            print("changed network in step ", step, ": run -> jump")
 
         # if selectedNetwork == 0:
         #     print("jump selected")
@@ -177,7 +181,7 @@ else:
         wait_time = cfg['environment']['control_dt'] - (frame_end-frame_start)
         if wait_time > 0.:
             time.sleep(wait_time)
-        # time.sleep(0.05) #0.05
+        time.sleep(0.01) #0.05
 
     env.stop_video_recording()
     env.turn_off_visualization()

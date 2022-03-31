@@ -9,6 +9,7 @@ import numpy as np
 from .storage import RolloutStorage
 from adamp import AdamP
 
+
 class PPO:
     def __init__(self,
                  actor_run,
@@ -26,7 +27,7 @@ class PPO:
                  clip_param=0.2,
                  gamma=0.998,
                  lam=0.95,
-                 value_loss_coef=0.5,
+                 value_loss_coef=5e-4,  # 0.5
                  estimator_loss_coef=0.1,
                  entropy_coef=0.0,
                  learning_rate=5e-4,
@@ -146,8 +147,7 @@ class PPO:
                      + self.jump_bool * self.critic_jump.predict(torch.from_numpy(value_obs_jump).to(self.device))
         self.storage.add_transitions(self.actor_obs_run, self.actor_obs_jump, self.actor_obs_manager, value_obs_run,
                                      value_obs_jump, value_obs_manager, self.actions, est_obs, robotState, rews, dones,
-                                     values,
-                                     self.actions_log_prob, self.run_bool)
+                                     values, self.actions_log_prob, self.run_bool)
 
     def update(self, actor_obs_manager, value_obs_run, value_obs_jump, value_obs_manager, log_this_iteration, update,
                actor_manager_update=True):

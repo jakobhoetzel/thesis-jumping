@@ -502,7 +502,7 @@ class MinicheetahController {
       networkEverChanged_ = true;
     }
     bool noNetworkChangeVar=false;
-    if (!networkEverChanged_ && gc_[0]>(xPosHurdles-0.1 && hurdleTraining_)){
+    if (!networkEverChanged_ && gc_[0]>(xPosHurdles-0.1) && hurdleTraining_){
       noNetworkChangeVar = true; //penalize when selected does not change before hurdle
     }
 

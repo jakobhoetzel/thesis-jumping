@@ -4,7 +4,7 @@ environment:
   isHeightMap: False #True
   render: True
   num_envs: 800 # 800
-  eval_every_n: 500 # 500
+  eval_every_n: 250 # 500
   num_threads: 36 # 128
   simulation_dt: 0.002 #     0.001
   control_dt: 0.01
@@ -33,7 +33,7 @@ environment:
     symmetryCoeff: -0.0
     bodyHeightCoeff: -0.0 #-0.002, removed because not Markov
     footContactCoeff: -0.00
-    networkChangeCoeff: 5.0
+    networkChangeCoeff: 25.0
     noNetworkChangeCoeff: -10.0 # -10.0
 
 
