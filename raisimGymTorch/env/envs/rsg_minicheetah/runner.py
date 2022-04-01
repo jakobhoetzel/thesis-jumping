@@ -33,7 +33,10 @@ parser.add_argument('-w', '--weight', help='pre-trained weight path', type=str, 
 parser.add_argument('-n', '--runNumber', help='number of the run', type=str, default='')
 args = parser.parse_args()
 mode = args.mode  # 'train' or 'retrain'
-runNumber = args.runNumber
+if args.runNumber != "":
+    runNumber = int(args.runNumber)
+else:
+    runNumber = None
 #weight_path = args.weight
 weight_path_run = "../../../data/minicheetah_locomotion/baselineRun2/full_5000.pt"
 iteration_number_run = weight_path_run.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
@@ -174,7 +177,7 @@ scheduler = torch.optim.lr_scheduler.MultiStepLR(ppo.optimizer_manager, mileston
 # if mode == 'retrain':
 #     load_param(weight_path, env, actor_run, actor_jump, critic_run, critic_jump, stateEstimator, ppo.optimizer, saver.data_dir)
 
-max_iteration = 5000 + 1  # 5000+1
+max_iteration = 1000 + 1  # 5000+1
 
 env.load_scaling(weight_dir_run, int(iteration_number_run), weight_dir_jump, int(iteration_number_jump), weight_dir_jump, int(iteration_number_jump),
                  1e8, one_directory=False)  # 1e8 -> less disruption when retraining  # use jump scaling as it includes sensor data
@@ -182,16 +185,10 @@ env.load_scaling(weight_dir_run, int(iteration_number_run), weight_dir_jump, int
 
 # ppo.set_manager_training(True)
 ppo.set_manager_training(True)  # train run and jump network
-IL_end = 100
+IL_end = 250
 actorManagerUpdate = False  # only update critic
-# if runNumber == 1:
-#     IL_end = 500
-# elif runNumber == 2:
-#     IL_end = 2000
-# elif runNumber == 3:
-#     IL_end = 5000
-# freeze_manager(ppo)
-# freeze_actors(ppo)
+freeze_manager(ppo)
+freeze_actors(ppo)
 
 for update in range(max_iteration):
     start = time.time()
@@ -304,6 +301,7 @@ for update in range(max_iteration):
         concatenated_obs_critic_jump = np.concatenate((obs_jump, robotState), axis=1)
         concatenated_obs_critic_manager = np.concatenate((obs_manager, robotState, np.float32(run_bool)), axis=1)
         action, run_bool = ppo.observe(concatenated_obs_actor_run, concatenated_obs_actor_jump, concatenated_obs_actor_manager)
+
         if update <= IL_end:
             run_bool, selectionCalculation = run_bool_function(obs_notNorm, selectionCalculation, output=False, old_bool=old_bool)
             action, _ = ppo.observe(concatenated_obs_actor_run, concatenated_obs_actor_jump, concatenated_obs_actor_manager, run_bool)

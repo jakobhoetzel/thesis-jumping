@@ -39,7 +39,7 @@ weight_path_jump = "../../../data/minicheetah_locomotion/baselineJump1-2/full_75
 iteration_number_jump = weight_path_jump.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_jump = weight_path_jump.rsplit('/', 1)[0] + '/'
 
-weight_path_manager = "../../../data/minicheetah_locomotion/2022-03-30-13-46-35/full_2000.pt"
+weight_path_manager = "../../../data/minicheetah_locomotion/2022-03-31-09-54-39/full_500.pt"
 iteration_number_manager = weight_path_manager.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_manager = weight_path_manager.rsplit('/', 1)[0] + '/'
 
