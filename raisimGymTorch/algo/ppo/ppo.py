@@ -31,6 +31,7 @@ class PPO:
                  estimator_loss_coef=0.1,
                  entropy_coef=0.0,
                  learning_rate=5e-4,
+                 sl_learning_rate=1e-7,
                  max_grad_norm=0.5,
                  use_clipped_value_loss=True,
                  log_dir='run',
@@ -66,6 +67,7 @@ class PPO:
         # self.optimizer = torch.optim.Adam([
         #     {'params': self.policy.actor.parameters(), 'lr': lr_actor},
         #     {'params': self.policy.critic.parameters(), 'lr': lr_critic}])
+        self.optimizer_sl = AdamP([*self.actor_manager.parameters()], lr=sl_learning_rate)
         self.device = device
         self.manager_training = manager_training
 
@@ -138,7 +140,7 @@ class PPO:
         # self.actions = np.clip(self.actions.numpy(), self.env.action_space.low, self.env.action_space.high)
         return self.actions.cpu().numpy(), self.run_bool.cpu().numpy()
 
-    def step(self, value_obs_run, value_obs_jump, value_obs_manager, est_obs, robotState, rews, dones):
+    def step(self, value_obs_run, value_obs_jump, value_obs_manager, est_obs, robotState, rews, dones, guideline):
         if self.manager_training:
             values = self.critic_manager.predict(torch.from_numpy(value_obs_manager).to(self.device))
         else:
@@ -146,7 +148,7 @@ class PPO:
                      + self.jump_bool * self.critic_jump.predict(torch.from_numpy(value_obs_jump).to(self.device))
         self.storage.add_transitions(self.actor_obs_run, self.actor_obs_jump, self.actor_obs_manager, value_obs_run,
                                      value_obs_jump, value_obs_manager, self.actions, est_obs, robotState, rews, dones,
-                                     values, self.actions_log_prob, self.run_bool)
+                                     values, self.actions_log_prob, self.run_bool, guideline)
 
     def update(self, actor_obs_manager, value_obs_run, value_obs_jump, value_obs_manager, log_this_iteration, update,
                actor_manager_update=True):
@@ -193,7 +195,7 @@ class PPO:
         mean_entropy = 0
         for epoch in range(self.num_learning_epochs):
             for actor_obs_manager_batch, critic_obs_manager_batch, actions_batch, target_values_batch, \
-                advantages_batch, returns_batch, old_actions_log_prob_batch, run_bool_batch \
+                advantages_batch, returns_batch, old_actions_log_prob_batch, run_bool_batch,  guideline_batch\
                     in self.batch_sampler(self.num_mini_batches):
                 if self.manager_training:
                     actions_log_prob_batch, entropy_batch = self.actor_manager.evaluate(actor_obs_manager_batch,
@@ -263,21 +265,27 @@ class PPO:
     def set_manager_training(self, manager_training):
         self.manager_training = manager_training
 
-    # def supervised_learning(self, lr):
-    #     for epoch in range(self.num_learning_epochs):
-    #         for actor_obs_manager_batch, guideline_batch in self.batch_sampler(self.num_mini_batches):
-    #             criterion = torch.nn.MSELoss(reduction='sum')
-    #             optimizer = AdamP(*self.actor_manager.parameters(), lr=lr) #5e-4
-    #
-    #             action_probs = self.actor_manager.architecture.architecture(torch.from_numpy(actor_obs_manager_batch).to(self.device))
-    #
-    #             # Compute and print loss
-    #             loss = criterion(torch.from_numpy(guideline_batch.astype('f')).to(self.device), action_probs[:,1:])
-    #             # print("loss: ", loss.item())
-    #
-    #             # Zero gradients, perform a backward pass, and update the weights.
-    #             optimizer.zero_grad()
-    #             loss.backward()
-    #             optimizer.step()
-    #
-    #             return loss.item()
+    def supervised_learning(self):
+        mean_loss = 0
+        for epoch in range(self.num_learning_epochs):
+            for actor_obs_manager_batch, critic_obs_manager_batch, actions_batch, target_values_batch, \
+                advantages_batch, returns_batch, old_actions_log_prob_batch, run_bool_batch,  guideline_batch \
+                    in self.batch_sampler(self.num_mini_batches):
+                criterion = torch.nn.MSELoss(reduction='sum')
+
+                action_probs = self.actor_manager.architecture.architecture(actor_obs_manager_batch)
+
+                # Compute and print loss
+                loss = criterion(guideline_batch, action_probs[:,1:])
+                # print("loss: ", loss.item())
+
+                # Zero gradients, perform a backward pass, and update the weights.
+                self.optimizer_sl.zero_grad()
+                loss.backward()
+                self.optimizer_sl.step()
+
+                mean_loss += loss.item()
+
+        num_updates = self.num_learning_epochs * self.num_mini_batches
+        mean_loss /= num_updates
+        return mean_loss

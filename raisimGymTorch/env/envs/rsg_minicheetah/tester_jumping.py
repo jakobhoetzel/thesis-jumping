@@ -39,7 +39,7 @@ weight_path_jump = "../../../data/minicheetah_locomotion/baselineJump1-2/full_75
 iteration_number_jump = weight_path_jump.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_jump = weight_path_jump.rsplit('/', 1)[0] + '/'
 
-weight_path_manager = "../../../data/minicheetah_locomotion/2022-04-02-11-46-14/full_2000.pt"
+weight_path_manager = "../../../data/minicheetah_locomotion/2022-04-04-12-00-48/full_100.pt"
 iteration_number_manager = weight_path_manager.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_manager = weight_path_manager.rsplit('/', 1)[0] + '/'
 
@@ -125,6 +125,7 @@ else:
         concatenated_obs_actor_manager = np.concatenate((obs_manager, est_out_run.cpu().detach().numpy(), np.float32(run_bool)), axis=1)
 
         action_probs = actor_manager.architecture(torch.from_numpy(concatenated_obs_actor_manager).cpu())
+        print(action_probs)
         dist = Categorical(action_probs)
         bool_manager = dist.sample()
         run_bool = bool_manager.unsqueeze(1)

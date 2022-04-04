@@ -56,7 +56,7 @@ home_path = task_path + "/../../../.."
 # config
 cfg = YAML().load(open(task_path + "/cfg.yaml", 'r'))
 
-IL_lr = 5e-8
+IL_lr = 5e-7
 # PPO_lr = 5e-4
 # if runNumber == 0:
 #     cfg['environment']['reward']['networkChangeCoeff'] = 25.0
@@ -172,6 +172,7 @@ ppo = PPO.PPO(actor_run=actor_run,
               gamma=0.99,
               lam=0.95,
               learning_rate=5e-4,  # 5e-4
+              sl_learning_rate=5e-6,
               entropy_coef=0.01,
               num_mini_batches=8,
               device=device,
@@ -316,12 +317,12 @@ for update in range(max_iteration):
         if update <= IL_end:
             run_bool, selectionCalculation = run_bool_function(obs_notNorm, selectionCalculation, output=False, old_bool=old_bool)
             action, _ = ppo.observe(concatenated_obs_actor_run, concatenated_obs_actor_jump, concatenated_obs_actor_manager, run_bool)
-            loss_IL_sum += IL.identity_learning(actor_manager=actor_manager, guideline=run_bool, obs=concatenated_obs_actor_manager, device=device, lr=IL_lr)
+            # loss_IL_sum += IL.identity_learning(actor_manager=actor_manager, guideline=run_bool, obs=concatenated_obs_actor_manager, device=device, lr=IL_lr)
 
         reward, dones = env.step(action, run_bool, ppo.manager_training)
         # env.go_straight_controller()
         ppo.step(value_obs_run=concatenated_obs_critic_run, value_obs_jump=concatenated_obs_critic_jump, value_obs_manager=concatenated_obs_critic_manager,
-                 est_obs=obs_estimator_jump, robotState=robotState, rews=reward, dones=dones)
+                 est_obs=obs_estimator_jump, robotState=robotState, rews=reward, dones=dones, guideline=run_bool)
         done_sum = done_sum + np.sum(dones)
         reward_ll_sum = reward_ll_sum + np.sum(reward)
         data_size = env.get_step_data(data_size, data_mean, data_square_sum, data_min, data_max)
@@ -356,6 +357,8 @@ for update in range(max_iteration):
     # a2 = list(actor_manager.parameters())[0].grad
     # print("a2: ", a2)
 
+    if update <= IL_end:
+        loss_IL_sum += ppo.supervised_learning()
     if update > IL_end:
         actorManagerUpdate = True
     ppo.update(actor_obs_manager=concatenated_obs_actor_manager, value_obs_run=concatenated_obs_critic_run,
@@ -390,7 +393,7 @@ for update in range(max_iteration):
     # print('----------------------------------------------------\n')
 
     if update <= IL_end:
-        print('loss IL: ', loss_IL_sum/n_steps)
+        print('loss IL: ', loss_IL_sum)
         print('----------------------------------------------------\n')
 
 
