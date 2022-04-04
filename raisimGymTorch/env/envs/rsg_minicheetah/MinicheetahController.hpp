@@ -491,16 +491,21 @@ class MinicheetahController {
 //    }
 
     /// A variable which shows if the manager changed the selected network in this step
+    bool networkChangeVar = false;
     if (startNetwork_ == -1){ // if was reset
-      previousNetworkSelection_ = 1; //we want run at beginning
       startNetwork_ = networkSelection_;
+      if (startNetwork_ == 0){
+        networkChangeVar = true; //we want run at beginning
+      }
     }
-    bool networkChangeVar = (networkSelection_ == previousNetworkSelection_); //reward if network doesn't change
+    else{
+      networkChangeVar = (networkSelection_ == previousNetworkSelection_); //reward if network doesn't change
+      if (networkChangeVar){
+        networkEverChanged_ = true;
+      }
+    }
 
     /// A variable which shows if always the same network is used (no change before hurdle)
-    if (networkChangeVar){
-      networkEverChanged_ = true;
-    }
     bool noNetworkChangeVar=false;
     if (!networkEverChanged_ && gc_[0]>(xPosHurdles-0.1) && hurdleTraining_){
       noNetworkChangeVar = true; //penalize when selected does not change before hurdle

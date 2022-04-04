@@ -107,8 +107,7 @@ class PPO:
         self.actor_obs_manager = actor_obs_manager
         actions_log_prob_manager = None
         if run_bool_input is None:
-            bool_manager, actions_log_prob_manager = self.actor_manager.sample(
-                torch.from_numpy(actor_obs_manager).to(self.device))
+            bool_manager, actions_log_prob_manager = self.actor_manager.sample(torch.from_numpy(actor_obs_manager).to(self.device))
             self.run_bool = bool_manager.unsqueeze(1)
         else:
             self.run_bool = torch.from_numpy(run_bool_input).to(self.device)
@@ -263,3 +262,22 @@ class PPO:
 
     def set_manager_training(self, manager_training):
         self.manager_training = manager_training
+
+    # def supervised_learning(self, lr):
+    #     for epoch in range(self.num_learning_epochs):
+    #         for actor_obs_manager_batch, guideline_batch in self.batch_sampler(self.num_mini_batches):
+    #             criterion = torch.nn.MSELoss(reduction='sum')
+    #             optimizer = AdamP(*self.actor_manager.parameters(), lr=lr) #5e-4
+    #
+    #             action_probs = self.actor_manager.architecture.architecture(torch.from_numpy(actor_obs_manager_batch).to(self.device))
+    #
+    #             # Compute and print loss
+    #             loss = criterion(torch.from_numpy(guideline_batch.astype('f')).to(self.device), action_probs[:,1:])
+    #             # print("loss: ", loss.item())
+    #
+    #             # Zero gradients, perform a backward pass, and update the weights.
+    #             optimizer.zero_grad()
+    #             loss.backward()
+    #             optimizer.step()
+    #
+    #             return loss.item()

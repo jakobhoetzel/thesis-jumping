@@ -56,12 +56,22 @@ home_path = task_path + "/../../../.."
 # config
 cfg = YAML().load(open(task_path + "/cfg.yaml", 'r'))
 
+IL_lr = 5e-8
+# PPO_lr = 5e-4
 # if runNumber == 0:
-#     cfg['environment']['ter_curriculum_factor'] = 0.35
+#     cfg['environment']['reward']['networkChangeCoeff'] = 25.0
+#     cfg['environment']['reward']['noNetworkChangeCoeff'] = -10.0
+#     cfg['environment']['reward']['hurdlesCoeff'] = 10000
+#     IL_end = 100
+#     PPO_lr = 5e-4
+#     IL_lr=5e-4
 # elif runNumber == 1:
-#     cfg['environment']['ter_curriculum_factor'] = 0.4
-# elif runNumber == 2:
-#     cfg['environment']['ter_curriculum_factor'] = 0.45
+#     cfg['environment']['reward']['networkChangeCoeff'] = 25.0
+#     cfg['environment']['reward']['noNetworkChangeCoeff'] = -10.0
+#     cfg['environment']['reward']['hurdlesCoeff'] = 10000
+#     IL_end = 100
+#     PPO_lr = 5e-4
+#     IL_lr=5e-5
 
 # create environment from the configuration file
 sensor_dim = 2
@@ -177,7 +187,7 @@ scheduler = torch.optim.lr_scheduler.MultiStepLR(ppo.optimizer_manager, mileston
 # if mode == 'retrain':
 #     load_param(weight_path, env, actor_run, actor_jump, critic_run, critic_jump, stateEstimator, ppo.optimizer, saver.data_dir)
 
-max_iteration = 1000 + 1  # 5000+1
+max_iteration = 3000 + 1  # 5000+1
 
 env.load_scaling(weight_dir_run, int(iteration_number_run), weight_dir_jump, int(iteration_number_jump), weight_dir_jump, int(iteration_number_jump),
                  1e8, one_directory=False)  # 1e8 -> less disruption when retraining  # use jump scaling as it includes sensor data
@@ -185,7 +195,8 @@ env.load_scaling(weight_dir_run, int(iteration_number_run), weight_dir_jump, int
 
 # ppo.set_manager_training(True)
 ppo.set_manager_training(True)  # train run and jump network
-IL_end = 250
+if "IL_end" not in locals():
+    IL_end = 100
 actorManagerUpdate = False  # only update critic
 freeze_manager(ppo)
 freeze_actors(ppo)
@@ -305,7 +316,7 @@ for update in range(max_iteration):
         if update <= IL_end:
             run_bool, selectionCalculation = run_bool_function(obs_notNorm, selectionCalculation, output=False, old_bool=old_bool)
             action, _ = ppo.observe(concatenated_obs_actor_run, concatenated_obs_actor_jump, concatenated_obs_actor_manager, run_bool)
-            loss_IL_sum += IL.identity_learning(actor_manager=actor_manager, guideline=run_bool, obs=concatenated_obs_actor_manager, device=device)
+            loss_IL_sum += IL.identity_learning(actor_manager=actor_manager, guideline=run_bool, obs=concatenated_obs_actor_manager, device=device, lr=IL_lr)
 
         reward, dones = env.step(action, run_bool, ppo.manager_training)
         # env.go_straight_controller()
