@@ -3,9 +3,15 @@ import time
 import torch
 
 
-def run_bool_function(obs_, calculate_vector, output=False, old_bool=None):
+def run_bool_function(obs_, calculate_vector, output=False, old_bool=None, test_number=-1):
     """ selects jump network when close to hurdle, selects jump otherwise
     used when manager network is untrained"""
+    if test_number == 0:
+        print("No manual selection function available")
+        return -1
+    elif test_number == 2:
+        rows, _ = obs_.shape
+        return np.ones((rows, 1)).astype(bool), calculate_vector
     obs_ = obs_[:,-1:]  # only need distance
     run_bool = obs_.reshape(-1,1) > 0.65  # select jump network when observation shows robot close to hurdle
     # see observe in environment for definition (currently xPos_Hurdles_-ob.tail(1)(0)-0.15 )

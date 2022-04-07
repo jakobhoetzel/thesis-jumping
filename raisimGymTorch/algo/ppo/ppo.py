@@ -31,7 +31,8 @@ class PPO:
                  estimator_loss_coef=0.1,
                  entropy_coef=0.0,
                  learning_rate=5e-4,
-                 sl_learning_rate=1e-7,
+                 learning_rate_critic=5e-4,
+                 sl_learning_rate=5e-6,
                  max_grad_norm=0.5,
                  use_clipped_value_loss=True,
                  log_dir='run',
@@ -62,11 +63,11 @@ class PPO:
 
         # self.optimizer = optim.Adam([*self.actor.parameters(), *self.critic.parameters()], lr=learning_rate)
         # self.optimizer = AdamP([*self.actor_run.parameters(), *self.actor_jump.parameters(), *self.critic_run.parameters(), *self.critic_jump.parameters(), *self.estimator.parameters()], lr=learning_rate)
-        self.optimizer_manager = AdamP([*self.actor_manager.parameters(), *self.critic_manager.parameters()],
-                                       lr=learning_rate)
-        # self.optimizer = torch.optim.Adam([
-        #     {'params': self.policy.actor.parameters(), 'lr': lr_actor},
-        #     {'params': self.policy.critic.parameters(), 'lr': lr_critic}])
+        # self.optimizer_manager = AdamP([*self.actor_manager.parameters(), *self.critic_manager.parameters()],
+        #                                lr=learning_rate)
+        self.optimizer_manager = torch.optim.Adam([
+            {'params': self.actor_manager.parameters()},
+            {'params': self.critic_manager.parameters(), 'lr': learning_rate_critic}], lr=learning_rate)
         self.optimizer_sl = AdamP([*self.actor_manager.parameters()], lr=sl_learning_rate)
         self.device = device
         self.manager_training = manager_training
@@ -271,7 +272,7 @@ class PPO:
             for actor_obs_manager_batch, critic_obs_manager_batch, actions_batch, target_values_batch, \
                 advantages_batch, returns_batch, old_actions_log_prob_batch, run_bool_batch,  guideline_batch \
                     in self.batch_sampler(self.num_mini_batches):
-                criterion = torch.nn.MSELoss(reduction='sum')
+                criterion = torch.nn.L1Loss(reduction='sum')
 
                 action_probs = self.actor_manager.architecture.architecture(actor_obs_manager_batch)
 

@@ -101,7 +101,7 @@ class ENVIRONMENT {
   void reset() {
     double p = uniDist_(gen_); //p between -1 and 1
     hurdleTraining = true; // testNumber = 1: test of jumping -> always hurdles
-    if (fabs(p) < 0.3 and testNumber==0){ // training -> hurdles according to probability (set probability here)
+    if (fabs(p) < 0.5 and testNumber==0){ // training -> hurdles according to probability (set probability here)
       hurdleTraining = false;
     } else if(testNumber==2){
       hurdleTraining = false; // test of running without hurdles

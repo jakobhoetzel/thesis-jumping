@@ -56,22 +56,15 @@ home_path = task_path + "/../../../.."
 # config
 cfg = YAML().load(open(task_path + "/cfg.yaml", 'r'))
 
-IL_lr = 5e-7
+# IL_lr = 5e-7
 # PPO_lr = 5e-4
 # if runNumber == 0:
-#     cfg['environment']['reward']['networkChangeCoeff'] = 25.0
-#     cfg['environment']['reward']['noNetworkChangeCoeff'] = -10.0
-#     cfg['environment']['reward']['hurdlesCoeff'] = 10000
-#     IL_end = 100
-#     PPO_lr = 5e-4
-#     IL_lr=5e-4
+#     learning_rate = 5e-5
 # elif runNumber == 1:
-#     cfg['environment']['reward']['networkChangeCoeff'] = 25.0
-#     cfg['environment']['reward']['noNetworkChangeCoeff'] = -10.0
-#     cfg['environment']['reward']['hurdlesCoeff'] = 10000
-#     IL_end = 100
-#     PPO_lr = 5e-4
-#     IL_lr=5e-5
+#     learning_rate = 1e-6
+# elif runNumber == 2:
+#     learning_rate = 5e-6
+learning_rate = 1e-7 #danach e-8
 
 # create environment from the configuration file
 sensor_dim = 2
@@ -171,7 +164,8 @@ ppo = PPO.PPO(actor_run=actor_run,
               clip_param=0.2,  # 0.2
               gamma=0.99,
               lam=0.95,
-              learning_rate=5e-4,  # 5e-4
+              learning_rate=learning_rate,  # 5e-4
+              learning_rate_critic=1e-4,  # 5e-4
               sl_learning_rate=5e-6,
               entropy_coef=0.01,
               num_mini_batches=8,
@@ -188,7 +182,7 @@ scheduler = torch.optim.lr_scheduler.MultiStepLR(ppo.optimizer_manager, mileston
 # if mode == 'retrain':
 #     load_param(weight_path, env, actor_run, actor_jump, critic_run, critic_jump, stateEstimator, ppo.optimizer, saver.data_dir)
 
-max_iteration = 3000 + 1  # 5000+1
+max_iteration = 5000 + 1  # 5000+1
 
 env.load_scaling(weight_dir_run, int(iteration_number_run), weight_dir_jump, int(iteration_number_jump), weight_dir_jump, int(iteration_number_jump),
                  1e8, one_directory=False)  # 1e8 -> less disruption when retraining  # use jump scaling as it includes sensor data
@@ -197,17 +191,28 @@ env.load_scaling(weight_dir_run, int(iteration_number_run), weight_dir_jump, int
 # ppo.set_manager_training(True)
 ppo.set_manager_training(True)  # train run and jump network
 if "IL_end" not in locals():
-    IL_end = 100
+    IL_end = 25
 actorManagerUpdate = False  # only update critic
 freeze_manager(ppo)
 freeze_actors(ppo)
+testNumber = 0 # 0=both, 1=only jumping, 2=without hurdle
+onlyRunTrainingEveryN = 9
 
 for update in range(max_iteration):
     start = time.time()
     if update == 0:
-        env.set_command(np.array([3.5, 0, 0], dtype=np.float32), testNumber=1)  # to only train in jumping environment
+        testNumber = 1
+        env.set_command(np.array([3.5, 0, 0], dtype=np.float32), testNumber=testNumber)  # to only train in jumping environment
     if update == IL_end+1:
-        env.set_command(np.array([0, 0, 0], dtype=np.float32), testNumber=0)  # to train both environments
+        testNumber = 0
+        env.set_command(np.array([0, 0, 0], dtype=np.float32), testNumber=testNumber)  # to train both environments
+    if (update > 0) and (update < IL_end+1) and (update % onlyRunTrainingEveryN == 0):
+        testNumber = 2  # without hurdles
+        env.set_command(np.array([0, 0, 0], dtype=np.float32), testNumber=testNumber)
+    elif (update > 0) and (update < IL_end+1):
+        testNumber = 1  # always hurdles
+        env.set_command(np.array([3.5, 0, 0], dtype=np.float32), testNumber=testNumber)
+
     env.reset()
     reward_ll_sum = 0
     done_sum = 0
@@ -217,7 +222,7 @@ for update in range(max_iteration):
 
     env.curriculum_callback(update)  # start with half height
 
-    if update % cfg['environment']['eval_every_n'] == 0:
+    if update % cfg['environment']['eval_every_n'] == 0 or update == IL_end:
         print("Visualizing and evaluating the current policy")
         torch.save({
             # 'actor_run_architecture_state_dict': actor_run.architecture.state_dict(),
@@ -315,7 +320,7 @@ for update in range(max_iteration):
         action, run_bool = ppo.observe(concatenated_obs_actor_run, concatenated_obs_actor_jump, concatenated_obs_actor_manager)
 
         if update <= IL_end:
-            run_bool, selectionCalculation = run_bool_function(obs_notNorm, selectionCalculation, output=False, old_bool=old_bool)
+            run_bool, selectionCalculation = run_bool_function(obs_notNorm, selectionCalculation, output=False, old_bool=old_bool, test_number=testNumber)
             action, _ = ppo.observe(concatenated_obs_actor_run, concatenated_obs_actor_jump, concatenated_obs_actor_manager, run_bool)
             # loss_IL_sum += IL.identity_learning(actor_manager=actor_manager, guideline=run_bool, obs=concatenated_obs_actor_manager, device=device, lr=IL_lr)
 
@@ -393,7 +398,7 @@ for update in range(max_iteration):
     # print('----------------------------------------------------\n')
 
     if update <= IL_end:
-        print('loss IL: ', loss_IL_sum)
+        print('loss SL: ', loss_IL_sum)
         print('----------------------------------------------------\n')
 
 
