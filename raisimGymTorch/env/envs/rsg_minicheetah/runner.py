@@ -23,6 +23,9 @@ import random
 # msi = ms.item()
 # exit()
 
+print("No training here")
+exit()
+
 # task specification
 task_name = "minicheetah_locomotion"  # "~~~/raisimGymTorch/data/"+task_name: log directory
 

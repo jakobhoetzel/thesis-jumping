@@ -31,11 +31,11 @@ task_path = os.path.dirname(os.path.realpath(__file__))
 home_path = task_path + "/../../../.."
 
 # weight directory
-weight_path_run = "../../../data/minicheetah_locomotion/baselineRun2/full_5000.pt"
+weight_path_run = "../../../data/minicheetah_locomotion/2022-04-14-22-53-54/full_3500.pt"
 iteration_number_run = weight_path_run.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_run = weight_path_run.rsplit('/', 1)[0] + '/'
 
-weight_path_jump = "../../../data/minicheetah_locomotion/baselineJump1-2/full_7500.pt"
+weight_path_jump = "../../../data/minicheetah_locomotion/2022-04-14-09-33-21/full_5000.pt"
 iteration_number_jump = weight_path_jump.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_jump = weight_path_jump.rsplit('/', 1)[0] + '/'
 
@@ -75,10 +75,14 @@ else:
     print("Visualizing and evaluating the policy: ")
     actor_run = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim - sensor_dim + robotState_dim, act_dim)
     actor_jump = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, act_dim)
-    actor_manager = ppo_module.MLP(cfg['architecture']['manager_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim + 1, 2, softmax=True)
+    critic_run = ppo_module.MLP(cfg['architecture']['value_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, 1)
+    critic_jump = ppo_module.MLP(cfg['architecture']['value_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, 1)
+    # actor_manager = ppo_module.MLP(cfg['architecture']['manager_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim + 1, 2, softmax=True)
     actor_run.load_state_dict(torch.load(weight_path_run)['actor_architecture_state_dict'])
     actor_jump.load_state_dict(torch.load(weight_path_jump)['actor_architecture_state_dict'])
-    actor_manager.load_state_dict(torch.load(weight_path_manager)['actor_architecture_state_dict'])  # actor_architecture_state_dict
+    critic_run.load_state_dict(torch.load(weight_path_run)['critic_architecture_state_dict'])
+    critic_jump.load_state_dict(torch.load(weight_path_jump)['critic_architecture_state_dict'])
+    # actor_manager.load_state_dict(torch.load(weight_path_manager)['actor_architecture_state_dict'])  # actor_architecture_state_dict
     print('actor of {} parameters'.format(sum(p.numel() for p in actor_run.parameters())))
     print('actor of {} parameters'.format(sum(p.numel() for p in actor_jump.parameters())))
 
@@ -111,29 +115,34 @@ else:
             env.set_command(command, testNumber=2)
 
         [obs_run, obs_jump, obs_manager], obs_notNorm = env.observe(update_mean=False)
-        obs_estimator_run = obs_run[:,:ob_dim-sensor_dim]
-        obs_estimator_jump = obs_jump[:,:ob_dim-sensor_dim]
+        obs_noSensor_run = obs_run[:,:ob_dim-sensor_dim]
+        obs_noSensor_jump = obs_jump[:,:ob_dim-sensor_dim]
         robotState = env.getRobotState()
-        est_out_run = estimator_run.architecture(torch.from_numpy(obs_estimator_run).cpu())
-        est_out_jump = estimator_jump.architecture(torch.from_numpy(obs_estimator_jump).cpu())
-        concatenated_obs_actor_run = np.concatenate((obs_run, est_out_run.cpu().detach().numpy()), axis=1)
+        est_out_run = estimator_run.architecture(torch.from_numpy(obs_noSensor_run).cpu())
+        est_out_jump = estimator_jump.architecture(torch.from_numpy(obs_noSensor_jump).cpu())
+        concatenated_obs_actor_run = np.concatenate((obs_noSensor_run, est_out_run.cpu().detach().numpy()), axis=1)
+        concatenated_obs_critic_run = np.concatenate((obs_run, est_out_run.cpu().detach().numpy()), axis=1) #in case of run different
         concatenated_obs_actor_jump = np.concatenate((obs_jump, est_out_jump.cpu().detach().numpy()), axis=1)
-        concatenated_obs_actor_manager = np.concatenate((obs_manager, est_out_run.cpu().detach().numpy(), np.float32(run_bool)), axis=1)
+        # concatenated_obs_actor_manager = np.concatenate((obs_manager, est_out_run.cpu().detach().numpy(), np.float32(run_bool)), axis=1)
 
-        action_probs = actor_manager.architecture(torch.from_numpy(concatenated_obs_actor_manager).cpu())
-        print(action_probs)
-        dist = Categorical(action_probs)
-        bool_manager = dist.sample()
-        run_bool = bool_manager.unsqueeze(1)
+        # action_probs = actor_manager.architecture(torch.from_numpy(concatenated_obs_actor_manager).cpu())
+        # print(action_probs)
+        # dist = Categorical(action_probs)
+        # bool_manager = dist.sample()
+        # run_bool = bool_manager.unsqueeze(1)
+        value_run = critic_run.architecture(torch.from_numpy(concatenated_obs_critic_run).cpu())
+        value_jump = critic_jump.architecture(torch.from_numpy(concatenated_obs_actor_jump).cpu())
+        print('value run: ', value_run.item(), '    value_jump: ', value_jump.item())
+        run_bool = value_run > value_jump
         # run_bool = torch.from_numpy(run_bool_function_0(obs_notNorm)) #only test!!!
         # run_bool = torch.from_numpy(run_bool_function_1(obs_notNorm)) #only test!!!
         previousNetwork = selectedNetwork
-        selectedNetwork = bool_manager[0].item()
+        selectedNetwork = run_bool.item()
         jump_bool = torch.add(torch.ones(run_bool.size(), device='cpu'), run_bool, alpha=-1)  # 1-run_bool
         actions_run = actor_run.architecture(torch.from_numpy(concatenated_obs_actor_run).cpu())
         actions_jump = actor_jump.architecture(torch.from_numpy(concatenated_obs_actor_jump).cpu())
         action_ll = run_bool * actions_run + jump_bool * actions_jump
-        reward_ll, dones = env.step(action_ll.detach().numpy(), run_bool=run_bool.detach().numpy(), manager_training=True)
+        reward_ll, dones = env.step(action_ll.detach().numpy(), run_bool=run_bool.detach().numpy().astype(bool), manager_training=False)
         # env.go_straight_controller()
 
         # f1 = open('randomCommandData.csv', 'a')

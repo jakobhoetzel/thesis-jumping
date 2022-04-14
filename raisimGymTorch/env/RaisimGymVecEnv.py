@@ -24,7 +24,7 @@ class RaisimGymVecEnv:
         self.num_acts = self.wrapper.getActionDim()
         self._observation = np.zeros([self.num_envs, self.num_obs], dtype=np.float32)
         self._robotState = np.zeros([self.num_envs, self.num_robotState], dtype=np.float32)
-        self.obs_rms_run = RunningMeanStd(shape=[self.num_envs, self.num_obs-self.num_sens])
+        self.obs_rms_run = RunningMeanStd(shape=[self.num_envs, self.num_obs])
         self.obs_rms_jump = RunningMeanStd(shape=[self.num_envs, self.num_obs])
         self.obs_rms_manager = RunningMeanStd(shape=[self.num_envs, self.num_obs])
         self._reward = np.zeros(self.num_envs, dtype=np.float32)
@@ -76,8 +76,8 @@ class RaisimGymVecEnv:
             self.obs_rms_run.var[i] = np.loadtxt(var_file_name_run, dtype=np.float32)
             self.obs_rms_jump.mean[i] = np.loadtxt(mean_file_name_jump, dtype=np.float32)
             self.obs_rms_jump.var[i] = np.loadtxt(var_file_name_jump, dtype=np.float32)
-            self.obs_rms_manager.mean[i] = np.loadtxt(mean_file_name_manager, dtype=np.float32)
-            self.obs_rms_manager.var[i] = np.loadtxt(var_file_name_manager, dtype=np.float32)
+            # self.obs_rms_manager.mean[i] = np.loadtxt(mean_file_name_manager, dtype=np.float32)
+            # self.obs_rms_manager.var[i] = np.loadtxt(var_file_name_manager, dtype=np.float32)
 
     def save_scaling(self, dir_name, iteration):
         # mean_file_name_run = dir_name + "/meanRun" + iteration + ".csv"
@@ -121,7 +121,7 @@ class RaisimGymVecEnv:
     def _normalize_observation(self, obs):
         if self.normalize_ob:
 
-            obs_run = np.clip((obs[:,:-self.num_sens] - self.obs_rms_run.mean) / np.sqrt(self.obs_rms_run.var + 1e-8), -self.clip_obs,
+            obs_run = np.clip((obs - self.obs_rms_run.mean) / np.sqrt(self.obs_rms_run.var + 1e-8), -self.clip_obs,
                               self.clip_obs)
             obs_jump = np.clip((obs - self.obs_rms_jump.mean) / np.sqrt(self.obs_rms_jump.var + 1e-8), -self.clip_obs,
                               self.clip_obs)
@@ -129,7 +129,7 @@ class RaisimGymVecEnv:
                               self.clip_obs)
             return obs_run, obs_jump, obs_manager
         else:
-            return obs[:,:-self.num_sens], obs, obs
+            return obs, obs, obs
 
     def reset_and_update_info(self):
         return self.reset(), self._update_epi_info()
