@@ -61,16 +61,16 @@ class PPO:
         else:
             self.batch_sampler = self.storage.mini_batch_generator_inorder
 
-        # self.optimizer = optim.Adam([*self.actor.parameters(), *self.critic.parameters()], lr=learning_rate)
+        self.optimizer = optim.Adam([*self.critic_run.parameters(), *self.critic_jump.parameters()], lr=learning_rate)
         # self.optimizer = AdamP([*self.actor_run.parameters(), *self.actor_jump.parameters(), *self.critic_run.parameters(), *self.critic_jump.parameters(), *self.estimator.parameters()], lr=learning_rate)
         # self.optimizer_manager = AdamP([*self.actor_manager.parameters(), *self.critic_manager.parameters()],
         #                                lr=learning_rate)
-        self.optimizer_manager = torch.optim.Adam([
-            {'params': self.actor_manager.parameters()},
-            {'params': self.critic_manager.parameters(), 'lr': learning_rate_critic}], lr=learning_rate)
-        self.optimizer_sl = AdamP([*self.actor_manager.parameters()], lr=sl_learning_rate)
+        # self.optimizer_manager = torch.optim.Adam([
+        #     {'params': self.actor_manager.parameters()},
+        #     {'params': self.critic_manager.parameters(), 'lr': learning_rate_critic}], lr=learning_rate)
+        # self.optimizer_sl = AdamP([*self.actor_manager.parameters()], lr=sl_learning_rate)
         self.device = device
-        self.manager_training = manager_training
+        self.manager_training = False  # manager_training
 
         # env parameters
         self.num_transitions_per_env = num_transitions_per_env
@@ -98,20 +98,22 @@ class PPO:
         self.actions = None
         self.actions_log_prob = None
         self.actor_obs_run = None
+        self.critic_obs_run = None
         self.actor_obs_jump = None
         self.actor_obs_manager = None
         self.run_bool = None
         self.jump_bool = None
 
-    def observe(self, actor_obs_run, actor_obs_jump, actor_obs_manager,
+    def observe(self, actor_obs_run, critic_obs_run, actor_obs_jump,
                 run_bool_input=None):  # run_bool = 1 when running network active; run_bool = 0 when jumping network active
         self.actor_obs_run = actor_obs_run
         self.actor_obs_jump = actor_obs_jump
-        self.actor_obs_manager = actor_obs_manager
+        self.critic_obs_run = critic_obs_run
         actions_log_prob_manager = None
         if run_bool_input is None:
-            bool_manager, actions_log_prob_manager = self.actor_manager.sample(torch.from_numpy(actor_obs_manager).to(self.device))
-            self.run_bool = bool_manager.unsqueeze(1)
+            value_run = self.critic_run.predict(torch.from_numpy(self.critic_obs_run).to(self.device))
+            value_jump = self.critic_jump.predict(torch.from_numpy(self.actor_obs_jump).to(self.device))
+            self.run_bool = value_run > value_jump
         else:
             self.run_bool = torch.from_numpy(run_bool_input).to(self.device)
         self.jump_bool = torch.add(torch.ones(self.run_bool.size(), device=self.device), self.run_bool,
@@ -124,8 +126,7 @@ class PPO:
         if self.manager_training and actions_log_prob_manager is not None:
             self.actions_log_prob = actions_log_prob_manager
         else:
-            self.actions_log_prob = self.run_bool[:, 0] * actions_run_log_prob + self.jump_bool[:,
-                                                                                 0] * actions_jump_log_prob
+            self.actions_log_prob = self.run_bool[:, 0] * actions_run_log_prob + self.jump_bool[:, 0] * actions_jump_log_prob
 
         # if self.manager_training:
         #     self.actions, self.actions_log_prob = self.actor_manager.sample(torch.from_numpy(actor_obs).to(self.device))
@@ -142,27 +143,38 @@ class PPO:
         return self.actions.cpu().numpy(), self.run_bool.cpu().numpy()
 
     def step(self, value_obs_run, value_obs_jump, value_obs_manager, est_obs, robotState, rews, dones, guideline):
-        if self.manager_training:
-            values = self.critic_manager.predict(torch.from_numpy(value_obs_manager).to(self.device))
-        else:
-            values = self.run_bool * self.critic_run.predict(torch.from_numpy(value_obs_run).to(self.device)) \
-                     + self.jump_bool * self.critic_jump.predict(torch.from_numpy(value_obs_jump).to(self.device))
-        self.storage.add_transitions(self.actor_obs_run, self.actor_obs_jump, self.actor_obs_manager, value_obs_run,
-                                     value_obs_jump, value_obs_manager, self.actions, est_obs, robotState, rews, dones,
-                                     values, self.actions_log_prob, self.run_bool, guideline)
+        # if self.manager_training:
+        #     values = self.critic_manager.predict(torch.from_numpy(value_obs_manager).to(self.device))
+        # else:
+        #     values = self.run_bool * self.critic_run.predict(torch.from_numpy(value_obs_run).to(self.device)) \
+        #              + self.jump_bool * self.critic_jump.predict(torch.from_numpy(value_obs_jump).to(self.device))
+        values = self.run_bool * self.critic_run.predict(torch.from_numpy(value_obs_run).to(self.device)) \
+                 + self.jump_bool * self.critic_jump.predict(torch.from_numpy(value_obs_jump).to(self.device))
+        # self.storage.add_transitions(self.actor_obs_run, self.actor_obs_jump, self.actor_obs_manager, value_obs_run,
+        #                              value_obs_jump, value_obs_manager, self.actions, est_obs, robotState, rews, dones,
+        #                              values, self.actions_log_prob, self.run_bool, guideline)
+        self.storage.add_transitions(None, None, None, value_obs_run,
+                                     value_obs_jump, None, self.actions, None, None, rews, dones,
+                                     values, self.actions_log_prob, self.run_bool, None)
+
 
     def update(self, actor_obs_manager, value_obs_run, value_obs_jump, value_obs_manager, log_this_iteration, update,
                actor_manager_update=True):
-        bool_manager = self.actor_manager.sample(torch.from_numpy(actor_obs_manager).to(self.device))[0]
+        # bool_manager = self.actor_manager.sample(torch.from_numpy(actor_obs_manager).to(self.device))[0]
         # run_bool = bool_manager.unsqueeze(1)
         # jump_bool = torch.add(torch.ones(self.run_bool.size(), device=self.device), self.run_bool, alpha=-1)  # 1-run_bool
-        if self.manager_training:
-            last_values = self.critic_manager.predict(torch.from_numpy(value_obs_manager).to(self.device))
-        else:
-            run_bool = bool_manager.unsqueeze(1)
-            jump_bool = torch.add(torch.ones(run_bool[:, 0:1].shape, device=self.device), run_bool[:, 0:1], alpha=-1)
-            last_values = run_bool * self.critic_run.predict(torch.from_numpy(value_obs_run).to(self.device)) \
-                          + jump_bool * self.critic_jump.predict(torch.from_numpy(value_obs_jump).to(self.device))
+        # if self.manager_training:
+        #     last_values = self.critic_manager.predict(torch.from_numpy(value_obs_manager).to(self.device))
+        # else:
+        #     run_bool = bool_manager.unsqueeze(1)
+        #     jump_bool = torch.add(torch.ones(run_bool[:, 0:1].shape, device=self.device), run_bool[:, 0:1], alpha=-1)
+        #     last_values = run_bool * self.critic_run.predict(torch.from_numpy(value_obs_run).to(self.device)) \
+        #                   + jump_bool * self.critic_jump.predict(torch.from_numpy(value_obs_jump).to(self.device))
+        value_run = self.critic_run.predict(torch.from_numpy(self.critic_obs_run).to(self.device))
+        value_jump = self.critic_jump.predict(torch.from_numpy(self.actor_obs_jump).to(self.device))
+        run_bool = value_run > value_jump
+        jump_bool = torch.add(torch.ones(run_bool[:, 0:1].shape, device=self.device), run_bool[:, 0:1], alpha=-1)
+        last_values = run_bool * value_run + jump_bool * value_jump
 
         # Learning step
         self.storage.compute_returns(last_values, self.gamma, self.lam)
@@ -177,12 +189,12 @@ class PPO:
         self.tot_timesteps += self.num_transitions_per_env * self.num_envs
 
         self.writer.add_scalar('Loss/value_function', variables['mean_value_loss'], variables['it'])
-        self.writer.add_scalar('Loss/surrogate', variables['mean_surrogate_loss'], variables['it'])
+        # self.writer.add_scalar('Loss/surrogate', variables['mean_surrogate_loss'], variables['it'])
         # self.writer.add_scalar('Loss/estimation', variables['mean_estimation_loss'], variables['it'])
-        self.writer.add_scalar('Policy/entropy', variables['mean_entropy'], variables['it'])
-        if self.manager_training:
-            mean_std_manager = self.actor_jump.distribution.std.mean()
-            self.writer.add_scalar('Policy/mean_noise_std_manager', mean_std_manager.item(), variables['it'])
+        # self.writer.add_scalar('Policy/entropy', variables['mean_entropy'], variables['it'])
+        # if self.manager_training:
+        #     mean_std_manager = self.actor_jump.distribution.std.mean()
+        #     self.writer.add_scalar('Policy/mean_noise_std_manager', mean_std_manager.item(), variables['it'])
         # else:
         #     mean_std_run = self.actor_run.distribution.std.mean()
         #     mean_std_jump = self.actor_jump.distribution.std.mean()
@@ -195,13 +207,17 @@ class PPO:
         # mean_estimation_loss = 0
         mean_entropy = 0
         for epoch in range(self.num_learning_epochs):
-            for actor_obs_manager_batch, critic_obs_manager_batch, actions_batch, target_values_batch, \
+            for critic_run_obs_batch, critic_jump_obs_batch, actions_batch, target_values_batch, \
                 advantages_batch, returns_batch, old_actions_log_prob_batch, run_bool_batch,  guideline_batch\
                     in self.batch_sampler(self.num_mini_batches):
-                if self.manager_training:
-                    actions_log_prob_batch, entropy_batch = self.actor_manager.evaluate(actor_obs_manager_batch,
-                                                                                        run_bool_batch)
-                    value_batch = self.critic_manager.evaluate(critic_obs_manager_batch)
+
+                jump_bool_batch = torch.add(torch.ones(run_bool_batch[:, 0:1].shape, device=self.device), run_bool_batch[:, 0:1], alpha=-1)
+                value_batch = run_bool_batch * self.critic_run.evaluate(critic_run_obs_batch) \
+                         + jump_bool_batch * self.critic_jump.evaluate(critic_jump_obs_batch)
+                # if self.manager_training:
+                #     actions_log_prob_batch, entropy_batch = self.actor_manager.evaluate(actor_obs_manager_batch,
+                #                                                                         run_bool_batch)
+                #     value_batch = self.critic_manager.evaluate(critic_obs_manager_batch)
                 # else:
                 #     jump_bool_batch = torch.add(torch.ones(run_bool_batch.size()).to(self.device), run_bool_batch, alpha=-1)
                 #     actions_run_log_prob_batch, entropy_run_batch = self.actor_run.evaluate(actor_obs_run_batch, actions_batch)
@@ -213,11 +229,11 @@ class PPO:
                 # estimation_batch = self.estimator.evaluate(est_in_batch)
 
                 # Surrogate loss
-                ratio = torch.exp(actions_log_prob_batch - torch.squeeze(old_actions_log_prob_batch))
-                surrogate = -torch.squeeze(advantages_batch) * ratio
-                surrogate_clipped = -torch.squeeze(advantages_batch) * torch.clamp(ratio, 1.0 - self.clip_param,
-                                                                                   1.0 + self.clip_param)
-                surrogate_loss = torch.max(surrogate, surrogate_clipped).mean()
+                # ratio = torch.exp(actions_log_prob_batch - torch.squeeze(old_actions_log_prob_batch))
+                # surrogate = -torch.squeeze(advantages_batch) * ratio
+                # surrogate_clipped = -torch.squeeze(advantages_batch) * torch.clamp(ratio, 1.0 - self.clip_param,
+                #                                                                    1.0 + self.clip_param)
+                # surrogate_loss = torch.max(surrogate, surrogate_clipped).mean()
 
                 # Value function loss
                 if self.use_clipped_value_loss:
@@ -233,16 +249,23 @@ class PPO:
 
                 # loss = surrogate_loss + self.value_loss_coef * value_loss + self.estimator_loss_coef * estimator_loss\
                 #        - self.entropy_coef * entropy_batch.mean()
-                loss = surrogate_loss * actor_manager_update + self.value_loss_coef * value_loss\
-                       - self.entropy_coef * entropy_batch.mean() * actor_manager_update  # train only critic at the beginning
+                # loss = surrogate_loss * actor_manager_update + self.value_loss_coef * value_loss\
+                #        - self.entropy_coef * entropy_batch.mean() * actor_manager_update  # train only critic at the beginning
+                loss = value_loss
 
-                # Gradient step
-                if self.manager_training:
-                    self.optimizer_manager.zero_grad()
-                    loss.backward()
-                    nn.utils.clip_grad_norm_([*self.actor_manager.parameters(), *self.critic_manager.parameters()],
-                                             self.max_grad_norm)
-                    self.optimizer_manager.step()
+
+            # Gradient step
+                self.optimizer.zero_grad()
+                loss.backward()
+                nn.utils.clip_grad_norm_([*self.critic_run.parameters(), *self.critic_jump.parameters()],
+                                         self.max_grad_norm)
+                self.optimizer.step()
+                # if self.manager_training:
+                #     self.optimizer.zero_grad()
+                #     loss.backward()
+                #     nn.utils.clip_grad_norm_([*self.actor_manager.parameters(), *self.critic_manager.parameters()],
+                #                              self.max_grad_norm)
+                #     self.optimizer.step()
                 # else:
                 #     self.optimizer.zero_grad()
                 #     loss.backward()
@@ -250,9 +273,9 @@ class PPO:
                 #     self.optimizer.step()
 
                 mean_value_loss += value_loss.item()
-                mean_surrogate_loss += surrogate_loss.item()
+                # mean_surrogate_loss += surrogate_loss.item()
                 # mean_estimation_loss += estimator_loss.item()
-                mean_entropy += entropy_batch.mean()
+                # mean_entropy += entropy_batch.mean()
 
         num_updates = self.num_learning_epochs * self.num_mini_batches
         mean_value_loss /= num_updates
@@ -263,30 +286,30 @@ class PPO:
         return mean_value_loss, mean_surrogate_loss, mean_entropy, locals()
         # return mean_value_loss, mean_surrogate_loss, mean_estimation_loss, mean_entropy, locals()
 
-    def set_manager_training(self, manager_training):
-        self.manager_training = manager_training
+    # def set_manager_training(self, manager_training):
+    #     self.manager_training = manager_training
 
-    def supervised_learning(self):
-        mean_loss = 0
-        for epoch in range(self.num_learning_epochs):
-            for actor_obs_manager_batch, critic_obs_manager_batch, actions_batch, target_values_batch, \
-                advantages_batch, returns_batch, old_actions_log_prob_batch, run_bool_batch,  guideline_batch \
-                    in self.batch_sampler(self.num_mini_batches):
-                criterion = torch.nn.L1Loss(reduction='sum')
-
-                action_probs = self.actor_manager.architecture.architecture(actor_obs_manager_batch)
-
-                # Compute and print loss
-                loss = criterion(guideline_batch, action_probs[:,1:])
-                # print("loss: ", loss.item())
-
-                # Zero gradients, perform a backward pass, and update the weights.
-                self.optimizer_sl.zero_grad()
-                loss.backward()
-                self.optimizer_sl.step()
-
-                mean_loss += loss.item()
-
-        num_updates = self.num_learning_epochs * self.num_mini_batches
-        mean_loss /= num_updates
-        return mean_loss
+    # def supervised_learning(self):
+    #     mean_loss = 0
+    #     for epoch in range(self.num_learning_epochs):
+    #         for actor_obs_manager_batch, critic_obs_manager_batch, actions_batch, target_values_batch, \
+    #             advantages_batch, returns_batch, old_actions_log_prob_batch, run_bool_batch,  guideline_batch \
+    #                 in self.batch_sampler(self.num_mini_batches):
+    #             criterion = torch.nn.L1Loss(reduction='sum')
+    #
+    #             action_probs = self.actor_manager.architecture.architecture(actor_obs_manager_batch)
+    #
+    #             # Compute and print loss
+    #             loss = criterion(guideline_batch, action_probs[:,1:])
+    #             # print("loss: ", loss.item())
+    #
+    #             # Zero gradients, perform a backward pass, and update the weights.
+    #             self.optimizer_sl.zero_grad()
+    #             loss.backward()
+    #             self.optimizer_sl.step()
+    #
+    #             mean_loss += loss.item()
+    #
+    #     num_updates = self.num_learning_epochs * self.num_mini_batches
+    #     mean_loss /= num_updates
+    #     return mean_loss

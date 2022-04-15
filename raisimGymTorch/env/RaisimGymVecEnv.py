@@ -80,20 +80,20 @@ class RaisimGymVecEnv:
             # self.obs_rms_manager.var[i] = np.loadtxt(var_file_name_manager, dtype=np.float32)
 
     def save_scaling(self, dir_name, iteration):
-        # mean_file_name_run = dir_name + "/meanRun" + iteration + ".csv"
-        # var_file_name_run = dir_name + "/varRun" + iteration + ".csv"
-        # mean_file_name_jump = dir_name + "/meanJump" + iteration + ".csv"
-        # var_file_name_jump = dir_name + "/varJump" + iteration + ".csv"
+        mean_file_name_run = dir_name + "/meanRun" + iteration + ".csv"
+        var_file_name_run = dir_name + "/varRun" + iteration + ".csv"
+        mean_file_name_jump = dir_name + "/meanJump" + iteration + ".csv"
+        var_file_name_jump = dir_name + "/varJump" + iteration + ".csv"
         # mean_file_name_manager = dir_name + "/meanManager" + iteration + ".csv"
         # var_file_name_manager = dir_name + "/varManager" + iteration + ".csv"
-        mean_file_name_manager = dir_name + "/mean" + iteration + ".csv"
-        var_file_name_manager = dir_name + "/var" + iteration + ".csv"
-        # np.savetxt(mean_file_name_run, self.obs_rms_run.mean[0])
-        # np.savetxt(var_file_name_run, self.obs_rms_run.var[0])
-        # np.savetxt(mean_file_name_jump, self.obs_rms_jump.mean[0])
-        # np.savetxt(var_file_name_jump, self.obs_rms_jump.var[0])
-        np.savetxt(mean_file_name_manager, self.obs_rms_manager.mean[0])
-        np.savetxt(var_file_name_manager, self.obs_rms_manager.var[0])
+        # mean_file_name_manager = dir_name + "/mean" + iteration + ".csv"
+        # var_file_name_manager = dir_name + "/var" + iteration + ".csv"
+        np.savetxt(mean_file_name_run, self.obs_rms_run.mean[0])
+        np.savetxt(var_file_name_run, self.obs_rms_run.var[0])
+        np.savetxt(mean_file_name_jump, self.obs_rms_jump.mean[0])
+        np.savetxt(var_file_name_jump, self.obs_rms_jump.var[0])
+        # np.savetxt(mean_file_name_manager, self.obs_rms_manager.mean[0])
+        # np.savetxt(var_file_name_manager, self.obs_rms_manager.var[0])
 
     def observe(self, update_mean=True, update_manager=False):
         self.wrapper.observe(self._observation)

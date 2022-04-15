@@ -10,12 +10,12 @@ class RolloutStorage:
         self.device = device
 
         # Core
-        # self.critic_run_obs = torch.zeros(num_transitions_per_env, num_envs, *critic_obs_run_shape, device=self.device)
-        # self.critic_jump_obs = torch.zeros(num_transitions_per_env, num_envs, *critic_obs_jump_shape, device=self.device)
-        self.critic_manager_obs = torch.zeros(num_transitions_per_env, num_envs, *critic_manager_obs_shape, device=self.device)
+        self.critic_run_obs = torch.zeros(num_transitions_per_env, num_envs, *critic_obs_run_shape, device=self.device)
+        self.critic_jump_obs = torch.zeros(num_transitions_per_env, num_envs, *critic_obs_jump_shape, device=self.device)
+        # self.critic_manager_obs = torch.zeros(num_transitions_per_env, num_envs, *critic_manager_obs_shape, device=self.device)
         # self.actor_run_obs = torch.zeros(num_transitions_per_env, num_envs, *actor_run_obs_shape, device=self.device)
         # self.actor_jump_obs = torch.zeros(num_transitions_per_env, num_envs, *actor_jump_obs_shape, device=self.device)
-        self.actor_manager_obs = torch.zeros(num_transitions_per_env, num_envs, *actor_manager_obs_shape, device=self.device)
+        # self.actor_manager_obs = torch.zeros(num_transitions_per_env, num_envs, *actor_manager_obs_shape, device=self.device)
         # self.estimator_input = torch.zeros(num_transitions_per_env, num_envs, *estimator_input_shape, device=self.device)
         # self.robotState = torch.zeros(num_transitions_per_env, num_envs, *robotState_shape, device=self.device)
         self.rewards = torch.zeros(num_transitions_per_env, num_envs, 1, device=self.device)
@@ -39,12 +39,12 @@ class RolloutStorage:
                         actions, est_in, robotState, rewards, dones, values, actions_log_prob, run_bool, guideline):
         if self.step >= self.num_transitions_per_env:
             raise AssertionError("Rollout buffer overflow")
-        # self.critic_run_obs[self.step].copy_(torch.from_numpy(critic_run_obs).to(self.device))
-        # self.critic_jump_obs[self.step].copy_(torch.from_numpy(critic_jump_obs).to(self.device))
-        self.critic_manager_obs[self.step].copy_(torch.from_numpy(critic_manager_obs).to(self.device))
+        self.critic_run_obs[self.step].copy_(torch.from_numpy(critic_run_obs).to(self.device))
+        self.critic_jump_obs[self.step].copy_(torch.from_numpy(critic_jump_obs).to(self.device))
+        # self.critic_manager_obs[self.step].copy_(torch.from_numpy(critic_manager_obs).to(self.device))
         # self.actor_run_obs[self.step].copy_(torch.from_numpy(actor_run_obs).to(self.device))
         # self.actor_jump_obs[self.step].copy_(torch.from_numpy(actor_jump_obs).to(self.device))
-        self.actor_manager_obs[self.step].copy_(torch.from_numpy(actor_manager_obs).to(self.device))
+        # self.actor_manager_obs[self.step].copy_(torch.from_numpy(actor_manager_obs).to(self.device))
         # self.estimator_input[self.step].copy_(torch.from_numpy(est_in).to(self.device))
         # self.robotState[self.step].copy_(torch.from_numpy(robotState).to(self.device))
         self.actions[self.step].copy_(actions.to(self.device))
@@ -61,7 +61,7 @@ class RolloutStorage:
 
     def compute_returns(self, last_values, gamma, lam):
         advantage = 0
-        for step in reversed(range(self.num_transitions_per_env)):
+        for step in reversed(range(self.num_transitions_per_env)):  # TODO: mix values (e.g. 1 step TD)
             if step == self.num_transitions_per_env - 1:
                 next_values = last_values
                 # next_is_not_terminal = 1.0 - self.dones[step].float()
@@ -85,10 +85,10 @@ class RolloutStorage:
         for indices in BatchSampler(SubsetRandomSampler(range(batch_size)), mini_batch_size, drop_last=True):
             # actor_run_obs_batch = self.actor_run_obs.view(-1, *self.actor_run_obs.size()[2:])[indices]
             # actor_jump_obs_batch = self.actor_jump_obs.view(-1, *self.actor_jump_obs.size()[2:])[indices]
-            actor_manager_obs_batch = self.actor_manager_obs.view(-1, *self.actor_manager_obs.size()[2:])[indices]
-            # critic_run_obs_batch = self.critic_run_obs.view(-1, *self.critic_run_obs.size()[2:])[indices]
-            # critic_jump_obs_batch = self.critic_jump_obs.view(-1, *self.critic_jump_obs.size()[2:])[indices]
-            critic_manager_obs_batch = self.critic_manager_obs.view(-1, *self.critic_manager_obs.size()[2:])[indices]
+            # actor_manager_obs_batch = self.actor_manager_obs.view(-1, *self.actor_manager_obs.size()[2:])[indices]
+            critic_run_obs_batch = self.critic_run_obs.view(-1, *self.critic_run_obs.size()[2:])[indices]
+            critic_jump_obs_batch = self.critic_jump_obs.view(-1, *self.critic_jump_obs.size()[2:])[indices]
+            # critic_manager_obs_batch = self.critic_manager_obs.view(-1, *self.critic_manager_obs.size()[2:])[indices]
             # est_in_batch = self.estimator_input.view(-1, *self.estimator_input.size()[2:])[indices]
             # robotState_batch = self.robotState.view(-1, *self.robotState.size()[2:])[indices]
             actions_batch = self.actions.view(-1, self.actions.size(-1))[indices]
@@ -98,7 +98,7 @@ class RolloutStorage:
             advantages_batch = self.advantages.view(-1, 1)[indices]
             run_bool_batch = self.run_bool.view(-1, 1)[indices]
             guideline_batch = self.guideline.view(-1, 1)[indices]
-        yield actor_manager_obs_batch, critic_manager_obs_batch, actions_batch, values_batch, \
+        yield critic_run_obs_batch, critic_jump_obs_batch, actions_batch, values_batch, \
               advantages_batch, returns_batch, old_actions_log_prob_batch, run_bool_batch, guideline_batch
 
     def mini_batch_generator_inorder(self, num_mini_batches):
@@ -106,8 +106,8 @@ class RolloutStorage:
         mini_batch_size = batch_size // num_mini_batches
 
         for batch_id in range(num_mini_batches):
-            yield self.actor_manager_obs.view(-1, *self.actor_manager_obs.size()[2:])[batch_id*mini_batch_size:(batch_id+1)*mini_batch_size], \
-                self.critic_manager_obs.view(-1, *self.critic_manager_obs.size()[2:])[batch_id*mini_batch_size:(batch_id+1)*mini_batch_size], \
+            yield self.critic_run_obs.view(-1, *self.critic_run_obs.size()[2:])[batch_id*mini_batch_size:(batch_id+1)*mini_batch_size], \
+                self.critic_jump_obs.view(-1, *self.critic_jump_obs.size()[2:])[batch_id*mini_batch_size:(batch_id+1)*mini_batch_size], \
                 self.actions.view(-1, self.actions.size(-1))[batch_id*mini_batch_size:(batch_id+1)*mini_batch_size], \
                 self.values.view(-1, 1)[batch_id*mini_batch_size:(batch_id+1)*mini_batch_size], \
                 self.advantages.view(-1, 1)[batch_id*mini_batch_size:(batch_id+1)*mini_batch_size], \

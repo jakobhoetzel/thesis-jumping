@@ -97,6 +97,7 @@ class Critic:
         super(Critic, self).__init__()
         self.architecture = architecture
         self.architecture.to(device)
+        self.device = device
 
     def predict(self, obs):
         return self.architecture.architecture(obs).detach()
@@ -106,6 +107,11 @@ class Critic:
 
     def parameters(self):
         return [*self.architecture.parameters()]
+
+    def save_deterministic_graph(self, file_name, example_input, device='cpu'):
+        transferred_graph = torch.jit.trace(self.architecture.architecture.to(device), example_input)
+        torch.jit.save(transferred_graph, file_name)
+        self.architecture.architecture.to(self.device)
 
     @property
     def obs_shape(self):

@@ -31,17 +31,25 @@ task_path = os.path.dirname(os.path.realpath(__file__))
 home_path = task_path + "/../../../.."
 
 # weight directory
-weight_path_run = "../../../data/minicheetah_locomotion/2022-04-14-22-53-54/full_3500.pt"
-iteration_number_run = weight_path_run.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
-weight_dir_run = weight_path_run.rsplit('/', 1)[0] + '/'
+weight_path_run = None; weight_path_jump = None; weight_path_manager = None; weight_path_total = None
+iteration_number_run = None; iteration_number_jump = None; iteration_number_manager = None; iteration_number_total = None
+weight_dir_run = None; weight_dir_jump = None; weight_dir_manager = None; weight_dir_total = None
 
-weight_path_jump = "../../../data/minicheetah_locomotion/2022-04-14-09-33-21/full_5000.pt"
-iteration_number_jump = weight_path_jump.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
-weight_dir_jump = weight_path_jump.rsplit('/', 1)[0] + '/'
+# weight_path_run = "../../../data/minicheetah_locomotion/2022-04-14-22-53-54/full_3500.pt"
+# iteration_number_run = weight_path_run.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
+# weight_dir_run = weight_path_run.rsplit('/', 1)[0] + '/'
+#
+# weight_path_jump = "../../../data/minicheetah_locomotion/2022-04-14-09-33-21/full_5000.pt"
+# iteration_number_jump = weight_path_jump.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
+# weight_dir_jump = weight_path_jump.rsplit('/', 1)[0] + '/'
+#
+# weight_path_manager = "../../../data/minicheetah_locomotion/2022-04-06-11-07-33/full_25.pt"
+# iteration_number_manager = weight_path_manager.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
+# weight_dir_manager = weight_path_manager.rsplit('/', 1)[0] + '/'
 
-weight_path_manager = "../../../data/minicheetah_locomotion/2022-04-06-11-07-33/full_25.pt"
-iteration_number_manager = weight_path_manager.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
-weight_dir_manager = weight_path_manager.rsplit('/', 1)[0] + '/'
+weight_path_total = "../../../data/minicheetah_locomotion/2022-04-54-16-53-54/full_7000.pt"
+iteration_number_total = weight_path_total.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
+weight_dir_total = weight_path_total.rsplit('/', 1)[0] + '/'
 
 # config
 cfg = YAML().load(open(task_path + "/cfg.yaml", 'r')) # change to weight_path
@@ -71,27 +79,56 @@ else:
     total_steps = n_steps * 1
     start_step_id = 0
 
+    oneDirectory = True
     print("Visualizing and evaluating the policy: ")
-    actor_run = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim - sensor_dim + robotState_dim, act_dim)
-    actor_jump = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, act_dim)
-    critic_run = ppo_module.MLP(cfg['architecture']['value_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, 1)
-    critic_jump = ppo_module.MLP(cfg['architecture']['value_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, 1)
-    # actor_manager = ppo_module.MLP(cfg['architecture']['manager_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim + 1, 2, softmax=True)
-    actor_run.load_state_dict(torch.load(weight_path_run)['actor_architecture_state_dict'])
-    actor_jump.load_state_dict(torch.load(weight_path_jump)['actor_architecture_state_dict'])
-    critic_run.load_state_dict(torch.load(weight_path_run)['critic_architecture_state_dict'])
-    critic_jump.load_state_dict(torch.load(weight_path_jump)['critic_architecture_state_dict'])
-    # actor_manager.load_state_dict(torch.load(weight_path_manager)['actor_architecture_state_dict'])  # actor_architecture_state_dict
+    if oneDirectory:
+        actor_run = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU,
+                                   ob_dim - sensor_dim + robotState_dim, act_dim)
+        actor_jump = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim,
+                                    act_dim)
+        critic_run = ppo_module.MLP(cfg['architecture']['value_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, 1)
+        critic_jump = ppo_module.MLP(cfg['architecture']['value_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, 1)
+        # actor_manager = ppo_module.MLP(cfg['architecture']['manager_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim + 1, 2, softmax=True)
+        actor_run.load_state_dict(torch.load(weight_path_total)['actor_run_architecture_state_dict'])
+        actor_jump.load_state_dict(torch.load(weight_path_total)['actor_jump_architecture_state_dict'])
+        critic_run.load_state_dict(torch.load(weight_path_total)['critic_run_architecture_state_dict'])
+        critic_jump.load_state_dict(torch.load(weight_path_total)['critic_jump_architecture_state_dict'])
+        # actor_manager.load_state_dict(torch.load(weight_path_manager)['actor_architecture_state_dict'])  # actor_architecture_state_dict
+        estimator_run = ppo_module.MLP(cfg['architecture']['estimator_net'], torch.nn.LeakyReLU, ob_dim - sensor_dim,
+                                       robotState_dim)
+        estimator_jump = ppo_module.MLP(cfg['architecture']['estimator_net'], torch.nn.LeakyReLU, ob_dim - sensor_dim,
+                                        robotState_dim)
+        estimator_run.load_state_dict(torch.load(weight_path_total)['estimator_run_architecture_state_dict'])
+        estimator_jump.load_state_dict(torch.load(weight_path_total)['estimator_jump_architecture_state_dict'])
+
+        env.load_scaling(weight_dir_total, int(iteration_number_total), weight_dir_total, int(iteration_number_total),
+                         weight_dir_total, int(iteration_number_total), one_directory=True)
+    else:
+        actor_run = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU,
+                                   ob_dim - sensor_dim + robotState_dim, act_dim)
+        actor_jump = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim,
+                                    act_dim)
+        critic_run = ppo_module.MLP(cfg['architecture']['value_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, 1)
+        critic_jump = ppo_module.MLP(cfg['architecture']['value_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, 1)
+        # actor_manager = ppo_module.MLP(cfg['architecture']['manager_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim + 1, 2, softmax=True)
+        actor_run.load_state_dict(torch.load(weight_path_run)['actor_architecture_state_dict'])
+        actor_jump.load_state_dict(torch.load(weight_path_jump)['actor_architecture_state_dict'])
+        critic_run.load_state_dict(torch.load(weight_path_run)['critic_architecture_state_dict'])
+        critic_jump.load_state_dict(torch.load(weight_path_jump)['critic_architecture_state_dict'])
+        # actor_manager.load_state_dict(torch.load(weight_path_manager)['actor_architecture_state_dict'])  # actor_architecture_state_dict
+        estimator_run = ppo_module.MLP(cfg['architecture']['estimator_net'], torch.nn.LeakyReLU, ob_dim - sensor_dim,
+                                       robotState_dim)
+        estimator_jump = ppo_module.MLP(cfg['architecture']['estimator_net'], torch.nn.LeakyReLU, ob_dim - sensor_dim,
+                                        robotState_dim)
+        estimator_run.load_state_dict(torch.load(weight_path_run)['estimator_architecture_state_dict'])
+        estimator_jump.load_state_dict(torch.load(weight_path_jump)['estimator_architecture_state_dict'])
+
+        env.load_scaling(weight_dir_run, int(iteration_number_run), weight_dir_jump, int(iteration_number_jump),
+                         weight_dir_manager, int(iteration_number_manager), one_directory=False)
+
     print('actor of {} parameters'.format(sum(p.numel() for p in actor_run.parameters())))
     print('actor of {} parameters'.format(sum(p.numel() for p in actor_jump.parameters())))
 
-    estimator_run = ppo_module.MLP(cfg['architecture']['estimator_net'], torch.nn.LeakyReLU, ob_dim - sensor_dim, robotState_dim)
-    estimator_jump = ppo_module.MLP(cfg['architecture']['estimator_net'], torch.nn.LeakyReLU, ob_dim - sensor_dim, robotState_dim)
-    estimator_run.load_state_dict(torch.load(weight_path_run)['estimator_architecture_state_dict'])
-    estimator_jump.load_state_dict(torch.load(weight_path_jump)['estimator_architecture_state_dict'])
-
-    env.load_scaling(weight_dir_run, int(iteration_number_run), weight_dir_jump, int(iteration_number_jump),
-                     weight_dir_manager, int(iteration_number_manager), one_directory=False)
     env.turn_on_visualization()
     env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy.mp4")
     time.sleep(2)
