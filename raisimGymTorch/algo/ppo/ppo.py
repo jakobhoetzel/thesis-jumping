@@ -148,13 +148,14 @@ class PPO:
         # else:
         #     values = self.run_bool * self.critic_run.predict(torch.from_numpy(value_obs_run).to(self.device)) \
         #              + self.jump_bool * self.critic_jump.predict(torch.from_numpy(value_obs_jump).to(self.device))
-        values = self.run_bool * self.critic_run.predict(torch.from_numpy(value_obs_run).to(self.device)) \
-                 + self.jump_bool * self.critic_jump.predict(torch.from_numpy(value_obs_jump).to(self.device))
+        value_run = self.critic_run.predict(torch.from_numpy(value_obs_run).to(self.device))
+        value_jump = self.critic_jump.predict(torch.from_numpy(value_obs_jump).to(self.device))
+        values = self.run_bool * value_run + self.jump_bool * value_jump
         # self.storage.add_transitions(self.actor_obs_run, self.actor_obs_jump, self.actor_obs_manager, value_obs_run,
         #                              value_obs_jump, value_obs_manager, self.actions, est_obs, robotState, rews, dones,
         #                              values, self.actions_log_prob, self.run_bool, guideline)
         self.storage.add_transitions(None, None, None, value_obs_run,
-                                     value_obs_jump, None, self.actions, None, None, rews, dones,
+                                     value_obs_jump, value_run, value_jump, None, self.actions, None, None, rews, dones,
                                      values, self.actions_log_prob, self.run_bool, None)
 
 
@@ -177,7 +178,7 @@ class PPO:
         last_values = run_bool * value_run + jump_bool * value_jump
 
         # Learning step
-        self.storage.compute_returns(last_values, self.gamma, self.lam)
+        self.storage.compute_returns(last_values, run_bool, jump_bool, self.gamma, self.lam)
         # mean_value_loss, mean_surrogate_loss, mean_estimation_loss, mean_entropy, infos = self._train_step()
         mean_value_loss, mean_surrogate_loss, mean_entropy, infos = self._train_step(actor_manager_update)
         self.storage.clear()

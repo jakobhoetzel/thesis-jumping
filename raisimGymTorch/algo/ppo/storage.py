@@ -19,6 +19,8 @@ class RolloutStorage:
         # self.estimator_input = torch.zeros(num_transitions_per_env, num_envs, *estimator_input_shape, device=self.device)
         # self.robotState = torch.zeros(num_transitions_per_env, num_envs, *robotState_shape, device=self.device)
         self.rewards = torch.zeros(num_transitions_per_env, num_envs, 1, device=self.device)
+        self.critic_run_value = torch.zeros(num_transitions_per_env, num_envs, 1, device=self.device)
+        self.critic_jump_value = torch.zeros(num_transitions_per_env, num_envs, 1, device=self.device)
         self.actions = torch.zeros(num_transitions_per_env, num_envs, *actions_shape, device=self.device)
         self.dones = torch.zeros(num_transitions_per_env, num_envs, 1, device=self.device).byte()
         self.run_bool = torch.zeros(num_transitions_per_env, num_envs, *actions_shape, device=self.device)
@@ -35,7 +37,7 @@ class RolloutStorage:
 
         self.step = 0
 
-    def add_transitions(self, actor_run_obs, actor_jump_obs, actor_manager_obs, critic_run_obs, critic_jump_obs, critic_manager_obs,
+    def add_transitions(self, actor_run_obs, actor_jump_obs, actor_manager_obs, critic_run_obs, critic_jump_obs, critic_run_value, critic_jump_value, critic_manager_obs,
                         actions, est_in, robotState, rewards, dones, values, actions_log_prob, run_bool, guideline):
         if self.step >= self.num_transitions_per_env:
             raise AssertionError("Rollout buffer overflow")
@@ -48,6 +50,8 @@ class RolloutStorage:
         # self.estimator_input[self.step].copy_(torch.from_numpy(est_in).to(self.device))
         # self.robotState[self.step].copy_(torch.from_numpy(robotState).to(self.device))
         self.actions[self.step].copy_(actions.to(self.device))
+        self.critic_run_value[self.step].copy_(critic_run_value.to(self.device))
+        self.critic_jump_value[self.step].copy_(critic_jump_value.to(self.device))
         self.run_bool[self.step].copy_(run_bool.to(self.device))
         self.guideline[self.step].copy_(run_bool.to(self.device))
         self.rewards[self.step].copy_(torch.from_numpy(rewards).view(-1, 1).to(self.device))
@@ -59,19 +63,20 @@ class RolloutStorage:
     def clear(self):
         self.step = 0
 
-    def compute_returns(self, last_values, gamma, lam):
+    def compute_returns(self, last_values, last_run_bool, last_jump_bool, gamma, lam):
         advantage = 0
         for step in reversed(range(self.num_transitions_per_env)):  # TODO: mix values (e.g. 1 step TD)
             if step == self.num_transitions_per_env - 1:
                 next_values = last_values
                 # next_is_not_terminal = 1.0 - self.dones[step].float()
             else:
-                next_values = self.values[step + 1]
+                next_values = last_run_bool * self.critic_run_value[step + 1] + last_jump_bool * self.critic_jump_value[step + 1] # value from same network
                 # next_is_not_terminal = 1.0 - self.dones[step+1].float()
 
             next_is_not_terminal = 1.0 - self.dones[step].float()
-            delta = self.rewards[step] + next_is_not_terminal * gamma * next_values - self.values[step]
-            advantage = delta + next_is_not_terminal * gamma * lam * advantage
+            # delta = self.rewards[step] + next_is_not_terminal * gamma * next_values - self.values[step]
+            # advantage = delta + next_is_not_terminal * gamma * lam * advantage
+            advantage = self.rewards[step] + next_is_not_terminal * gamma * next_values - self.values[step] # 1 step TD
             self.returns[step] = advantage + self.values[step]
 
         # Compute and normalize the advantages

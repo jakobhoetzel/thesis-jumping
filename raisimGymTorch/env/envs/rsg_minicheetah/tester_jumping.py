@@ -35,21 +35,21 @@ weight_path_run = None; weight_path_jump = None; weight_path_manager = None; wei
 iteration_number_run = None; iteration_number_jump = None; iteration_number_manager = None; iteration_number_total = None
 weight_dir_run = None; weight_dir_jump = None; weight_dir_manager = None; weight_dir_total = None
 
-# weight_path_run = "../../../data/minicheetah_locomotion/2022-04-14-22-53-54/full_3500.pt"
-# iteration_number_run = weight_path_run.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
-# weight_dir_run = weight_path_run.rsplit('/', 1)[0] + '/'
-#
-# weight_path_jump = "../../../data/minicheetah_locomotion/2022-04-14-09-33-21/full_5000.pt"
-# iteration_number_jump = weight_path_jump.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
-# weight_dir_jump = weight_path_jump.rsplit('/', 1)[0] + '/'
-#
-# weight_path_manager = "../../../data/minicheetah_locomotion/2022-04-06-11-07-33/full_25.pt"
-# iteration_number_manager = weight_path_manager.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
-# weight_dir_manager = weight_path_manager.rsplit('/', 1)[0] + '/'
+weight_path_run = "../../../data/minicheetah_locomotion/2022-04-14-22-53-54/full_3500.pt"
+iteration_number_run = weight_path_run.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
+weight_dir_run = weight_path_run.rsplit('/', 1)[0] + '/'
 
-weight_path_total = "../../../data/minicheetah_locomotion/2022-04-54-16-53-54/full_7000.pt"
-iteration_number_total = weight_path_total.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
-weight_dir_total = weight_path_total.rsplit('/', 1)[0] + '/'
+weight_path_jump = "../../../data/minicheetah_locomotion/2022-04-18-11-17-48/full_4000.pt"
+iteration_number_jump = weight_path_jump.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
+weight_dir_jump = weight_path_jump.rsplit('/', 1)[0] + '/'
+
+weight_path_manager = "../../../data/minicheetah_locomotion/2022-04-06-11-07-33/full_25.pt"
+iteration_number_manager = weight_path_manager.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
+weight_dir_manager = weight_path_manager.rsplit('/', 1)[0] + '/'
+
+# weight_path_total = "../../../data/minicheetah_locomotion/2022-04-54-16-53-54/full_7000.pt"
+# iteration_number_total = weight_path_total.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
+# weight_dir_total = weight_path_total.rsplit('/', 1)[0] + '/'
 
 # config
 cfg = YAML().load(open(task_path + "/cfg.yaml", 'r')) # change to weight_path
@@ -79,7 +79,7 @@ else:
     total_steps = n_steps * 1
     start_step_id = 0
 
-    oneDirectory = True
+    oneDirectory = False
     print("Visualizing and evaluating the policy: ")
     if oneDirectory:
         actor_run = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU,
