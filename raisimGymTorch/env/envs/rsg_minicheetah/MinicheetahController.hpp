@@ -218,7 +218,8 @@ class MinicheetahController {
     /// command generation
     double p = uniDist_(gen_);
     if(hurdleTraining_){
-      command_ << 3.5, 0.0, 0.0; // 4.0, 0, 0
+      // command_ << 3.5, 0.0, 0.0; // 4.0, 0, 0
+      command_ <<  0.25 * uniDist_(gen_) + 3.25, 0.1 * uniDist_(gen_), 0.05 * uniDist_(gen_); // comCurriculumFactor, 1.0, 2.0
     }
     else{
       if(fabs(p) < 0.2) {  // 10%
