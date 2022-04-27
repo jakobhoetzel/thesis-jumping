@@ -2,7 +2,7 @@ from ruamel.yaml import YAML, dump, RoundTripDumper
 from raisimGymTorch.env.bin import rsg_minicheetah
 from raisimGymTorch.env.RaisimGymVecEnv import RaisimGymVecEnv as VecEnv
 from raisimGymTorch.helper.raisim_gym_helper import ConfigurationSaver, load_param, tensorboard_launcher
-from networkSelector import run_bool_function
+from networkSelector import NetworkSelector
 from freeze import freeze_actors, freeze_manager
 import os
 import math
@@ -45,7 +45,7 @@ weight_path_run = "../../../data/minicheetah_locomotion/2022-04-14-22-53-54/full
 iteration_number_run = weight_path_run.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_run = weight_path_run.rsplit('/', 1)[0] + '/'
 
-weight_path_jump = "../../../data/minicheetah_locomotion/2022-04-14-09-33-21/full_5000.pt"
+weight_path_jump = "../../../data/minicheetah_locomotion/2022-05-02-15-26-18/full_2500.pt"
 iteration_number_jump = weight_path_jump.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_jump = weight_path_jump.rsplit('/', 1)[0] + '/'
 

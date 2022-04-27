@@ -2,7 +2,7 @@ from ruamel.yaml import YAML, dump, RoundTripDumper
 from raisimGymTorch.env.bin import rsg_minicheetah
 from raisimGymTorch.env.RaisimGymVecEnv import RaisimGymVecEnv as VecEnv
 from torch.distributions import Categorical
-from networkSelector import run_bool_function, run_bool_function_0, run_bool_function_1
+from networkSelector import NetworkSelector
 import os
 import math
 import time
@@ -23,6 +23,7 @@ pygame.joystick.Joystick(0).init()
 parser = argparse.ArgumentParser()
 parser.add_argument('-w', '--weight', help='trained weight path', type=str, default='')
 args = parser.parse_args()
+device = 'cpu'
 
 # directories
 task_path = os.path.dirname(os.path.realpath(__file__))
@@ -33,11 +34,11 @@ weight_path_run = None; weight_path_jump = None; weight_path_manager = None; wei
 iteration_number_run = None; iteration_number_jump = None; iteration_number_manager = None; iteration_number_total = None
 weight_dir_run = None; weight_dir_jump = None; weight_dir_manager = None; weight_dir_total = None
 
-weight_path_run = "../../../data/minicheetah_locomotion/2022-04-19-07-47-58/full_1500.pt"
+weight_path_run = "../../../data/minicheetah_locomotion/RunCriticG95/full_2500.pt"
 iteration_number_run = weight_path_run.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_run = weight_path_run.rsplit('/', 1)[0] + '/'
 
-weight_path_jump = "../../../data/minicheetah_locomotion/2022-04-18-18-58-45/full_5000.pt"
+weight_path_jump = "../../../data/minicheetah_locomotion/2022-05-05-18-50-39/full_7500.pt"
 iteration_number_jump = weight_path_jump.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_jump = weight_path_jump.rsplit('/', 1)[0] + '/'
 
@@ -59,6 +60,7 @@ cfg['environment']['num_envs'] = 1
 sensor_dim = 2
 env = VecEnv(rsg_minicheetah.RaisimGymEnv(home_path + "/rsc", dump(cfg['environment'], Dumper=RoundTripDumper)),
              cfg['environment'], sensor_dim=sensor_dim)
+networkSelector = NetworkSelector(cfg['environment']['num_envs'], device)
 
 # shortcuts
 ob_dim = env.num_obs
@@ -140,6 +142,7 @@ else:
     env.reset()
     selectedNetwork = None
     run_bool = np.ones(shape=(cfg['environment']['num_envs'], 1), dtype=np.intc)
+    dones = np.zeros(shape=(cfg['environment']['num_envs'], 1), dtype=np.intc)
 
     for step in range(max_steps):
         frame_start = time.time()
@@ -171,7 +174,8 @@ else:
         value_run = critic_run.architecture(torch.from_numpy(concatenated_obs_critic_run).cpu())
         value_jump = critic_jump.architecture(torch.from_numpy(concatenated_obs_actor_jump).cpu())
         print('value run: ', value_run.item(), '    value_jump: ', value_jump.item())
-        run_bool = value_run > value_jump
+        run_bool = networkSelector.run_bool_function(value_run, value_jump, dones, 0)  # 0=pure value, 1=smoothing, 2=change after steps
+        # run_bool = value_run > value_jump
         # run_bool = torch.from_numpy(run_bool_function_0(obs_notNorm)) #only test!!!
         # run_bool = torch.from_numpy(run_bool_function_1(obs_notNorm)) #only test!!!
         previousNetwork = selectedNetwork
