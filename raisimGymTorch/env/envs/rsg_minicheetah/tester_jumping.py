@@ -3,6 +3,7 @@ from raisimGymTorch.env.bin import rsg_minicheetah
 from raisimGymTorch.env.RaisimGymVecEnv import RaisimGymVecEnv as VecEnv
 from torch.distributions import Categorical
 from networkSelector import NetworkSelector
+from gradientCalculation import gradient_calculation
 import os
 import math
 import time
@@ -40,7 +41,7 @@ weight_path_run = "../../../data/minicheetah_locomotion/RunCriticG95/full_2500.p
 iteration_number_run = weight_path_run.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_run = weight_path_run.rsplit('/', 1)[0] + '/'
 
-weight_path_jump = "../../../data/minicheetah_locomotion/2022-05-05-18-50-39/full_7500.pt"
+weight_path_jump = "../../../data/minicheetah_locomotion/2022-05-01-11-15-59/full_7500.pt"
 iteration_number_jump = weight_path_jump.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_jump = weight_path_jump.rsplit('/', 1)[0] + '/'
 
@@ -146,6 +147,8 @@ else:
 
     run_bool = np.ones(shape=(cfg['environment']['num_envs'], 1), dtype=np.intc)
     dones = np.zeros(shape=(cfg['environment']['num_envs'], 1), dtype=np.intc)
+    concatenated_obs_actor_jump = None
+    concatenated_obs_critic_run = None
     # run_bool = None
 
     for step in range(max_steps):
@@ -156,6 +159,13 @@ else:
         #     command_yaw = np.random.uniform(-2., 2., 1)
         #     command = np.array([command_Vx, command_Vy, command_yaw], dtype=np.float32)
         #     env.set_command(command)
+
+        if concatenated_obs_actor_jump is not None:
+            concatenated_obs_actor_jump_old = concatenated_obs_actor_jump.copy() #for gradient calculation
+            concatenated_obs_critic_run_old = concatenated_obs_critic_run.copy()
+        else:
+            concatenated_obs_actor_jump_old = None
+            concatenated_obs_critic_run_old = None
 
         [obs_run, obs_jump, obs_manager], obs_notNorm = env.observe(update_mean=False)
         obs_noSensor_run = obs_run[:,:ob_dim-sensor_dim]
@@ -175,6 +185,10 @@ else:
         # run_bool = bool_manager.unsqueeze(1)
         value_run = critic_run.architecture(torch.from_numpy(concatenated_obs_critic_run).cpu())
         value_jump = critic_jump.architecture(torch.from_numpy(concatenated_obs_actor_jump).cpu())
+
+        gradient_calculation(critic_run, concatenated_obs_critic_run, concatenated_obs_critic_run_old)
+        gradient_calculation(critic_jump, concatenated_obs_actor_jump, concatenated_obs_actor_jump_old)
+
         print('value run: ', value_run.item(), '    value_jump: ', value_jump.item())
         run_bool = networkSelector.run_bool_function(value_run, value_jump, dones, 0)  # 0=pure value, 1=smoothing, 2=change after steps
         # run_bool = value_run > value_jump
