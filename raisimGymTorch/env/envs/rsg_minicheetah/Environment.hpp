@@ -176,23 +176,50 @@ class ENVIRONMENT {
   }
 
   void observe(Eigen::Ref<EigenVec> ob) {
+    auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world_->getObject("robot"));
+    Eigen::VectorXd gc_, _;
+    raisim::Mat<3,3> rot_;
+    cheetah->getState(gc_, _);
+    raisim::Vec<4> quat;
+    quat[0] = gc_[3]; quat[1] = gc_[4]; quat[2] = gc_[5]; quat[3] = gc_[6];
+    raisim::quatToRotMat(quat, rot_);  // rot_: R_wb
+    Eigen::Vector3d x_rob(rot_.e()(0,0), rot_.e()(1,0), 0); //projected on xy plane
+    x_rob.normalize();
+//    std::cout << x_rob(0) << "   " << x_rob(1) << "   " << x_rob(2) << "   " << std::endl;
+    Eigen::Vector3d x_world(1,0,0);
+    double turn_angle = std::acos(x_rob.dot(x_world)); //angle between robots x-axis and world's x-axis
+
     ob = controller_.getObservation().cast<float>();
     //ob.tail(2) = {{terrain_curriculum_, xPos_Hurdles_-ob.tail(1)(0)}}; //height and distance to hurdle
     double dist_obs_next = 0;
-    if ((xPos_Hurdles_-ob.tail(1)(0)-0.15) >= 0) { // head before hurdle
-      dist_obs_next = std::min( std::max(xPos_Hurdles_-ob.tail(1)(0)-0.15, 0.0), 5.0); //output between -0.3 and 5
-    } else if ((xPos_Hurdles_-ob.tail(1)(0)-0.15) >= -0.3){ // before landing
-      dist_obs_next = xPos_Hurdles_-ob.tail(1)(0)-0.15;
-    } else { // after hurdle
-      dist_obs_next = 5; //output between -0.3 and 5
+    if (turn_angle < M_PI/2) { //starting direction
+      if ((xPos_Hurdles_ - ob.tail(1)(0) - 0.15) >= 0) { // head before hurdle
+        dist_obs_next = std::min(std::max(xPos_Hurdles_ - ob.tail(1)(0) - 0.15, 0.0), 5.0); //output between -0.3 and 5
+      } else if ((xPos_Hurdles_ - ob.tail(1)(0) - 0.15) >= -0.3) { // before landing
+        dist_obs_next = xPos_Hurdles_ - ob.tail(1)(0) - 0.15;
+      } else { // after hurdle
+        dist_obs_next = 5; //output between -0.3 and 5
+      }
+      if (hurdleTraining) {
+        ob.tail(2) << terrain_curriculum_ + uniDist_(gen_) * 0.05, dist_obs_next + uniDist_(gen_) * 0.05;
+      } else {
+        ob.tail(2) << uniDist_(gen_) * 0.05, 5 + uniDist_(gen_) * 0.05; //no hurdle
+      }
+    } else{ //reverse
+      if (-(xPos_Hurdles_ - ob.tail(1)(0) + 0.15) >= 0) { // head before hurdle
+        dist_obs_next = std::min(std::max(-(xPos_Hurdles_ - ob.tail(1)(0) + 0.15), 0.0), 5.0); //output between -0.3 and 5
+      } else if (-(xPos_Hurdles_ - ob.tail(1)(0) + 0.15) >= -0.3) { // before landing
+        dist_obs_next = -(xPos_Hurdles_ - ob.tail(1)(0) + 0.15);
+      } else { // after hurdle
+        dist_obs_next = 5; //output between -0.3 and 5
+      }
+      if (hurdleTraining) {
+        ob.tail(2) << terrain_curriculum_ + uniDist_(gen_) * 0.05, dist_obs_next + uniDist_(gen_) * 0.05;
+      } else {
+        ob.tail(2) << uniDist_(gen_) * 0.05, 5 + uniDist_(gen_) * 0.05; //no hurdle
+      }
     }
-    if(hurdleTraining){
-      ob.tail(2) << terrain_curriculum_+uniDist_(gen_) * 0.05, dist_obs_next+uniDist_(gen_) * 0.05;
-    } else{
-      ob.tail(2) << uniDist_(gen_) * 0.05, 5 + uniDist_(gen_) * 0.05; //no hurdle
-
-    }
-    //height and distance to next hurdle
+    std::cout << dist_obs_next << std::endl;
   }
 
   void getRobotState(Eigen::Ref<EigenVec> ob) {  // related to the estimator network learning

@@ -24,14 +24,15 @@ def gradient_calculation(network, obs, obs_old):
         x.requires_grad = True  # Make sure gradients can be extracted
 
         # Compute outputs
-        out = network.architecture(x)
-        gradient_old = torch.autograd.grad(outputs=out, inputs=x, grad_outputs=torch.ones_like(out),
+        out_old = network.architecture(x)
+        gradient_old = torch.autograd.grad(outputs=out_old, inputs=x, grad_outputs=torch.ones_like(out_old),
                                        retain_graph=True)
         gradient_old = gradient_old[0].tolist()
         gradient_old = gradient_old[0]
     else:
         gradient_old = gradient.copy()
         obs_old = obs.copy()
+        out_old = torch.clone(out)
 
 
     # rot_.e().row(2).transpose(), /// body orientation(z-axis in world frame expressed in body frame). 3 (0-2)
@@ -54,6 +55,15 @@ def gradient_calculation(network, obs, obs_old):
     gradient_old = np.array(gradient_old)
     mean_grad = (gradient + gradient_old) / 2
     influence = np.transpose(mean_grad * (obs-obs_old))
+    obs_diff = obs-obs_old
+
+    arg_influence_min = np.argsort(influence,0)
+    arg_influence_max = np.flip(arg_influence_min)
+
+    influence_max = np.concatenate((arg_influence_max, np.flip(np.sort(influence,0))), axis=1)
+    influence_min = np.concatenate((arg_influence_min, np.sort(influence,0)), axis=1)
+
+    change = (out - out_old).detach().cpu().numpy()
 
     return influence
 

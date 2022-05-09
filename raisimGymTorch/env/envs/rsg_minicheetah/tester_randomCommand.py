@@ -18,7 +18,7 @@ import datetime
 # pygame for logitech gamepad
 pygame.display.init()
 pygame.joystick.init()
-pygame.joystick.Joystick(0).init()
+pygame.joystick.Joystick(1).init()
 
 # configuration
 parser = argparse.ArgumentParser()
@@ -184,7 +184,8 @@ else:
         gradient_calculation(critic_jump, concatenated_obs_actor_jump, concatenated_obs_actor_jump_old)
 
         print('value run: ', value_run.item(), '    value_jump: ', value_jump.item())
-        run_bool = networkSelector.run_bool_function(value_run, value_jump, dones, 0)  # 0=pure value, 1=smoothing, 2=change after steps
+        run_bool = networkSelector.run_bool_function(value_run, value_jump, dones, obs_notNorm, 3)
+                                    # 0=pure value, 1=smoothing, 2=change after steps, 3=manual on dist, 4=run, 5=jump
         # run_bool = value_run > value_jump
         # run_bool = torch.from_numpy(run_bool_function_0(obs_notNorm)) #only test!!!
         # run_bool = torch.from_numpy(run_bool_function_1(obs_notNorm)) #only test!!!

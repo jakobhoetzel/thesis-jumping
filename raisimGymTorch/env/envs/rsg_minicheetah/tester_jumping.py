@@ -19,7 +19,7 @@ import datetime
 # pygame for logitech gamepad
 pygame.display.init()
 pygame.joystick.init()
-pygame.joystick.Joystick(0).init()
+pygame.joystick.Joystick(1).init()
 
 
 # configuration
@@ -37,7 +37,7 @@ weight_path_run = None; weight_path_jump = None; weight_path_manager = None; wei
 iteration_number_run = None; iteration_number_jump = None; iteration_number_manager = None; iteration_number_total = None
 weight_dir_run = None; weight_dir_jump = None; weight_dir_manager = None; weight_dir_total = None
 
-weight_path_run = "../../../data/minicheetah_locomotion/RunCriticG95/full_2500.pt"
+weight_path_run = "../../../data/minicheetah_locomotion/RunCriticG99/full_2500.pt"
 iteration_number_run = weight_path_run.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_run = weight_path_run.rsplit('/', 1)[0] + '/'
 
@@ -67,7 +67,6 @@ networkSelector = NetworkSelector(cfg['environment']['num_envs'], device)
 ob_dim = env.num_obs
 robotState_dim = env.num_robotState
 act_dim = env.num_acts
-
 
 if False:  # weight_path == "":
     print("Can't find trained weight, please provide a trained weight with --weight switch\n")
@@ -137,7 +136,7 @@ else:
     time.sleep(2)
 
     # max_steps = 1000000
-    max_steps = 400 ## 10 secs
+    max_steps = 400*1000 ## 10 secs
     command = np.array([3.5, 0, 0], dtype=np.float32)
     env.set_command(command, testNumber=1)
     env.curriculum_callback(0)
@@ -153,6 +152,16 @@ else:
 
     for step in range(max_steps):
         frame_start = time.time()
+
+        if (step % 10 == 0):
+            command_Vx = -4. * pygame.joystick.Joystick(1).get_axis(1)
+            if (command_Vx < 0):
+                command_Vx *= 0.5
+            command_Vy = - pygame.joystick.Joystick(1).get_axis(0)
+            command_yaw = -2 * pygame.joystick.Joystick(1).get_axis(3)
+            command = np.array([command_Vx, command_Vy, command_yaw], dtype=np.float32)
+            env.set_command(command)
+            # command_change = - pygame.joystick.Joystick(1).get_axis(2)  # LT
         # if step % 400 == 0:
         #     command_Vx = np.random.uniform(-1.75, 3.5, 1)
         #     command_Vy = np.random.uniform(-1., 1., 1)
@@ -187,10 +196,15 @@ else:
         value_jump = critic_jump.architecture(torch.from_numpy(concatenated_obs_actor_jump).cpu())
 
         gradient_calculation(critic_run, concatenated_obs_critic_run, concatenated_obs_critic_run_old)
-        gradient_calculation(critic_jump, concatenated_obs_actor_jump, concatenated_obs_actor_jump_old)
+        # gradient_calculation(critic_jump, concatenated_obs_actor_jump, concatenated_obs_actor_jump_old)
 
-        print('value run: ', value_run.item(), '    value_jump: ', value_jump.item())
-        run_bool = networkSelector.run_bool_function(value_run, value_jump, dones, 0)  # 0=pure value, 1=smoothing, 2=change after steps
+        # print('value run: ', value_run.item(), '    value_jump: ', value_jump.item())
+        # if command_change > 0:
+        #     run_bool = networkSelector.run_bool_function(value_run, value_jump, dones, obs_notNorm, 5)
+        # else:
+        #     run_bool = networkSelector.run_bool_function(value_run, value_jump, dones, obs_notNorm, 4)
+        run_bool = networkSelector.run_bool_function(value_run, value_jump, dones, obs_notNorm, 3)
+                                    # 0=pure value, 1=smoothing, 2=change after steps, 3=manual on dist, 4=run, 5=jump
         # run_bool = value_run > value_jump
         # run_bool = torch.from_numpy(run_bool_function_0(obs_notNorm)) #only test!!!
         # run_bool = torch.from_numpy(run_bool_function_1(obs_notNorm)) #only test!!!
@@ -215,15 +229,15 @@ else:
         # writer = csv.writer(f3)
         # writer.writerow(est_in[0][0:2].cpu().detach().numpy())
 
-        if step==0:
-            if selectedNetwork == 0:
-                print("selected network in step ", step, ": jump")
-            else:
-                print("selected network in step ", step, ": run")
-        elif previousNetwork == 0 and selectedNetwork == 1:
-            print("changed network in step ", step, ": jump -> run")
-        elif previousNetwork == 1 and selectedNetwork == 0:
-            print("changed network in step ", step, ": run -> jump")
+        # if step==0:
+        #     if selectedNetwork == 0:
+        #         print("selected network in step ", step, ": jump")
+        #     else:
+        #         print("selected network in step ", step, ": run")
+        # elif previousNetwork == 0 and selectedNetwork == 1:
+        #     print("changed network in step ", step, ": jump -> run")
+        # elif previousNetwork == 1 and selectedNetwork == 0:
+        #     print("changed network in step ", step, ": run -> jump")
 
         # if selectedNetwork == 0:
         #     print("jump selected")

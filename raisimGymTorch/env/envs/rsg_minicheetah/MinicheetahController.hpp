@@ -572,7 +572,7 @@ class MinicheetahController {
 
   void setCommand(const Eigen::Ref<EigenVec>& command) {
     command_ = command.cast<double>();
-    std::cout << "command: " << command_ << std::endl; // print command
+//    std::cout << "command: " << command_ << std::endl; // print command
   }
 
   void updateHistory() {
@@ -633,7 +633,7 @@ class MinicheetahController {
         0.0, gc_(0); //x_pos; sensor observation in environment
 
     /// Observation noise
-    bool addObsNoise = true;
+    bool addObsNoise = false; /// TODO: noise
     if(addObsNoise) {
       for(int i=0; i<obDim_; i++) {
         if(i<3) {  // orientation
@@ -714,14 +714,14 @@ class MinicheetahController {
 //      std::cout << "Terminate 6" << std::endl;
       return true;
     }
-    else if (hurdleTraining_ and gc_[0]>2.0 and gv_[0]<0.25){ //to prevent robot from stopping in front of hurdle
+//    else if (hurdleTraining_ and gc_[0]>2.0 and gv_[0]<0.25){ //to prevent robot from stopping in front of hurdle
 //      std::cout << "Terminate 7" << std::endl;
-      return true;
-    }
-    else if (hurdleTraining_ and gv_[0]<0.1 and step>30){ //to prevent robot from standing stil
+//      return true;
+//    }
+//    else if (hurdleTraining_ and gv_[0]<0.1 and step>30){ //to prevent robot from standing stil
 //      std::cout << "Terminate 8" << std::endl;
-      return true;
-    }
+//      return true;
+//    }
     return false;
   }
 
