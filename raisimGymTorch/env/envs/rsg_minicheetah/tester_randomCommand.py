@@ -35,11 +35,11 @@ weight_path_run = None; weight_path_jump = None; weight_path_manager = None; wei
 iteration_number_run = None; iteration_number_jump = None; iteration_number_manager = None; iteration_number_total = None
 weight_dir_run = None; weight_dir_jump = None; weight_dir_manager = None; weight_dir_total = None
 
-weight_path_run = "../../../data/minicheetah_locomotion/RunCriticG95/full_2500.pt"
+weight_path_run = "../../../data/minicheetah_locomotion/RunCriticG99/full_2500.pt"
 iteration_number_run = weight_path_run.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_run = weight_path_run.rsplit('/', 1)[0] + '/'
 
-weight_path_jump = "../../../data/minicheetah_locomotion/2022-05-01-11-15-59/full_7500.pt"
+weight_path_jump = "../../../data/minicheetah_locomotion/2022-05-11-00-42-29/full_3500.pt"
 iteration_number_jump = weight_path_jump.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_jump = weight_path_jump.rsplit('/', 1)[0] + '/'
 
@@ -184,7 +184,7 @@ else:
         gradient_calculation(critic_jump, concatenated_obs_actor_jump, concatenated_obs_actor_jump_old)
 
         print('value run: ', value_run.item(), '    value_jump: ', value_jump.item())
-        run_bool = networkSelector.run_bool_function(value_run, value_jump, dones, obs_notNorm, 3)
+        run_bool = networkSelector.run_bool_function(value_run, value_jump, dones, obs_notNorm, 1)
                                     # 0=pure value, 1=smoothing, 2=change after steps, 3=manual on dist, 4=run, 5=jump
         # run_bool = value_run > value_jump
         # run_bool = torch.from_numpy(run_bool_function_0(obs_notNorm)) #only test!!!

@@ -41,7 +41,7 @@ weight_path_run = "../../../data/minicheetah_locomotion/RunCriticG99/full_2500.p
 iteration_number_run = weight_path_run.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_run = weight_path_run.rsplit('/', 1)[0] + '/'
 
-weight_path_jump = "../../../data/minicheetah_locomotion/2022-05-01-11-15-59/full_7500.pt"
+weight_path_jump = "../../../data/minicheetah_locomotion/JumpCriticR5G99-Pol3/full_3500.pt"
 iteration_number_jump = weight_path_jump.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_jump = weight_path_jump.rsplit('/', 1)[0] + '/'
 
@@ -229,15 +229,15 @@ else:
         # writer = csv.writer(f3)
         # writer.writerow(est_in[0][0:2].cpu().detach().numpy())
 
-        # if step==0:
-        #     if selectedNetwork == 0:
-        #         print("selected network in step ", step, ": jump")
-        #     else:
-        #         print("selected network in step ", step, ": run")
-        # elif previousNetwork == 0 and selectedNetwork == 1:
-        #     print("changed network in step ", step, ": jump -> run")
-        # elif previousNetwork == 1 and selectedNetwork == 0:
-        #     print("changed network in step ", step, ": run -> jump")
+        if step==0:
+            if selectedNetwork == 0:
+                print("selected network in step ", step, ": jump")
+            else:
+                print("selected network in step ", step, ": run")
+        elif previousNetwork == 0 and selectedNetwork == 1:
+            print("changed network in step ", step, ": jump -> run")
+        elif previousNetwork == 1 and selectedNetwork == 0:
+            print("changed network in step ", step, ": run -> jump")
 
         # if selectedNetwork == 0:
         #     print("jump selected")

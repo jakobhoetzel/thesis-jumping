@@ -77,6 +77,11 @@ class ENVIRONMENT {
       hurdle1_->setPosition(xPos_Hurdles_, 0, terrain_curriculum_/2.0); //pos of cog
       hurdle1_->setOrientation(1., 0, 0, 0); //quaternion
       hurdle1_->setName("hurdle1");
+      xPos_Hurdles2_ = uniDist_(gen_)*0.5 + 10.0;
+      hurdle1_ = world_->addBox(0.1, 500, terrain_curriculum_, 100000); //x, y, z length, mass change also in reset
+      hurdle1_->setPosition(xPos_Hurdles2_, 0, terrain_curriculum_/2.0); //pos of cog
+      hurdle1_->setOrientation(1., 0, 0, 0); //quaternion
+      hurdle1_->setName("hurdle2");
     }
 
     stepData_.resize(controller_.getStepDataTag().size());
@@ -113,18 +118,29 @@ class ENVIRONMENT {
     world_->setDefaultMaterial(mu_, 0, 0);
 
     auto hurdle1_ = world_->getObject("hurdle1");
-    xPos_Hurdles_ = uniDist_(gen_)*0.5 + 5.0;
     world_->removeObject(hurdle1_);
+    hurdle1_ = world_->getObject("hurdle2");
+    world_->removeObject(hurdle1_);
+    xPos_Hurdles_ = uniDist_(gen_)*0.5 + 5.0;
+    xPos_Hurdles2_ = uniDist_(gen_)*0.5 + 10.0;
     if (hurdleTraining){
       auto hurdle2_ = world_->addBox(0.1, 500, terrain_curriculum_, 100000); //x, y, z length, mass; change also in init
       hurdle2_->setPosition(xPos_Hurdles_, 0, terrain_curriculum_/2.0); //pos of cog
       hurdle2_->setOrientation(1., 0, 0, 0); //quaternion
       hurdle2_->setName("hurdle1");
+      hurdle2_ = world_->addBox(0.1, 500, terrain_curriculum_, 100000); //x, y, z length, mass; change also in init
+      hurdle2_->setPosition(xPos_Hurdles2_, 0, terrain_curriculum_/2.0); //pos of cog
+      hurdle2_->setOrientation(1., 0, 0, 0); //quaternion
+      hurdle2_->setName("hurdle2");
     }else{
       auto hurdle2_ = world_->addBox(0, 0, 0, 0); //no hurdle
       hurdle2_->setPosition(xPos_Hurdles_, 0, 0.0); //pos of cog
       hurdle2_->setOrientation(1., 0, 0, 0); //quaternion
       hurdle2_->setName("hurdle1");
+      hurdle2_ = world_->addBox(0, 0, 0, 0); //no hurdle
+      hurdle2_->setPosition(xPos_Hurdles2_, 0, 0.0); //pos of cog
+      hurdle2_->setOrientation(1., 0, 0, 0); //quaternion
+      hurdle2_->setName("hurdle2");
     }
 
   }
@@ -193,10 +209,17 @@ class ENVIRONMENT {
     //ob.tail(2) = {{terrain_curriculum_, xPos_Hurdles_-ob.tail(1)(0)}}; //height and distance to hurdle
     double dist_obs_next = 0;
     if (turn_angle < M_PI/2) { //starting direction
-      if ((xPos_Hurdles_ - ob.tail(1)(0) - 0.15) >= 0) { // head before hurdle
-        dist_obs_next = std::min(std::max(xPos_Hurdles_ - ob.tail(1)(0) - 0.15, 0.0), 5.0); //output between -0.3 and 5
-      } else if ((xPos_Hurdles_ - ob.tail(1)(0) - 0.15) >= -0.3) { // before landing
-        dist_obs_next = xPos_Hurdles_ - ob.tail(1)(0) - 0.15;
+      double xPos_Hurdles_Next_; //distance to correct hurdle
+      if ((xPos_Hurdles_ - ob.tail(1)(0) - 0.15) > -0.3){
+        xPos_Hurdles_Next_ = xPos_Hurdles_;
+      } else{
+        xPos_Hurdles_Next_ = xPos_Hurdles2_;
+      }
+
+      if ((xPos_Hurdles_Next_ - ob.tail(1)(0) - 0.15) >= 0) { // head before hurdle
+        dist_obs_next = std::min(std::max(xPos_Hurdles_Next_ - ob.tail(1)(0) - 0.15, 0.0), 5.0); //output between -0.3 and 5
+      } else if ((xPos_Hurdles_Next_ - ob.tail(1)(0) - 0.15) >= -0.3) { // before landing
+        dist_obs_next = xPos_Hurdles_Next_ - ob.tail(1)(0) - 0.15;
       } else { // after hurdle
         dist_obs_next = 5; //output between -0.3 and 5
       }
@@ -206,10 +229,17 @@ class ENVIRONMENT {
         ob.tail(2) << uniDist_(gen_) * 0.05, 5 + uniDist_(gen_) * 0.05; //no hurdle
       }
     } else{ //reverse
-      if (-(xPos_Hurdles_ - ob.tail(1)(0) + 0.15) >= 0) { // head before hurdle
-        dist_obs_next = std::min(std::max(-(xPos_Hurdles_ - ob.tail(1)(0) + 0.15), 0.0), 5.0); //output between -0.3 and 5
-      } else if (-(xPos_Hurdles_ - ob.tail(1)(0) + 0.15) >= -0.3) { // before landing
-        dist_obs_next = -(xPos_Hurdles_ - ob.tail(1)(0) + 0.15);
+      double xPos_Hurdles_Next_; //distance to correct hurdle
+      if (-(xPos_Hurdles2_ - ob.tail(1)(0) + 0.15) > -0.3){
+        xPos_Hurdles_Next_ = xPos_Hurdles2_;
+      } else{
+        xPos_Hurdles_Next_ = xPos_Hurdles_;
+      }
+
+      if (-(xPos_Hurdles_Next_ - ob.tail(1)(0) + 0.15) >= 0) { // head before hurdle
+        dist_obs_next = std::min(std::max(-(xPos_Hurdles_Next_ - ob.tail(1)(0) + 0.15), 0.0), 5.0); //output between -0.3 and 5
+      } else if (-(xPos_Hurdles_Next_ - ob.tail(1)(0) + 0.15) >= -0.3) { // before landing
+        dist_obs_next = -(xPos_Hurdles_Next_ - ob.tail(1)(0) + 0.15);
       } else { // after hurdle
         dist_obs_next = 5; //output between -0.3 and 5
       }
@@ -306,7 +336,7 @@ class ENVIRONMENT {
   double comCurriculumFactorT_ = 1., comCurriculumFactor1_, comCurriculumFactor2_, comCurriculumFactor3_;
   double terCurriculumFactor_;
   double terrain_curriculum_; // height of hurdles
-  double xPos_Hurdles_;
+  double xPos_Hurdles_, xPos_Hurdles2_;
   double simulation_dt_;
   double control_dt_;
   double mu_;
