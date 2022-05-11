@@ -70,7 +70,14 @@ class ENVIRONMENT {
     else {
       world_->addGround();
       xPos_Hurdles_ = uniDist_(gen_)*0.5 + 5.0;
-      auto hurdle1_ = world_->addBox(0.1, 500, terrain_curriculum_, 100000); //x, y, z length, mass change also in reset
+      double p = std::abs(uniDist_(gen_));
+      auto hurdle1_ = world_->addBox(0.1, 500, terrain_curriculum_, 100000); //x, y, z length, mass; change also in init
+      if(p<0.1){ //train with lower hurdles
+        world_->removeObject(hurdle1_);
+        double val = uniDist_(gen_);
+        double trainHeight = terrain_curriculum_*(1/4 + 3/4*val);
+        hurdle1_ = world_->addBox(0.1, 500, trainHeight, 100000); //x, y, z length, mass; change also in init
+      }
       hurdle1_->setPosition(xPos_Hurdles_, 0, terrain_curriculum_/2.0); //pos of cog
       hurdle1_->setOrientation(1., 0, 0, 0); //quaternion
       hurdle1_->setName("hurdle1");
@@ -113,7 +120,14 @@ class ENVIRONMENT {
     xPos_Hurdles_ = uniDist_(gen_)*0.5 + 5.0;
     world_->removeObject(hurdle1_);
     if (hurdleTraining){
+      p = std::abs(uniDist_(gen_));
       auto hurdle2_ = world_->addBox(0.1, 500, terrain_curriculum_, 100000); //x, y, z length, mass; change also in init
+      if(p<0.1){ //train with lower hurdles
+        world_->removeObject(hurdle2_);
+        double val = uniDist_(gen_);
+        double trainHeight = terrain_curriculum_*(1/4 + 3/4*val);
+        hurdle2_ = world_->addBox(0.1, 500, trainHeight, 100000); //x, y, z length, mass; change also in init
+      }
       hurdle2_->setPosition(xPos_Hurdles_, 0, terrain_curriculum_/2.0); //pos of cog
       hurdle2_->setOrientation(1., 0, 0, 0); //quaternion
       hurdle2_->setName("hurdle1");
