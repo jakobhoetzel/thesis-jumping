@@ -136,7 +136,7 @@ else:
     time.sleep(2)
 
     # max_steps = 1000000
-    max_steps = 400*1000 ## 10 secs
+    max_steps = 350 ## 400*2 10 secs
     command = np.array([3.5, 0, 0], dtype=np.float32)
     env.set_command(command, testNumber=1)
     env.curriculum_callback(0)
@@ -153,14 +153,14 @@ else:
     for step in range(max_steps):
         frame_start = time.time()
 
-        if (step % 10 == 0):
-            command_Vx = -4. * pygame.joystick.Joystick(1).get_axis(1)
-            if (command_Vx < 0):
-                command_Vx *= 0.5
-            command_Vy = - pygame.joystick.Joystick(1).get_axis(0)
-            command_yaw = -2 * pygame.joystick.Joystick(1).get_axis(3)
-            command = np.array([command_Vx, command_Vy, command_yaw], dtype=np.float32)
-            env.set_command(command)
+        # if (step % 10 == 0):
+        #     command_Vx = -4. * pygame.joystick.Joystick(1).get_axis(1)
+        #     if (command_Vx < 0):
+        #         command_Vx *= 0.5
+        #     command_Vy = - pygame.joystick.Joystick(1).get_axis(0)
+        #     command_yaw = -2 * pygame.joystick.Joystick(1).get_axis(3)
+        #     command = np.array([command_Vx, command_Vy, command_yaw], dtype=np.float32)
+        #     env.set_command(command)
             # command_change = - pygame.joystick.Joystick(1).get_axis(2)  # LT
         # if step % 400 == 0:
         #     command_Vx = np.random.uniform(-1.75, 3.5, 1)
@@ -260,4 +260,7 @@ else:
     env.stop_video_recording()
     env.turn_off_visualization()
     env.reset()
+
+    runInfo = env.get_run_information()[:,1:].transpose()
+    np.savetxt("runInformation.csv", runInfo, delimiter=",")
     print("Finished at the maximum visualization steps")

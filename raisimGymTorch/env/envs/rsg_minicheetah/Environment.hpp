@@ -77,7 +77,12 @@ class ENVIRONMENT {
       hurdle1_->setPosition(xPos_Hurdles_, 0, terrain_curriculum_/2.0); //pos of cog
       hurdle1_->setOrientation(1., 0, 0, 0); //quaternion
       hurdle1_->setName("hurdle1");
-      xPos_Hurdles2_ = uniDist_(gen_)*0.5 + 10.0;
+      secondHurdle_ = false;
+      if (secondHurdle_){
+        xPos_Hurdles2_ = uniDist_(gen_)*0.5 + 10.0;
+      } else{
+        xPos_Hurdles2_ = xPos_Hurdles_;
+      }
       hurdle1_ = world_->addBox(0.1, 500, terrain_curriculum_, 100000); //x, y, z length, mass change also in reset
       hurdle1_->setPosition(xPos_Hurdles2_, 0, terrain_curriculum_/2.0); //pos of cog
       hurdle1_->setOrientation(1., 0, 0, 0); //quaternion
@@ -85,6 +90,10 @@ class ENVIRONMENT {
     }
 
     stepData_.resize(controller_.getStepDataTag().size());
+    auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world_->getObject("robot"));
+    stepVector_ = Eigen::VectorXd::Zero(cheetah->getGeneralizedCoordinateDim()+cheetah->getDOF()*2+4); //gc, gv, force, command(3), dist(1)
+    stepVector_.resize(controller_.getPlotInformation(world_.get(), stepVector_).size());
+    stepMatrix_ = Eigen::MatrixXd::Zero(controller_.getPlotInformation(world_.get(), stepVector_).size(),1); //gc(+1 dim), gv, force, dist(1)
 
     /// visualize if it is the first environment
     if (visualizable_) {  //RaisimUnity
@@ -122,7 +131,11 @@ class ENVIRONMENT {
     hurdle1_ = world_->getObject("hurdle2");
     world_->removeObject(hurdle1_);
     xPos_Hurdles_ = uniDist_(gen_)*0.5 + 5.0;
-    xPos_Hurdles2_ = uniDist_(gen_)*0.5 + 10.0;
+    if (secondHurdle_){
+      xPos_Hurdles2_ = uniDist_(gen_)*0.5 + 10.0;
+    } else{
+      xPos_Hurdles2_ = xPos_Hurdles_;
+    }
     if (hurdleTraining){
       auto hurdle2_ = world_->addBox(0.1, 500, terrain_curriculum_, 100000); //x, y, z length, mass; change also in init
       hurdle2_->setPosition(xPos_Hurdles_, 0, terrain_curriculum_/2.0); //pos of cog
@@ -179,6 +192,11 @@ class ENVIRONMENT {
       if (server_) server_->unlockVisualizationServerMutex();
       controller_.getReward(world_.get(), rewardCoeff_, simulation_dt_, rewCurriculumFactor_, heightMap_, xPos_Hurdles_, iteration, managerTraining);
       stepData_ += controller_.getStepData();
+
+      stepVector_ =  controller_.getPlotInformation(world_.get(), stepVector_);
+      stepVector_.tail(1) << xPos_Hurdles_;
+      stepMatrix_.conservativeResize(stepVector_.rows(), stepMatrix_.cols()+1);
+      stepMatrix_.col(stepMatrix_.cols()-1) = stepVector_;
     }
 
 
@@ -224,7 +242,12 @@ class ENVIRONMENT {
         dist_obs_next = 5; //output between -0.3 and 5
       }
       if (hurdleTraining) {
-        ob.tail(2) << terrain_curriculum_ + uniDist_(gen_) * 0.05, dist_obs_next + uniDist_(gen_) * 0.05;
+        bool addObsNoise = true; /// TODO: noise
+        if(addObsNoise){
+          ob.tail(2) << terrain_curriculum_ + uniDist_(gen_) * 0.05, dist_obs_next + uniDist_(gen_) * 0.05;
+        } else{
+          ob.tail(2) << terrain_curriculum_, dist_obs_next;
+        }
       } else {
         ob.tail(2) << uniDist_(gen_) * 0.05, 5 + uniDist_(gen_) * 0.05; //no hurdle
       }
@@ -249,7 +272,7 @@ class ENVIRONMENT {
         ob.tail(2) << uniDist_(gen_) * 0.05, 5 + uniDist_(gen_) * 0.05; //no hurdle
       }
     }
-    std::cout << dist_obs_next << std::endl;
+//    std::cout << dist_obs_next << std::endl;
   }
 
   void getRobotState(Eigen::Ref<EigenVec> ob) {  // related to the estimator network learning
@@ -325,6 +348,10 @@ class ENVIRONMENT {
 //    std::cout << "factor: "<< terCurriculumFactor_ << std::endl;
   }
 
+  const Eigen::MatrixXd& getRunInformation() {
+      return stepMatrix_;
+    }
+
  private:
   std::map<MinicheetahController::RewardType, float> rewardCoeff_;
   bool visualizable_ = false;
@@ -342,10 +369,12 @@ class ENVIRONMENT {
   double mu_;
   int groundType_ = 5; //0  Set ground Type
   int delayDividedBySimdt;
-  bool hurdleTraining;
+  bool hurdleTraining, secondHurdle_;
   int testNumber, iteration;
   std::unique_ptr<raisim::RaisimServer> server_;
   Eigen::VectorXd stepData_;
+  Eigen::VectorXd stepVector_;
+  Eigen::MatrixXd stepMatrix_;
   RandomHeightMapGenerator terrainGenerator_;
   raisim::HeightMap* heightMap_;
   thread_local static std::mt19937 gen_;

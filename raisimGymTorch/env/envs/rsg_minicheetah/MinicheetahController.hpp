@@ -161,7 +161,7 @@ class MinicheetahController {
     previousNetworkSelection_ = networkSelection_;
     networkSelection_ = run_bool;
 
-    if(false) { //output if max joint speed or torque is exceeded
+    if(true) { //output if max joint speed or torque is exceeded
         Eigen::VectorXd pTargetDiffMax = pTarget12_ - gc_.tail(nJoints_);
 //      std::cout << "gv(tail): " << gv_.tail(nJoints_)  << std::endl;
 //      std::cout << "force: " << cheetah->getGeneralizedForce() << std::endl;
@@ -633,7 +633,7 @@ class MinicheetahController {
         0.0, gc_(0); //x_pos; sensor observation in environment
 
     /// Observation noise
-    bool addObsNoise = false; /// TODO: noise
+    bool addObsNoise = true; /// TODO: noise
     if(addObsNoise) {
       for(int i=0; i<obDim_; i++) {
         if(i<3) {  // orientation
@@ -735,6 +735,12 @@ class MinicheetahController {
 
   int getActionDim() {
     return actionDim_;
+  }
+
+  Eigen::VectorXd getPlotInformation(raisim::World *world, Eigen::VectorXd& stepVector) { //switch off noise
+    auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world->getObject("robot"));
+    stepVector << gc_, gv_, cheetah->getGeneralizedForce().e(), command_, 0;
+    return stepVector;
   }
 
   void setIsHeightMap(bool isHeightMap) { isHeightMap_ = isHeightMap;}

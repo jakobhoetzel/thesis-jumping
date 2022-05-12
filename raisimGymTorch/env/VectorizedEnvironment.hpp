@@ -80,6 +80,10 @@ class VectorizedEnvironment {
     return environments_[0]->getStepDataTag();
   }
 
+    Eigen::MatrixXd getRunInformation() {
+      return environments_[0]->getRunInformation();
+    }
+
   int getStepData(int sample_size,
                   Eigen::Ref<EigenDoubleVec> &mean,
                   Eigen::Ref<EigenDoubleVec> &squareSum,
