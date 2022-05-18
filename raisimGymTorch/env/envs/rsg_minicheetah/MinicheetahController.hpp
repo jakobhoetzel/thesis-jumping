@@ -159,13 +159,13 @@ class MinicheetahController {
 
       if (std::abs(gv_.tail(nJoints_)(0)) > 40 or std::abs(gv_.tail(nJoints_)(3)) > 40
           or std::abs(gv_.tail(nJoints_)(6)) > 40 or std::abs(gv_.tail(nJoints_)(9)) > 40) {
-        std::cout << "Exceeds maximum joint speed at hip actuator (40): " <<
+        std::cout << "Exceeds maximum joint speed at hip ab/ad actuator (40): " <<
         std::max( {std::abs(gv_.tail(nJoints_)(0)), std::abs(gv_.tail(nJoints_)(3)),
                    std::abs(gv_.tail(nJoints_)(6)), std::abs(gv_.tail(nJoints_)(9))} ) << std::endl;
       }
       if (std::abs(gv_.tail(nJoints_)(1)) > 40 or std::abs(gv_.tail(nJoints_)(4)) > 40
           or std::abs(gv_.tail(nJoints_)(7)) > 40 or std::abs(gv_.tail(nJoints_)(10)) > 40) {
-        std::cout << "Exceeds maximum joint speed at ab/ad actuator (40): " <<
+        std::cout << "Exceeds maximum joint speed at hip flex actuator (40): " <<
                   std::max( {std::abs(gv_.tail(nJoints_)(1)), std::abs(gv_.tail(nJoints_)(4)),
                              std::abs(gv_.tail(nJoints_)(7)), std::abs(gv_.tail(nJoints_)(10))} ) << std::endl;
       }
@@ -177,14 +177,14 @@ class MinicheetahController {
       }
       if (std::abs(cheetah->getGeneralizedForce()[6]) > 17 or std::abs(cheetah->getGeneralizedForce()[9]) > 17
           or std::abs(cheetah->getGeneralizedForce()[12]) > 17 or std::abs(cheetah->getGeneralizedForce()[15]) > 17) {
-        std::cout << "Exceeds maximum joint torque at hip actuator (17): " <<
+        std::cout << "Exceeds maximum joint torque at hip ab/ad actuator (17): " <<
                   std::max( {std::abs(cheetah->getGeneralizedForce()[6]), std::abs(cheetah->getGeneralizedForce()[9]),
                              std::abs(cheetah->getGeneralizedForce()[12]), std::abs(cheetah->getGeneralizedForce()[15])} ) << std::endl;
         std::cout << "Max PD-Coeff (of all): " << pTargetDiffMax.array().abs().maxCoeff() << std::endl;
       }
       if (std::abs(cheetah->getGeneralizedForce()[7]) > 17 or std::abs(cheetah->getGeneralizedForce()[10]) > 17
           or std::abs(cheetah->getGeneralizedForce()[13]) > 17 or std::abs(cheetah->getGeneralizedForce()[16]) > 17) {
-        std::cout << "Exceeds maximum joint torque at ab/ad actuator (17): " <<
+        std::cout << "Exceeds maximum joint torque at hip flex actuator (17): " <<
                   std::max( {std::abs(cheetah->getGeneralizedForce()[7]), std::abs(cheetah->getGeneralizedForce()[10]),
                              std::abs(cheetah->getGeneralizedForce()[13]), std::abs(cheetah->getGeneralizedForce()[16])} ) << std::endl;
         std::cout << "Max PD-Coeff (of all): " << pTargetDiffMax.array().abs().maxCoeff() << std::endl;
@@ -645,12 +645,12 @@ class MinicheetahController {
       exceedFactor = std::max(1.0, 4.0 - 2.0 * (iteration-4000) / 3500);
     }
 
-    if (std::abs(gv_.tail(nJoints_)(0)) > 40*exceedFactor or std::abs(gv_.tail(nJoints_)(3)) > 40*exceedFactor //hip
+    if (std::abs(gv_.tail(nJoints_)(0)) > 40*exceedFactor or std::abs(gv_.tail(nJoints_)(3)) > 40*exceedFactor //hip ab/ad
         or std::abs(gv_.tail(nJoints_)(6)) > 40*exceedFactor or std::abs(gv_.tail(nJoints_)(9)) > 40*exceedFactor) {
 //      std::cout << "Terminate 1" << std::endl;
       return true;
     }
-    else if (std::abs(gv_.tail(nJoints_)(1)) > 40*exceedFactor or std::abs(gv_.tail(nJoints_)(4)) > 40*exceedFactor //ab/ad
+    else if (std::abs(gv_.tail(nJoints_)(1)) > 40*exceedFactor or std::abs(gv_.tail(nJoints_)(4)) > 40*exceedFactor //hip flex
         or std::abs(gv_.tail(nJoints_)(7)) > 40*exceedFactor or std::abs(gv_.tail(nJoints_)(10)) > 40*exceedFactor) {
 //      std::cout << "Terminate 2" << std::endl;
       return true;
@@ -660,12 +660,12 @@ class MinicheetahController {
 //      std::cout << "Terminate 3" << std::endl;
       return true;
     }
-    else if (std::abs(cheetah->getGeneralizedForce()[6]) > 17*exceedFactor or std::abs(cheetah->getGeneralizedForce()[9]) > 17*exceedFactor //hip
+    else if (std::abs(cheetah->getGeneralizedForce()[6]) > 17*exceedFactor or std::abs(cheetah->getGeneralizedForce()[9]) > 17*exceedFactor //hip ab/ad
         or std::abs(cheetah->getGeneralizedForce()[12]) > 17*exceedFactor or std::abs(cheetah->getGeneralizedForce()[15]) > 17*exceedFactor) {
 //      std::cout << "Terminate 4" << std::endl;
       return true;
     }
-    else if (std::abs(cheetah->getGeneralizedForce()[7]) > 17*exceedFactor or std::abs(cheetah->getGeneralizedForce()[10]) > 17*exceedFactor //ab/ad
+    else if (std::abs(cheetah->getGeneralizedForce()[7]) > 17*exceedFactor or std::abs(cheetah->getGeneralizedForce()[10]) > 17*exceedFactor // hip flex
         or std::abs(cheetah->getGeneralizedForce()[13]) > 17*exceedFactor or std::abs(cheetah->getGeneralizedForce()[16]) > 17*exceedFactor) {
 //      std::cout << "Terminate 5" << std::endl;
       return true;

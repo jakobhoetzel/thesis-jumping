@@ -62,6 +62,7 @@ class ENVIRONMENT {
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::FOOTCONTACT], cfg["reward"]["footContactCoeff"])
 
     terrain_curriculum_ = terCurriculumFactor_*0.25;
+    testNumber = 0;
     isHeightMap_ = cfg["isHeightMap"].template As<bool>();
     controller_.setIsHeightMap(isHeightMap_);
     if (isHeightMap_){
@@ -71,14 +72,13 @@ class ENVIRONMENT {
       world_->addGround();
       xPos_Hurdles_ = uniDist_(gen_)*0.5 + 5.0;
       double p = std::abs(uniDist_(gen_));
-      auto hurdle1_ = world_->addBox(0.1, 500, terrain_curriculum_, 100000); //x, y, z length, mass; change also in init
-      if(p<0.1){ //train with lower hurdles
-        world_->removeObject(hurdle1_);
+      hurdleHeight_ = terrain_curriculum_;
+      if(p<0.5 and testNumber==0){ //train with lower hurdles
         double val = uniDist_(gen_);
-        double trainHeight = terrain_curriculum_*(1/4 + 3/4*val);
-        hurdle1_ = world_->addBox(0.1, 500, trainHeight, 100000); //x, y, z length, mass; change also in init
+        hurdleHeight_ = std::max(0.1, terrain_curriculum_*(1/4 + 3/4*val));
       }
-      hurdle1_->setPosition(xPos_Hurdles_, 0, terrain_curriculum_/2.0); //pos of cog
+      auto hurdle1_ = world_->addBox(0.1, 500, hurdleHeight_, 100000); //x, y, z length, mass; change also in init
+      hurdle1_->setPosition(xPos_Hurdles_, 0, hurdleHeight_/2.0); //pos of cog
       hurdle1_->setOrientation(1., 0, 0, 0); //quaternion
       hurdle1_->setName("hurdle1");
     }
@@ -91,7 +91,6 @@ class ENVIRONMENT {
       server_->launchServer();
       server_->focusOn(robot);
     }
-    testNumber = 0;
     iteration = 0;
   }
 
@@ -121,19 +120,18 @@ class ENVIRONMENT {
     world_->removeObject(hurdle1_);
     if (hurdleTraining){
       p = std::abs(uniDist_(gen_));
-      auto hurdle2_ = world_->addBox(0.1, 500, terrain_curriculum_, 100000); //x, y, z length, mass; change also in init
-      if(p<0.1){ //train with lower hurdles
-        world_->removeObject(hurdle2_);
+      hurdleHeight_ = terrain_curriculum_;
+      if(p<0.5 and testNumber==0){ //train with lower hurdles
         double val = uniDist_(gen_);
-        double trainHeight = terrain_curriculum_*(1/4 + 3/4*val);
-        hurdle2_ = world_->addBox(0.1, 500, trainHeight, 100000); //x, y, z length, mass; change also in init
+        hurdleHeight_ = std::max(0.1, terrain_curriculum_*(1/4 + 3/4*val));
       }
-      hurdle2_->setPosition(xPos_Hurdles_, 0, terrain_curriculum_/2.0); //pos of cog
+      auto hurdle2_ = world_->addBox(0.1, 500, hurdleHeight_, 100000); //x, y, z length, mass; change also in init
+      hurdle2_->setPosition(xPos_Hurdles_, 0, hurdleHeight_/2.0); //pos of cog
       hurdle2_->setOrientation(1., 0, 0, 0); //quaternion
       hurdle2_->setName("hurdle1");
     }else{
       auto hurdle2_ = world_->addBox(0, 0, 0, 0); //no hurdle
-      hurdle2_->setPosition(xPos_Hurdles_, 0, terrain_curriculum_/2.0); //pos of cog
+      hurdle2_->setPosition(xPos_Hurdles_, 0, 0); //pos of cog
       hurdle2_->setOrientation(1., 0, 0, 0); //quaternion
       hurdle2_->setName("hurdle1");
     }
@@ -197,7 +195,7 @@ class ENVIRONMENT {
       dist_obs_next = 5; //distance between 0 and 8
     }
     if(hurdleTraining){
-      ob.tail(2) << terrain_curriculum_+uniDist_(gen_) * 0.05, dist_obs_next+uniDist_(gen_) * 0.05;
+      ob.tail(2) << hurdleHeight_+uniDist_(gen_) * 0.05, dist_obs_next+uniDist_(gen_) * 0.05;
     } else{
       ob.tail(2) << uniDist_(gen_) * 0.05, 5 + uniDist_(gen_) * 0.05; //no hurdle
 
@@ -291,6 +289,7 @@ class ENVIRONMENT {
   double simulation_dt_;
   double control_dt_;
   double mu_;
+  double hurdleHeight_;
   int groundType_ = 5; //0  Set ground Type
   int delayDividedBySimdt;
   bool hurdleTraining;

@@ -215,7 +215,7 @@ for update in range(max_iteration):
     data_max = -np.inf * np.ones(shape=(len(data_tags), 1), dtype=np.double)
     loss_IL_sum = 0
 
-    # actual training
+    # actual trainin
     for step in range(n_steps):
         obs= env.observe()
         obs_estimator = obs[:,:ob_dim-sensor_dim]

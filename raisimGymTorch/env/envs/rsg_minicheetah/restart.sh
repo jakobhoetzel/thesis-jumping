@@ -2,12 +2,10 @@
 #wmctrl -c "Firefox" -x "Navigator.Firefox"
 #set -x
 
+sleep 2h
+
+conda run -n jakob python runner.py
 #conda run -n jakob python runner.py --runNumber=0
-conda run -n jakob python runner.py
-cd /home/jakob/raisim_workspace/raisimLib/raisimGymForRaisin
-conda run -n jakob python setup.py develop
-cd /home/jakob/raisim_workspace/raisimLib/raisimGymForRaisin/raisimGymTorch/env/envs/rsg_minicheetah/
-conda run -n jakob python runner.py
 #conda run -n jakob python runner.py --runNumber=1
 #conda run -n jakob python runner.py --runNumber=2
 #conda run -n jakob python runner.py --runNumber=3
