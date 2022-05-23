@@ -71,7 +71,7 @@ class MinicheetahController {
     /// set pd gains
     jointPgain_.setZero(gvDim_); jointPgain_.tail(nJoints_).setConstant(17.0);
     jointDgain_.setZero(gvDim_); jointDgain_.tail(nJoints_).setConstant(0.4);
-    cheetah->setPdGains(jointPgain_, jointDgain_);
+//    cheetah->setPdGains(jointPgain_, jointDgain_);  //remove when self coded pd controller is used for torque limit
     cheetah->setGeneralizedForce(Eigen::VectorXd::Zero(gvDim_));
 
     /// MUST BE DONE FOR ALL ENVIRONMENTS
@@ -146,16 +146,16 @@ class MinicheetahController {
 
 //    pTarget_ = gc_stationay_target;
 
-    cheetah->setPdTarget(pTarget_, vTarget_);
+//    cheetah->setPdTarget(pTarget_, vTarget_); //remove when self coded pd controller is used for torque limit
 
     // joint friction
-    Eigen::VectorXd tau; tau.setZero(gvDim_);
-    for (int i = 0; i < nJoints_; i++){
-      double jTorque = jointPgain_.tail(nJoints_)(i) * (pTarget12_(i) - gc_.tail(nJoints_)(i));
-      if (jTorque > 0) tau.tail(nJoints_)(i) = std::min(jointFrictions_(i), jTorque);
-      else tau.tail(nJoints_)(i) = std::max(-jointFrictions_(i), jTorque);
-    }
-    cheetah->setGeneralizedForce(-tau);
+//    Eigen::VectorXd tau; tau.setZero(gvDim_);
+//    for (int i = 0; i < nJoints_; i++){
+//      double jTorque = jointPgain_.tail(nJoints_)(i) * (pTarget12_(i) - gc_.tail(nJoints_)(i));
+//      if (jTorque > 0) tau.tail(nJoints_)(i) = std::min(jointFrictions_(i), jTorque);
+//      else tau.tail(nJoints_)(i) = std::max(-jointFrictions_(i), jTorque);
+//    }
+//    cheetah->setGeneralizedForce(-tau);  //remove when self coded pd controller is used for torque limit
 
     // for manager network
     previousNetworkSelection_ = networkSelection_;
@@ -223,7 +223,7 @@ class MinicheetahController {
     /// pd gain randomization
     jointPgain_.setZero(gvDim_); jointPgain_.tail(nJoints_).setConstant(17.0 + 2 * uniDist_(gen_));
     jointDgain_.setZero(gvDim_); jointDgain_.tail(nJoints_).setConstant(0.4 + 0.1 * uniDist_(gen_));
-    cheetah->setPdGains(jointPgain_, jointDgain_);
+//    cheetah->setPdGains(jointPgain_, jointDgain_);   //remove when self coded pd controller is used for torque limit
 
     /// command generation
     double p = uniDist_(gen_);
@@ -633,7 +633,7 @@ class MinicheetahController {
         0.0, gc_(0); //x_pos; sensor observation in environment
 
     /// Observation noise
-    bool addObsNoise = true; /// TODO: noise
+    bool addObsNoise = true;
     if(addObsNoise) {
       for(int i=0; i<obDim_; i++) {
         if(i<3) {  // orientation
@@ -684,12 +684,12 @@ class MinicheetahController {
       exceedFactor = std::max(1.0, 4.0 - 2.0 * (iteration-4000) / 3500);
     }
 
-    if (std::abs(gv_.tail(nJoints_)(0)) > 40*exceedFactor or std::abs(gv_.tail(nJoints_)(3)) > 40*exceedFactor //hip
+    if (std::abs(gv_.tail(nJoints_)(0)) > 40*exceedFactor or std::abs(gv_.tail(nJoints_)(3)) > 40*exceedFactor //hip ab/ad
         or std::abs(gv_.tail(nJoints_)(6)) > 40*exceedFactor or std::abs(gv_.tail(nJoints_)(9)) > 40*exceedFactor) {
 //      std::cout << "Terminate 1" << std::endl;
       return true;
     }
-    else if (std::abs(gv_.tail(nJoints_)(1)) > 40*exceedFactor or std::abs(gv_.tail(nJoints_)(4)) > 40*exceedFactor //ab/ad
+    else if (std::abs(gv_.tail(nJoints_)(1)) > 40*exceedFactor or std::abs(gv_.tail(nJoints_)(4)) > 40*exceedFactor //hip flex
         or std::abs(gv_.tail(nJoints_)(7)) > 40*exceedFactor or std::abs(gv_.tail(nJoints_)(10)) > 40*exceedFactor) {
 //      std::cout << "Terminate 2" << std::endl;
       return true;
@@ -699,12 +699,12 @@ class MinicheetahController {
 //      std::cout << "Terminate 3" << std::endl;
       return true;
     }
-    else if (std::abs(cheetah->getGeneralizedForce()[6]) > 17*exceedFactor or std::abs(cheetah->getGeneralizedForce()[9]) > 17*exceedFactor //hip
+    else if (std::abs(cheetah->getGeneralizedForce()[6]) > 17*exceedFactor or std::abs(cheetah->getGeneralizedForce()[9]) > 17*exceedFactor //hip ab/ad
         or std::abs(cheetah->getGeneralizedForce()[12]) > 17*exceedFactor or std::abs(cheetah->getGeneralizedForce()[15]) > 17*exceedFactor) {
 //      std::cout << "Terminate 4" << std::endl;
       return true;
     }
-    else if (std::abs(cheetah->getGeneralizedForce()[7]) > 17*exceedFactor or std::abs(cheetah->getGeneralizedForce()[10]) > 17*exceedFactor //ab/ad
+    else if (std::abs(cheetah->getGeneralizedForce()[7]) > 17*exceedFactor or std::abs(cheetah->getGeneralizedForce()[10]) > 17*exceedFactor // hip flex
         or std::abs(cheetah->getGeneralizedForce()[13]) > 17*exceedFactor or std::abs(cheetah->getGeneralizedForce()[16]) > 17*exceedFactor) {
 //      std::cout << "Terminate 5" << std::endl;
       return true;
@@ -741,6 +741,29 @@ class MinicheetahController {
     auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world->getObject("robot"));
     stepVector << gc_, gv_, cheetah->getGeneralizedForce().e(), command_, 0;
     return stepVector;
+  }
+
+
+  Eigen::VectorXd getPDTarget_self() {  //use when self coded pd controller is used for torque limit
+    return pTarget_.tail(nJoints_);
+  }
+
+  std::tuple<Eigen::VectorXd, Eigen::VectorXd> getPDGain_self() { //use when self coded pd controller is used for torque limit
+    return std::make_tuple(jointPgain_.tail(nJoints_), jointDgain_.tail(nJoints_));
+  }
+
+  Eigen::VectorXd getJointFriction_self() { //use when self coded pd controller is used for torque limit
+    Eigen::VectorXd tau; tau.setZero(gvDim_);
+    for (int i = 0; i < nJoints_; i++){
+      double jTorque = jointPgain_.tail(nJoints_)(i) * (pTarget12_(i) - gc_.tail(nJoints_)(i));
+      if (jTorque > 0) tau.tail(nJoints_)(i) = std::min(jointFrictions_(i), jTorque);
+      else tau.tail(nJoints_)(i) = std::max(-jointFrictions_(i), jTorque);
+    }
+    return tau;
+  }
+
+  Eigen::VectorXd getJointState_self() { //use when self coded pd controller is used for torque limit
+    return gc_.tail(nJoints_);
   }
 
   void setIsHeightMap(bool isHeightMap) { isHeightMap_ = isHeightMap;}

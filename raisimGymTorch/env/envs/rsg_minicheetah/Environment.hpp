@@ -77,7 +77,7 @@ class ENVIRONMENT {
       hurdle1_->setPosition(xPos_Hurdles_, 0, terrain_curriculum_/2.0); //pos of cog
       hurdle1_->setOrientation(1., 0, 0, 0); //quaternion
       hurdle1_->setName("hurdle1");
-      secondHurdle_ = false;
+      secondHurdle_ = true;
       if (secondHurdle_){
         xPos_Hurdles2_ = uniDist_(gen_)*0.5 + 10.0;
       } else{
@@ -103,6 +103,10 @@ class ENVIRONMENT {
     }
     testNumber = 0;
     iteration = 0;
+
+    previousError = Eigen::VectorXd::Zero(cheetah->getDOF()-6); //when self coded pd controller is used for torque limit
+    pTarget_ = Eigen::VectorXd::Zero(cheetah->getDOF()-6); //when self coded pd controller is used for torque limit
+    friction = Eigen::VectorXd::Zero(cheetah->getDOF()-6); //when self coded pd controller is used for torque limit
   }
 
   ~ENVIRONMENT() {
@@ -122,6 +126,7 @@ class ENVIRONMENT {
     }
     controller_.reset(world_.get(), comCurriculumFactorT_, heightMap_, hurdleTraining);
     controller_.collisionRandomization(world_.get());
+    std::tie(jointPgain_, jointDgain_) = controller_.getPDGain_self(); //when self coded pd controller is used for torque limit
 
     mu_ = 0.4 + 0.3 * (uniDist_(gen_) + 1);  // [0.4, 1.0]
     world_->setDefaultMaterial(mu_, 0, 0);
@@ -186,7 +191,10 @@ class ENVIRONMENT {
     for (int i = 0; i < int(control_dt_ / simulation_dt_ + 1e-10); i++) {
       if(i == delayDividedBySimdt){
         controller_.advance(world_.get(), action, run_bool);
+        pTarget_ = controller_.getPDTarget_self(); //when self coded pd controller is used for torque limit
+        friction = controller_.getJointFriction_self(); //must be set negative!
       }
+      setGeneralizedForce_self(); //when self coded pd controller is used for torque limit, remove when using built-in pd controller
       if (server_) server_->lockVisualizationServerMutex();
       world_->integrate();  // What does integration do? A. Simulate robot states and motions for the next simulation time.
       if (server_) server_->unlockVisualizationServerMutex();
@@ -280,6 +288,33 @@ class ENVIRONMENT {
 //    ob.tail(2) << terrain_curriculum_, xPos_Hurdles_-ob.tail(1)(0); //height and distance to hurdle
   }
 
+  void setGeneralizedForce_self() {  //when self coded pd controller is used for torque limit
+    auto *cheetah = reinterpret_cast<raisim::ArticulatedSystem *>(world_->getObject("robot"));
+    jointState = controller_.getJointState_self();
+
+    Eigen::VectorXd error = pTarget_ - jointState;
+
+    Eigen::VectorXd genForce = Eigen::VectorXd::Zero(cheetah->getDOF());
+
+    genForce.tail(cheetah->getDOF() - 6) = jointPgain_.cwiseProduct(error) + jointDgain_.cwiseProduct((error-previousError)/simulation_dt_);
+    genForce = genForce-friction;
+
+    for(int i=6; i<cheetah->getDOF(); i++){
+      if((i-6)%3==0 or (i-6)%3==1){ //both hip joints
+        genForce(i) = std::max(-17.0, std::min(genForce(i), 17.0));
+      }else{ //knee joints
+        genForce(i) = std::max(-26.3, std::min(genForce(i), 26.3));
+      }
+    }
+
+    if (previousError.isApprox(Eigen::VectorXd::Zero(cheetah->getDOF()-6), 1.e-50)){
+      cheetah->setGeneralizedForce(Eigen::VectorXd::Zero(cheetah->getDOF())); //for first timesteps after initialization
+    } else{
+      cheetah->setGeneralizedForce(genForce);
+    }
+    previousError = error;
+  }
+
   bool isTerminalState(float &terminalReward) {
     if(controller_.isTerminalState(world_.get(), iteration, testNumber)){
       terminalReward = terminalRewardCoeff_;
@@ -371,6 +406,7 @@ class ENVIRONMENT {
   int delayDividedBySimdt;
   bool hurdleTraining, secondHurdle_;
   int testNumber, iteration;
+  Eigen::VectorXd jointPgain_, jointDgain_, pTarget_, friction, jointState, previousError; //when self coded pd controller is used for torque limit
   std::unique_ptr<raisim::RaisimServer> server_;
   Eigen::VectorXd stepData_;
   Eigen::VectorXd stepVector_;
