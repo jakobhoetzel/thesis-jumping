@@ -2,7 +2,7 @@
 #wmctrl -c "Firefox" -x "Navigator.Firefox"
 #set -x
 
-sleep 2h
+sleep 12h
 
 conda run -n jakob python runner.py
 #conda run -n jakob python runner.py --runNumber=0

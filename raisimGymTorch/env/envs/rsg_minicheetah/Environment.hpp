@@ -73,7 +73,7 @@ class ENVIRONMENT {
       xPos_Hurdles_ = uniDist_(gen_)*0.5 + 5.0;
       double p = std::abs(uniDist_(gen_));
       hurdleHeight_ = terrain_curriculum_;
-      if(p<0.5 and testNumber==0){ //train with lower hurdles
+      if(p<0.3 and testNumber==0){ //train with lower hurdles
         double val = uniDist_(gen_);
         hurdleHeight_ = std::max(0.1, terrain_curriculum_*(1/4 + 3/4*val));
       }
@@ -121,7 +121,7 @@ class ENVIRONMENT {
     if (hurdleTraining){
       p = std::abs(uniDist_(gen_));
       hurdleHeight_ = terrain_curriculum_;
-      if(p<0.5 and testNumber==0){ //train with lower hurdles
+      if(p<0.3 and testNumber==0){ //train with lower hurdles
         double val = uniDist_(gen_);
         hurdleHeight_ = std::max(0.1, terrain_curriculum_*(1/4 + 3/4*val));
       }

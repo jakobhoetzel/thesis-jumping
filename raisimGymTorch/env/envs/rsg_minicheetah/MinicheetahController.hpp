@@ -458,9 +458,9 @@ class MinicheetahController {
         }else if(genForce[i]<=-(17-4) and (i%3==0 or i%3==1)){
           forcePenalty += std::exp((-genForce[i]-17)/3);
         }else if(genForce[i]>=(26.3-5) and i%3==2){ //knee
-          forcePenalty += std::exp((genForce[i]-26.3)/2);
+          forcePenalty += std::exp((genForce[i]-26.3)/3);
         }else if(genForce[i]<=-(26.3-5) and i%3==2){
-          forcePenalty += std::exp((-genForce[i]-26.3)/2);
+          forcePenalty += std::exp((-genForce[i]-26.3)/3);
         }
       }
 
@@ -472,9 +472,9 @@ class MinicheetahController {
       }else if(genVel[i]<=-(40-6) and (i%3==0 or i%3==1)){
         speedPenalty += std::exp((-genVel[i]-40)/3);
       }else if(genVel[i]>=(25.8-4) and i%3==2){ //knee
-        speedPenalty += std::exp((genVel[i]-25.8)/2);
+        speedPenalty += std::exp((genVel[i]-25.8)/3);
       }else if(genVel[i]<=-(25.8-4) and i%3==2){
-        speedPenalty += std::exp((-genVel[i]-25.8)/2);
+        speedPenalty += std::exp((-genVel[i]-25.8)/3);
       }
     }
 

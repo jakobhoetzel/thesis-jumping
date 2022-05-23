@@ -30,7 +30,7 @@ environment:
     jointAccCoeff: -0.0 #-3e-2      -2.e-2
     baseMotionCoeff: -0.0  #         -1.5
     footClearanceCoeff: -0.0 #-2.0 #-10.0    -15
-    symmetryCoeff: -0.0 #-2.0   -5.0
+    symmetryCoeff: -2.0 #-2.0   -5.0
     footContactCoeff: -0.0 #-0.05
 
 architecture:
