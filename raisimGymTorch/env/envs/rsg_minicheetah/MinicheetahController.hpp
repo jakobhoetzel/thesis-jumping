@@ -68,7 +68,7 @@ class MinicheetahController {
     /// set pd gains
     jointPgain_.setZero(gvDim_); jointPgain_.tail(nJoints_).setConstant(17.0);
     jointDgain_.setZero(gvDim_); jointDgain_.tail(nJoints_).setConstant(0.4);
-    cheetah->setPdGains(jointPgain_, jointDgain_);
+//    cheetah->setPdGains(jointPgain_, jointDgain_);  //remove when self coded pd controller is used for torque limit
     cheetah->setGeneralizedForce(Eigen::VectorXd::Zero(gvDim_));
 
     /// MUST BE DONE FOR ALL ENVIRONMENTS
@@ -140,16 +140,16 @@ class MinicheetahController {
 
 //    pTarget_ = gc_stationay_target;
 
-    cheetah->setPdTarget(pTarget_, vTarget_);
+//    cheetah->setPdTarget(pTarget_, vTarget_); //remove when self coded pd controller is used for torque limit
 
     // joint friction
-    Eigen::VectorXd tau; tau.setZero(gvDim_);
-    for (int i = 0; i < nJoints_; i++){
-      double jTorque = jointPgain_.tail(nJoints_)(i) * (pTarget12_(i) - gc_.tail(nJoints_)(i));
-      if (jTorque > 0) tau.tail(nJoints_)(i) = std::min(jointFrictions_(i), jTorque);
-      else tau.tail(nJoints_)(i) = std::max(-jointFrictions_(i), jTorque);
-    }
-    cheetah->setGeneralizedForce(-tau);
+//    Eigen::VectorXd tau; tau.setZero(gvDim_);
+//    for (int i = 0; i < nJoints_; i++){
+//      double jTorque = jointPgain_.tail(nJoints_)(i) * (pTarget12_(i) - gc_.tail(nJoints_)(i));
+//      if (jTorque > 0) tau.tail(nJoints_)(i) = std::min(jointFrictions_(i), jTorque);
+//      else tau.tail(nJoints_)(i) = std::max(-jointFrictions_(i), jTorque);
+//    }
+//    cheetah->setGeneralizedForce(-tau);  //remove when self coded pd controller is used for torque limit
 
     if(false) { //output if max joint speed or torque is exceeded
         Eigen::VectorXd pTargetDiffMax = pTarget12_ - gc_.tail(nJoints_);
@@ -213,7 +213,7 @@ class MinicheetahController {
     /// pd gain randomization
     jointPgain_.setZero(gvDim_); jointPgain_.tail(nJoints_).setConstant(17.0 + 2 * uniDist_(gen_));
     jointDgain_.setZero(gvDim_); jointDgain_.tail(nJoints_).setConstant(0.4 + 0.1 * uniDist_(gen_));
-    cheetah->setPdGains(jointPgain_, jointDgain_);
+//    cheetah->setPdGains(jointPgain_, jointDgain_);   //remove when self coded pd controller is used for torque limit
 
     /// command generation
     double p = uniDist_(gen_);
@@ -639,7 +639,7 @@ class MinicheetahController {
       if (std::find(footIndices_.begin(), footIndices_.end(), contact.getlocalBodyIndex()) == footIndices_.end())
         return true;
     }
-    double exceedFactor = 4; // how much can max joint torque and speed be exceeded (curriculum)
+    double exceedFactor = 1000; // how much can max joint torque and speed be exceeded (curriculum)
     if (iteration > 4000 and testNumber==0){ //only during training
 //      exceedFactor = std::max(1, 2 - (iteration-2500) / 5000);
       exceedFactor = std::max(1.0, 4.0 - 2.0 * (iteration-4000) / 3500);
@@ -696,6 +696,28 @@ class MinicheetahController {
 
   int getActionDim() {
     return actionDim_;
+  }
+
+  Eigen::VectorXd getPDTarget_self() {  //use when self coded pd controller is used for torque limit
+    return pTarget_.tail(nJoints_);
+  }
+
+  std::tuple<Eigen::VectorXd, Eigen::VectorXd> getPDGain_self() { //use when self coded pd controller is used for torque limit
+    return std::make_tuple(jointPgain_.tail(nJoints_), jointDgain_.tail(nJoints_));
+  }
+
+  Eigen::VectorXd getJointFriction_self() { //use when self coded pd controller is used for torque limit
+    Eigen::VectorXd tau; tau.setZero(gvDim_);
+    for (int i = 0; i < nJoints_; i++){
+      double jTorque = jointPgain_.tail(nJoints_)(i) * (pTarget12_(i) - gc_.tail(nJoints_)(i));
+      if (jTorque > 0) tau.tail(nJoints_)(i) = std::min(jointFrictions_(i), jTorque);
+      else tau.tail(nJoints_)(i) = std::max(-jointFrictions_(i), jTorque);
+    }
+    return tau;
+  }
+
+  Eigen::VectorXd getJointState_self() { //use when self coded pd controller is used for torque limit
+    return gc_.tail(nJoints_);
   }
 
   void setIsHeightMap(bool isHeightMap) { isHeightMap_ = isHeightMap;}

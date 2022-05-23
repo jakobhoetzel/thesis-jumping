@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
   bool managerTraining;
 
   vecEnv.reset();
-  vecEnv.step(action_ref, reward_ref, dones_ref, run_bool_ref, managerTraining);
+  vecEnv.step(action_ref, reward_ref, dones_ref);
 
   return 0;
 }
