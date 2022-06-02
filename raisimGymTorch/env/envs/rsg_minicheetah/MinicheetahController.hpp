@@ -36,6 +36,7 @@ class MinicheetahController {
     HURDLES,
     SYMMETRY,
     FOOTCONTACT,
+    FEETFORWARDJUMP,
   };
 
   void setSeed(int seed) { gen_.seed(seed); }
@@ -86,6 +87,8 @@ class MinicheetahController {
     maxBodyHeight_ = 0.0;
     maxXPos_ = 0.0;
     step=0;
+    hurdlePassed_ = false;
+    groundTouch_ = false;
 
     /// action scaling
     actionMean_ = gc_init_.tail(nJoints_);
@@ -103,7 +106,7 @@ class MinicheetahController {
 
     stepDataTag_ = {"rewBodyAngularVel", "rewLinearVel", "rewAirTime", "rewHurdles", "rewTorque", "rewJointSpeed",
                     "rewFootSlip", "rewBodyOri", "rewSmoothness1", "rewSmoothness2", "rewJointPosition", "rewJointAcc",
-                    "rewBaseMotion", "rewFootClearance", "rewSymmetry", "rewFootContact",
+                    "rewBaseMotion", "rewFootClearance", "rewSymmetry", "rewFootContact", "rewFeetForwardJump",
                     "negativeRewardSum", "positiveRewardSum", "totalRewardSum"};
 
     stepData_.resize(stepDataTag_.size());
@@ -330,6 +333,8 @@ class MinicheetahController {
     maxBodyHeight_ = 0.0;
     maxXPos_ = 0.0;
     step=0;
+    hurdlePassed_ = false;
+    groundTouch_ = false;
 
     return true;
   }
@@ -478,6 +483,17 @@ class MinicheetahController {
       }
     }
 
+    double feetForwardJumpVar = 0.0; //reward that feet show forward during jump for safety and more natural look
+    if(gc_[0] > xPosHurdles){
+      hurdlePassed_ = true;
+    }
+    if(hurdlePassed_ and not groundTouch_){
+      feetForwardJumpVar = (gc_[9]-1.5)*(gc_[9]-1.5) + (gc_[12]-1.5)*(gc_[12]-1.5); //feet should show forward
+    }
+    if(hurdlePassed_ and (footContactState_[0] or footContactState_[1])){
+      groundTouch_ = true;
+    }
+
     /// Reward functions
     // curriculum factor in negative reward
     double rewBodyAngularVel = std::exp(-1.5 * pow((command_(2) - bodyAngularVel_(2)), 2)) * rewardCoeff.at(RewardType::ANGULARVELOCIY1);
@@ -497,6 +513,7 @@ class MinicheetahController {
     double rewFootClearance = footClearanceTangential * rewardCoeff.at(RewardType::FOOTCLEARANCE);
     double rewSymmetry = (1 - rewCurriculumFactor) * symmetryCoeff * rewardCoeff.at(RewardType::SYMMETRY); /// curriculum 1->0
     double rewFootContact = footContactVar * rewardCoeff.at(RewardType::FOOTCONTACT);
+    double rewFeetForwardJump = feetForwardJumpVar * rewardCoeff.at(RewardType::FEETFORWARDJUMP);
 
     stepData_[0] = rewBodyAngularVel;  /// positive reward; maximization
     stepData_[1] = rewLinearVel;  /// positive reward
@@ -514,13 +531,14 @@ class MinicheetahController {
     stepData_[13] = rewFootClearance;
     stepData_[14] = rewSymmetry / (rewCurriculumFactor + 1e-3); /// not affected of curriculum
     stepData_[15] = rewFootContact / (rewCurriculumFactor + 1e-3);
+    stepData_[16] = rewFeetForwardJump;
 
     double negativeRewardSum = stepData_.segment(4, stepDataTag_.size()-7).sum()* rewCurriculumFactor; /// curriculum 0->1
     double positiveRewardSum = stepData_.head(4).sum();
 
-    stepData_[16] = negativeRewardSum;
-    stepData_[17] = positiveRewardSum;
-    stepData_[18] = std::exp(0.2 * negativeRewardSum) * positiveRewardSum;  // totalReward
+    stepData_[17] = negativeRewardSum;
+    stepData_[18] = positiveRewardSum;
+    stepData_[19] = std::exp(0.2 * negativeRewardSum) * positiveRewardSum;  // totalReward
   }
 
   const std::vector<std::string>& getStepDataTag() {
@@ -764,6 +782,7 @@ class MinicheetahController {
   bool isHeightMap_;
   double maxBodyHeight_,  maxXPos_;
   bool hurdleTraining_;
+  bool hurdlePassed_, groundTouch_;
   int step;
 
   thread_local static std::mt19937 gen_;

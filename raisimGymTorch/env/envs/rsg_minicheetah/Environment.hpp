@@ -60,6 +60,7 @@ class ENVIRONMENT {
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::HURDLES], cfg["reward"]["hurdlesCoeff"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::SYMMETRY], cfg["reward"]["symmetryCoeff"])
     READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::FOOTCONTACT], cfg["reward"]["footContactCoeff"])
+    READ_YAML(double, rewardCoeff_[MinicheetahController::RewardType::FEETFORWARDJUMP], cfg["reward"]["feetForwardJumpCoeff"])
 
     terrain_curriculum_ = terCurriculumFactor_*0.25;
     testNumber = 0;
@@ -73,7 +74,7 @@ class ENVIRONMENT {
       xPos_Hurdles_ = uniDist_(gen_)*0.5 + 5.0;
       double p = std::abs(uniDist_(gen_));
       hurdleHeight_ = terrain_curriculum_;
-      if(p<0.3 and testNumber==0){ //train with lower hurdles
+      if(p<0.0 and testNumber==0){ //train with lower hurdles
         double val = uniDist_(gen_);
         hurdleHeight_ = std::max(0.1, terrain_curriculum_*(1/4 + 3/4*val));
       }
@@ -127,7 +128,7 @@ class ENVIRONMENT {
     if (hurdleTraining){
       p = std::abs(uniDist_(gen_));
       hurdleHeight_ = terrain_curriculum_;
-      if(p<0.3 and testNumber==0){ //train with lower hurdles
+      if(p<0.0 and testNumber==0){ //train with lower hurdles
         double val = uniDist_(gen_);
         hurdleHeight_ = std::max(0.1, terrain_curriculum_*(1/4 + 3/4*val));
       }
@@ -228,11 +229,14 @@ class ENVIRONMENT {
     genForce.tail(cheetah->getDOF() - 6) = jointPgain_.cwiseProduct(error) + jointDgain_.cwiseProduct((error-previousError)/simulation_dt_);
     genForce = genForce-friction;
 
+    double exceedFactor = std::max(1.0, 2.0 - iteration/5000.0);
+//    double exceedFactor = 100.0;
+
     for(int i=6; i<cheetah->getDOF(); i++){
       if((i-6)%3==0 or (i-6)%3==1){ //both hip joints
         genForce(i) = std::max(-17.0, std::min(genForce(i), 17.0));
       }else{ //knee joints
-        genForce(i) = std::max(-26.3, std::min(genForce(i), 26.3));
+        genForce(i) = std::max(-26.3*exceedFactor, std::min(genForce(i), 26.3*exceedFactor));
       }
     }
 

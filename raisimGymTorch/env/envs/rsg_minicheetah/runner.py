@@ -46,15 +46,14 @@ home_path = task_path + "/../../../.."
 # config
 cfg = YAML().load(open(task_path + "/cfg.yaml", 'r'))
 
-# if runNumber == 0:
-#     cfg['environment']['reward']['torqueCoeff'] = -1.e-3
-#     cfg['environment']['reward']['jointSpeedCoeff'] = -1.e-3
-# elif runNumber == 1:
-#     cfg['environment']['reward']['torqueCoeff'] = -3.e-3
-#     cfg['environment']['reward']['jointSpeedCoeff'] = -3.e-3
-# elif runNumber == 2:
-#     cfg['environment']['reward']['torqueCoeff'] = -1.e-3
-#     cfg['environment']['reward']['jointSpeedCoeff'] = -3.e-3
+if runNumber == 0:
+    cfg['environment']['ter_curriculum_factor'] = 0.3
+elif runNumber == 1:
+    cfg['environment']['ter_curriculum_factor'] = 0.35
+elif runNumber == 2:
+    cfg['environment']['ter_curriculum_factor'] = 0.25
+# elif runNumber == 3:
+#     lr=1e-3
 # elif runNumber == 3:
 #     cfg['environment']['reward']['torqueCoeff'] = -3.e-3
 #     cfg['environment']['reward']['jointSpeedCoeff'] = -1.e-3
@@ -215,7 +214,7 @@ for update in range(max_iteration):
     data_max = -np.inf * np.ones(shape=(len(data_tags), 1), dtype=np.double)
     loss_IL_sum = 0
 
-    # actual trainin
+    # actual training
     for step in range(n_steps):
         obs= env.observe()
         obs_estimator = obs[:,:ob_dim-sensor_dim]
