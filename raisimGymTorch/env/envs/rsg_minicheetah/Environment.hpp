@@ -176,7 +176,7 @@ class ENVIRONMENT {
         pTarget_ = controller_.getPDTarget_self(); //when self coded pd controller is used for torque limit
         friction = controller_.getJointFriction_self(); //must be set negative!
       }
-      setGeneralizedForce_self(); //when self coded pd controller is used for torque limit, remove when using built-in pd controller
+//      setGeneralizedForce_self(); //when self coded pd controller is used for torque limit, remove when using built-in pd controller
       if (server_) server_->lockVisualizationServerMutex();
       world_->integrate();  // What does integration do? A. Simulate robot states and motions for the next simulation time.
       if (server_) server_->unlockVisualizationServerMutex();

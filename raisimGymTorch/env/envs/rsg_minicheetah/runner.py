@@ -46,12 +46,12 @@ home_path = task_path + "/../../../.."
 # config
 cfg = YAML().load(open(task_path + "/cfg.yaml", 'r'))
 
-if runNumber == 0:
-    cfg['environment']['ter_curriculum_factor'] = 0.3
-elif runNumber == 1:
-    cfg['environment']['ter_curriculum_factor'] = 0.35
-elif runNumber == 2:
-    cfg['environment']['ter_curriculum_factor'] = 0.25
+# if runNumber == 0:
+#     cfg['environment']['ter_curriculum_factor'] = 0.3
+# elif runNumber == 1:
+#     cfg['environment']['ter_curriculum_factor'] = 0.35
+# elif runNumber == 2:
+#     cfg['environment']['ter_curriculum_factor'] = 0.25
 # elif runNumber == 3:
 #     lr=1e-3
 # elif runNumber == 3:
