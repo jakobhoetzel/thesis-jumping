@@ -30,7 +30,10 @@ parser.add_argument('-w', '--weight', help='pre-trained weight path', type=str, 
 parser.add_argument('-n', '--runNumber', help='number of the run', type=str, default='')
 args = parser.parse_args()
 mode = args.mode  # 'train' or 'retrain'
-runNumber = args.runNumber
+if args.runNumber != "":
+    runNumber = int(args.runNumber)
+else:
+    runNumber = None
 #weight_path = args.weight
 weight_path = "../../../data/minicheetah_locomotion/baselineRun2/full_5000.pt"
 iteration_number = weight_path.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
@@ -46,12 +49,12 @@ home_path = task_path + "/../../../.."
 # config
 cfg = YAML().load(open(task_path + "/cfg.yaml", 'r'))
 
-# if runNumber == 0:
-#     cfg['environment']['ter_curriculum_factor'] = 0.3
+if runNumber == 0:
+    cfg['environment']['reward']['feetForwardJumpCoeff'] = -0.1
 # elif runNumber == 1:
-#     cfg['environment']['ter_curriculum_factor'] = 0.35
+#     cfg['environment']['reward']['feetForwardJumpCoeff'] = -0.05
 # elif runNumber == 2:
-#     cfg['environment']['ter_curriculum_factor'] = 0.25
+#     cfg['environment']['reward']['feetForwardJumpCoeff'] = -0.002
 # elif runNumber == 3:
 #     lr=1e-3
 # elif runNumber == 3:

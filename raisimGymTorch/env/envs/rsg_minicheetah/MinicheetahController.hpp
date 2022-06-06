@@ -484,15 +484,16 @@ class MinicheetahController {
     }
 
     double feetForwardJumpVar = 0.0; //reward that feet show forward during jump for safety and more natural look
-    if(gc_[0] > xPosHurdles){
+    if(gc_[0] > (xPosHurdles - 0.6) and  (!footContactState_[0] and !footContactState_[1] and !footContactState_[2] and !footContactState_[3])){
       hurdlePassed_ = true;
     }
     if(hurdlePassed_ and not groundTouch_){
-      feetForwardJumpVar = (gc_[9]-1.5)*(gc_[9]-1.5) + (gc_[12]-1.5)*(gc_[12]-1.5); //feet should show forward
+      feetForwardJumpVar = (gc_[8]-1.5)*(gc_[8]-1.5) + (gc_[11]-1.5)*(gc_[11]-1.5); //feet should show forward
     }
     if(hurdlePassed_ and (footContactState_[0] or footContactState_[1])){
       groundTouch_ = true;
     }
+    // std::cout << "feetForwardVar: " << feetForwardJumpVar << std::endl;
 
     /// Reward functions
     // curriculum factor in negative reward
@@ -514,6 +515,7 @@ class MinicheetahController {
     double rewSymmetry = (1 - rewCurriculumFactor) * symmetryCoeff * rewardCoeff.at(RewardType::SYMMETRY); /// curriculum 1->0
     double rewFootContact = footContactVar * rewardCoeff.at(RewardType::FOOTCONTACT);
     double rewFeetForwardJump = feetForwardJumpVar * rewardCoeff.at(RewardType::FEETFORWARDJUMP);
+//    std::cout << "rewFeetForwardJump: " << rewFeetForwardJump << std::endl;
 
     stepData_[0] = rewBodyAngularVel;  /// positive reward; maximization
     stepData_[1] = rewLinearVel;  /// positive reward
