@@ -71,7 +71,7 @@ class RaisimGymVecEnv:
             if update_mean:
                 self.obs_rms.update(self._observation)
 
-            return self._normalize_observation(self._observation)
+            return self._normalize_observation(self._observation), self._observation.copy()
         else:
             return self._observation.copy()
 

@@ -205,7 +205,8 @@ class ENVIRONMENT {
       dist_obs_next = 5; //distance between 0 and 8
     }
     if(hurdleTraining){
-      ob.tail(2) << hurdleHeight_+uniDist_(gen_) * 0.05, dist_obs_next+uniDist_(gen_) * 0.05;
+      ob.tail(2) << hurdleHeight_+uniDist_(gen_) * 0.1, dist_obs_next+uniDist_(gen_) * 0.2;
+//      ob.tail(2) << hurdleHeight_, dist_obs_next;
     } else{
       ob.tail(2) << uniDist_(gen_) * 0.05, 5 + uniDist_(gen_) * 0.05; //no hurdle
 

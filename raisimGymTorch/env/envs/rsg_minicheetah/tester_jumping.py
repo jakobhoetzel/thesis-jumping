@@ -83,6 +83,9 @@ else:
     env.curriculum_callback(5000)
     env.reset()
     env.printTest()
+    projectDistance = False
+    dist_project = 0.0
+    timestep = cfg['environment']['control_dt']
 
     for step in range(max_steps):
         frame_start = time.time()
@@ -93,11 +96,30 @@ else:
         #     command = np.array([command_Vx, command_Vy, command_yaw], dtype=np.float32)
         #     env.set_command(command)
 
-        obs = env.observe(update_mean=False)
+        obs, obs_notNorm = env.observe(update_mean=False)
         obs_estimator = obs[:,:ob_dim-sensor_dim]
         robotState = env.getRobotState()
         est_out = estimator.architecture(torch.from_numpy(obs_estimator).cpu())
+        # print("real: ", robotState.item(0,0), "  esti: ", est_out.data.numpy().item(0,0))
+        # print("esti: ", est_out.data.numpy().item(0,0))
         concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
+
+        # project distance based on velocity when close to hurdle
+        if True:
+            dist_real = obs_notNorm.item(0,-1)
+            if 0.5 > dist_real > 0.0 and not projectDistance:
+                projectDistance = True
+                dist_project = dist_real
+            elif projectDistance:
+                dist_project = dist_project - est_out.data.numpy().item(0,0) * timestep
+                if dist_project < -0.3:
+                    dist_project = 5  # only works with one hurdle
+                    projectDistance = False
+                dist_project_norm = (dist_project - env.obs_rms.mean[0,-1]) / np.sqrt(env.obs_rms.var[0,-1]) # normalisation
+                concatenated_obs_actor[0,ob_dim-1] = dist_project_norm  # normalisation missing
+
+            print("real: ", dist_real, ", projected: ", dist_project)
+
 
         action_ll = actor.architecture(torch.from_numpy(concatenated_obs_actor).cpu())
         reward_ll, dones = env.step(action_ll.detach().numpy())

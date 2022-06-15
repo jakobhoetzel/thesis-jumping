@@ -186,7 +186,7 @@ for update in range(max_iteration):
 
         for step in range(n_steps*1):  # n_steps*2
             frame_start = time.time()
-            obs = env.observe(update_mean=False)  # don't update mean and var
+            obs, _ = env.observe(update_mean=False)  # don't update mean and var
             obs_estimator = obs[:,:ob_dim-sensor_dim]
             robotState = env.getRobotState()
             est_out = stateEstimator.predict(torch.from_numpy(obs_estimator).to(device))
@@ -219,7 +219,7 @@ for update in range(max_iteration):
 
     # actual training
     for step in range(n_steps):
-        obs= env.observe()
+        obs, _ = env.observe()
         obs_estimator = obs[:,:ob_dim-sensor_dim]
         robotState = env.getRobotState()
         est_out = stateEstimator.predict(torch.from_numpy(obs_estimator).to(device))
@@ -245,7 +245,7 @@ for update in range(max_iteration):
             ppo.writer.add_scalar(data_tags[data_id]+'/max', data_max[data_id], global_step=update)
 
     # take st step to get value obs
-    obs = env.observe()
+    obs, _ = env.observe()
     obs_estimator = obs[:,:ob_dim-sensor_dim]
     robotState = env.getRobotState()
     est_out = stateEstimator.predict(torch.from_numpy(obs_estimator).to(device))
