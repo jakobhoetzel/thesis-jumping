@@ -161,7 +161,7 @@ class MinicheetahController {
     previousNetworkSelection_ = networkSelection_;
     networkSelection_ = run_bool;
 
-    if(true) { //output if max joint speed or torque is exceeded
+    if(false) { //output if max joint speed or torque is exceeded
         Eigen::VectorXd pTargetDiffMax = pTarget12_ - gc_.tail(nJoints_);
 //      std::cout << "gv(tail): " << gv_.tail(nJoints_)  << std::endl;
 //      std::cout << "force: " << cheetah->getGeneralizedForce() << std::endl;
@@ -228,7 +228,8 @@ class MinicheetahController {
     /// command generation
     double p = uniDist_(gen_);
     if(hurdleTraining_){
-      command_ << 3.5, 0.0, 0.0; // 4.0, 0, 0
+      // command_ << 3.5, 0.0, 0.0; // 4.0, 0, 0
+      command_ <<  0.25 * uniDist_(gen_) + 3.25, 0.1 * uniDist_(gen_), 0.05 * uniDist_(gen_); // comCurriculumFactor, 1.0, 2.0
     }
     else{
       if(fabs(p) < 0.1) {  // 10%
@@ -611,6 +612,50 @@ class MinicheetahController {
       for(size_t i=0; i<4; i++)
         if(contact.getlocalBodyIndex() == footIndices_[i])
           footContactState_[i] = true;
+
+    if(true) { //output if max joint speed or torque is exceeded
+      Eigen::VectorXd pTargetDiffMax = pTarget12_ - gc_.tail(nJoints_);
+
+      if (std::abs(gv_.tail(nJoints_)(0)) > 40 or std::abs(gv_.tail(nJoints_)(3)) > 40
+          or std::abs(gv_.tail(nJoints_)(6)) > 40 or std::abs(gv_.tail(nJoints_)(9)) > 40) {
+        std::cout << "Exceeds maximum joint speed at hip ab/ad actuator (40): " <<
+                  std::max( {std::abs(gv_.tail(nJoints_)(0)), std::abs(gv_.tail(nJoints_)(3)),
+                             std::abs(gv_.tail(nJoints_)(6)), std::abs(gv_.tail(nJoints_)(9))} ) << std::endl;
+      }
+      if (std::abs(gv_.tail(nJoints_)(1)) > 40 or std::abs(gv_.tail(nJoints_)(4)) > 40
+          or std::abs(gv_.tail(nJoints_)(7)) > 40 or std::abs(gv_.tail(nJoints_)(10)) > 40) {
+        std::cout << "Exceeds maximum joint speed at hip flex actuator (40): " <<
+                  std::max( {std::abs(gv_.tail(nJoints_)(1)), std::abs(gv_.tail(nJoints_)(4)),
+                             std::abs(gv_.tail(nJoints_)(7)), std::abs(gv_.tail(nJoints_)(10))} ) << std::endl;
+      }
+      if (std::abs(gv_.tail(nJoints_)(2)) > 25.8 or std::abs(gv_.tail(nJoints_)(5)) > 25.8
+          or std::abs(gv_.tail(nJoints_)(8)) > 25.8 or std::abs(gv_.tail(nJoints_)(11)) > 25.8) {
+        std::cout << "Exceeds maximum joint speed at knee actuator (25.8): " <<
+                  std::max( {std::abs(gv_.tail(nJoints_)(2)), std::abs(gv_.tail(nJoints_)(5)),
+                             std::abs(gv_.tail(nJoints_)(8)), std::abs(gv_.tail(nJoints_)(11))} ) << std::endl;
+      }
+      if (std::abs(cheetah->getGeneralizedForce()[6]) > 17 or std::abs(cheetah->getGeneralizedForce()[9]) > 17
+          or std::abs(cheetah->getGeneralizedForce()[12]) > 17 or std::abs(cheetah->getGeneralizedForce()[15]) > 17) {
+        std::cout << "Exceeds maximum joint torque at hip ab/ad actuator (17): " <<
+                  std::max( {std::abs(cheetah->getGeneralizedForce()[6]), std::abs(cheetah->getGeneralizedForce()[9]),
+                             std::abs(cheetah->getGeneralizedForce()[12]), std::abs(cheetah->getGeneralizedForce()[15])} ) << std::endl;
+        std::cout << "Max PD-Coeff (of all): " << pTargetDiffMax.array().abs().maxCoeff() << std::endl;
+      }
+      if (std::abs(cheetah->getGeneralizedForce()[7]) > 17 or std::abs(cheetah->getGeneralizedForce()[10]) > 17
+          or std::abs(cheetah->getGeneralizedForce()[13]) > 17 or std::abs(cheetah->getGeneralizedForce()[16]) > 17) {
+        std::cout << "Exceeds maximum joint torque at hip flex actuator (17): " <<
+                  std::max( {std::abs(cheetah->getGeneralizedForce()[7]), std::abs(cheetah->getGeneralizedForce()[10]),
+                             std::abs(cheetah->getGeneralizedForce()[13]), std::abs(cheetah->getGeneralizedForce()[16])} ) << std::endl;
+        std::cout << "Max PD-Coeff (of all): " << pTargetDiffMax.array().abs().maxCoeff() << std::endl;
+      }
+      if (std::abs(cheetah->getGeneralizedForce()[8]) > 26.3 or std::abs(cheetah->getGeneralizedForce()[11]) > 26.3
+          or std::abs(cheetah->getGeneralizedForce()[14]) > 26.3 or std::abs(cheetah->getGeneralizedForce()[17]) > 26.3) {
+        std::cout << "Exceeds maximum joint torque at knee actuator (26.3): " <<
+                  std::max( {std::abs(cheetah->getGeneralizedForce()[8]), std::abs(cheetah->getGeneralizedForce()[11]),
+                             std::abs(cheetah->getGeneralizedForce()[14]), std::abs(cheetah->getGeneralizedForce()[17])} ) << std::endl;
+        std::cout << "Max PD-Coeff (of all): " << pTargetDiffMax.array().abs().maxCoeff() << std::endl;
+      }
+    }
   }
 
   const Eigen::VectorXd& getObservation() {

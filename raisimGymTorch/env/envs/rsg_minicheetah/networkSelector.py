@@ -60,7 +60,7 @@ class NetworkSelector:
         elif selection_number == 3:  # manually based on distance
             obs_ = obs_notNorm[:,-1:]  # only need distance
             run_bool = obs_.reshape(-1,1) > 0.65  # select jump network when observation shows robot close to hurdle  0.65
-            number_Count = 30 + 1  #50 + 1
+            number_Count = 75 + 1  #30 + 1  50 + 1
 
             # num_rows, _ = obs_.shape
             # cv_test = np.copy(calculate_vector)
