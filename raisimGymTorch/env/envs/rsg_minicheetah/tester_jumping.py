@@ -118,7 +118,7 @@ else:
                 dist_project_norm = (dist_project - env.obs_rms.mean[0,-1]) / np.sqrt(env.obs_rms.var[0,-1]) # normalisation
                 concatenated_obs_actor[0,ob_dim-1] = dist_project_norm  # normalisation missing
 
-            print("real: ", dist_real, ", projected: ", dist_project)
+            # print("real: ", dist_real, ", projected: ", dist_project)
 
 
         action_ll = actor.architecture(torch.from_numpy(concatenated_obs_actor).cpu())
@@ -151,6 +151,7 @@ else:
         if wait_time > 0.:
             time.sleep(wait_time)
         time.sleep(0.01) #0.05
+        # time.sleep(0.1) #0.05
         # print(step)
 
     # env.stop_video_recording()

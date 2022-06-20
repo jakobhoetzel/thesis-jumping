@@ -50,11 +50,11 @@ home_path = task_path + "/../../../.."
 cfg = YAML().load(open(task_path + "/cfg.yaml", 'r'))
 
 if runNumber == 0:
-    cfg['environment']['reward']['feetForwardJumpCoeff'] = -0.1
-# elif runNumber == 1:
-#     cfg['environment']['reward']['feetForwardJumpCoeff'] = -0.05
-# elif runNumber == 2:
-#     cfg['environment']['reward']['feetForwardJumpCoeff'] = -0.002
+    cfg['environment']['reward']['feetForwardJumpCoeff'] = 5.0
+elif runNumber == 1:
+    cfg['environment']['reward']['feetForwardJumpCoeff'] = 20.0
+elif runNumber == 2:
+    cfg['environment']['reward']['feetForwardJumpCoeff'] = 100.0
 # elif runNumber == 3:
 #     lr=1e-3
 # elif runNumber == 3:

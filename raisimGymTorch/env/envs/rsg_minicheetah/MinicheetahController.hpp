@@ -23,6 +23,7 @@ class MinicheetahController {
     ANGULARVELOCIY1 = 1,
     VELOCITY1,
     AIRTIME,
+    FEETFORWARDJUMP,
     TORQUE,
     JOINTSPEED,
     FOOTSLIP,
@@ -36,7 +37,6 @@ class MinicheetahController {
     HURDLES,
     SYMMETRY,
     FOOTCONTACT,
-    FEETFORWARDJUMP,
   };
 
   void setSeed(int seed) { gen_.seed(seed); }
@@ -104,9 +104,9 @@ class MinicheetahController {
     footFrameIndices_.push_back(cheetah->getFrameIdxByName("toe_hr_joint"));
     footFrameIndices_.push_back(cheetah->getFrameIdxByName("toe_hl_joint"));
 
-    stepDataTag_ = {"rewBodyAngularVel", "rewLinearVel", "rewAirTime", "rewHurdles", "rewTorque", "rewJointSpeed",
+    stepDataTag_ = {"rewBodyAngularVel", "rewLinearVel", "rewAirTime", "rewHurdles", "rewFeetForwardJump", "rewTorque", "rewJointSpeed",
                     "rewFootSlip", "rewBodyOri", "rewSmoothness1", "rewSmoothness2", "rewJointPosition", "rewJointAcc",
-                    "rewBaseMotion", "rewFootClearance", "rewSymmetry", "rewFootContact", "rewFeetForwardJump",
+                    "rewBaseMotion", "rewFootClearance", "rewSymmetry", "rewFootContact",
                     "negativeRewardSum", "positiveRewardSum", "totalRewardSum"};
 
     stepData_.resize(stepDataTag_.size());
@@ -488,12 +488,13 @@ class MinicheetahController {
       hurdlePassed_ = true;
     }
     if(hurdlePassed_ and not groundTouch_){
-      feetForwardJumpVar = (gc_[8]-1.5)*(gc_[8]-1.5) + (gc_[11]-1.5)*(gc_[11]-1.5); //feet should show forward
+//      feetForwardJumpVar = (gc_[8]-1.5)*(gc_[8]-1.5) + (gc_[11]-1.5)*(gc_[11]-1.5); //negative, feet should show forward
+      feetForwardJumpVar = std::exp(-((gc_[8]-1.5)*(gc_[8]-1.5) + (gc_[11]-1.5)*(gc_[11]-1.5))/5); //positive, feet should show forward
     }
     if(hurdlePassed_ and (footContactState_[0] or footContactState_[1])){
       groundTouch_ = true;
     }
-    // std::cout << "feetForwardVar: " << feetForwardJumpVar << std::endl;
+//     std::cout << "feetForwardVar: " << feetForwardJumpVar << std::endl;
 
     /// Reward functions
     // curriculum factor in negative reward
@@ -521,22 +522,22 @@ class MinicheetahController {
     stepData_[1] = rewLinearVel;  /// positive reward
     stepData_[2] = rewAirTime;  /// positive reward
     stepData_[3] = rewHurdles;  /// positive reward
-    stepData_[4] = rewTorque;
-    stepData_[5] = rewJointSpeed;
-    stepData_[6] = rewFootSlip;
-    stepData_[7] = rewBodyOri;
-    stepData_[8] = rewSmoothness1;
-    stepData_[9] = rewSmoothness2;
-    stepData_[10] = rewJointPosition;
-    stepData_[11] = rewJointAcc;
-    stepData_[12] = rewBaseMotion;
-    stepData_[13] = rewFootClearance;
-    stepData_[14] = rewSymmetry / (rewCurriculumFactor + 1e-3); /// not affected of curriculum
-    stepData_[15] = rewFootContact / (rewCurriculumFactor + 1e-3);
-    stepData_[16] = rewFeetForwardJump;
+    stepData_[4] = rewFeetForwardJump;  /// positive reward
+    stepData_[5] = rewTorque;
+    stepData_[6] = rewJointSpeed;
+    stepData_[7] = rewFootSlip;
+    stepData_[8] = rewBodyOri;
+    stepData_[9] = rewSmoothness1;
+    stepData_[10] = rewSmoothness2;
+    stepData_[11] = rewJointPosition;
+    stepData_[12] = rewJointAcc;
+    stepData_[13] = rewBaseMotion;
+    stepData_[14] = rewFootClearance;
+    stepData_[15] = rewSymmetry / (rewCurriculumFactor + 1e-3); /// not affected of curriculum
+    stepData_[16] = rewFootContact / (rewCurriculumFactor + 1e-3);
 
-    double negativeRewardSum = stepData_.segment(4, stepDataTag_.size()-7).sum()* rewCurriculumFactor; /// curriculum 0->1
-    double positiveRewardSum = stepData_.head(4).sum();
+    double negativeRewardSum = stepData_.segment(5, stepDataTag_.size()-8).sum()* rewCurriculumFactor; /// curriculum 0->1
+    double positiveRewardSum = stepData_.head(5).sum();
 
     stepData_[17] = negativeRewardSum;
     stepData_[18] = positiveRewardSum;

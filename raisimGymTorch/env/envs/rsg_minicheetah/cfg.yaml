@@ -20,6 +20,7 @@ environment:
     forwardVelCoeff1: 16 #3    3
     airTimeCoeff: 0.0 #0.3 # 1.2      0.3
     hurdlesCoeff: 5000 #
+    feetForwardJumpCoeff: 20.0 #
     torqueCoeff: -6.e-4 #-2.e-5    -6.e-4
     jointSpeedCoeff: -6.e-4 #-3.25e-3        -6.e-4
     footSlipCoeff: -0.0 #          -8.e-2
@@ -32,7 +33,6 @@ environment:
     footClearanceCoeff: -0.0 #-2.0 #-10.0    -15
     symmetryCoeff: -2.0 #-2.0   -5.0
     footContactCoeff: -0.0 #-0.05
-    feetForwardJumpCoeff: -0.0 #
 
 architecture:
   policy_net: [512, 256, 64] #512, 256, 64
