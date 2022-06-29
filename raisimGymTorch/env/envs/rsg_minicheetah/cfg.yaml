@@ -1,7 +1,7 @@
 seed: 1
 
 environment:
-  isHeightMap: True
+  isHeightMap: False
   render: True
   num_envs: 800
   eval_every_n: 500

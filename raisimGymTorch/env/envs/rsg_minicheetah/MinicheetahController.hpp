@@ -133,7 +133,7 @@ class MinicheetahController {
     return true;
   }
 
-  bool reset(raisim::World *world, double comCurriculumFactor, raisim::HeightMap* heightMap_) {
+  bool reset(raisim::World *world, double comCurriculumFactor, raisim::HeightMap* heightMap_, const Eigen::Ref<EigenVec> initialStates) {
     auto *cheetah = reinterpret_cast<raisim::ArticulatedSystem *>(world->getObject("robot"));
 
     /// pd gain randomization
@@ -161,6 +161,13 @@ class MinicheetahController {
     if (keep_state){
       gc_init_noise.tail(17) = gc_.tail(17);  // body z, quaterniton, joint position. X and Y positions are set to zero.
       gv_init_noise = gv_;
+    }
+    else if(fabs(uniDist_(gen_)) < 0.1 and comCurriculumFactor>3.2){ // starts at iter ~2000, to learn switch from jump policy
+      Eigen::VectorXd initialStatesVec = initialStates.cast<double>();
+      gc_init_noise.tail(17) = initialStatesVec.head(17);  // body z, quaterniton, joint position. X and Y positions are set to zero.
+//      gv_init_noise = initialStatesVec.tail(18);
+      gv_init_noise = initialStatesVec.segment(17,18);
+      command_ = initialStatesVec.tail(3);
     }
     else {
       bool init_noise = true;

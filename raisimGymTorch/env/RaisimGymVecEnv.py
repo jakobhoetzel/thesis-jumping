@@ -10,14 +10,15 @@ import os
 
 class RaisimGymVecEnv:
 
-    def __init__(self, impl, cfg, normalize_ob=True, seed=0, normalize_rew=True, clip_obs=10.):
+    def __init__(self, impl, cfg, initialStatesSwitch, normalize_ob=True, seed=0, normalize_rew=True, clip_obs=10.):
         if platform.system() == "Darwin":
             os.environ['KMP_DUPLICATE_LIB_OK']='True'
         self.normalize_ob = normalize_ob
         self.normalize_rew = normalize_rew
         self.clip_obs = clip_obs
         self.wrapper = impl
-        self.wrapper.init()
+        initialStateEnv = np.zeros((self.num_envs, np.shape(initialStatesSwitch)[0]), dtype=np.float32)
+        self.wrapper.init(initialStateEnv)
         self.num_obs = self.wrapper.getObDim()
         self.num_robotState = self.wrapper.getRobotStateDim()
         self.num_acts = self.wrapper.getActionDim()
@@ -46,8 +47,12 @@ class RaisimGymVecEnv:
     def stop_video_recording(self):
         self.wrapper.stopRecordingVideo()
 
-    def step(self, action):
-        self.wrapper.step(action, self._reward, self._done)
+    def step(self, action, initialStatesSwitch):
+        initialStateEnv = np.zeros((self.num_envs, np.shape(initialStatesSwitch)[0]), dtype=np.float32)
+        for i in range(self.num_envs):
+            col = np.random.randint(0, np.shape(initialStatesSwitch)[1])
+            initialStateEnv[i,:] = initialStatesSwitch[:,col].transpose()
+        self.wrapper.step(action, initialStateEnv, self._reward, self._done)
         return self._reward.copy(), self._done.copy()
 
     def load_scaling(self, dir_name, iteration, count=1e5):
@@ -79,9 +84,14 @@ class RaisimGymVecEnv:
         self.wrapper.getRobotState(self._robotState)
         return self._robotState.copy()
 
-    def reset(self):
+    def reset(self, initialStatesSwitch):
         self._reward = np.zeros(self.num_envs, dtype=np.float32)
-        self.wrapper.reset()
+        initialStateEnv = np.zeros((self.num_envs, np.shape(initialStatesSwitch)[0]), dtype=np.float32)
+        for i in range(self.num_envs):
+            col = np.random.randint(0, np.shape(initialStatesSwitch)[1])
+            initialStateEnv[i,:] = initialStatesSwitch[:,col].transpose()
+        # self.wrapper.step(action, self._reward, self._done)
+        self.wrapper.reset(initialStateEnv)
 
     def _normalize_observation(self, obs):
         if self.normalize_ob:
@@ -91,20 +101,20 @@ class RaisimGymVecEnv:
         else:
             return obs
 
-    def reset_and_update_info(self):
-        return self.reset(), self._update_epi_info()
-
-    def _update_epi_info(self):
-        info = [{} for _ in range(self.num_envs)]
-
-        for i in range(self.num_envs):
-            eprew = sum(self.rewards[i])
-            eplen = len(self.rewards[i])
-            epinfo = {"r": eprew, "l": eplen}
-            info[i]['episode'] = epinfo
-            self.rewards[i].clear()
-
-        return info
+    # def reset_and_update_info(self):
+    #     return self.reset(), self._update_epi_info()
+    #
+    # def _update_epi_info(self):
+    #     info = [{} for _ in range(self.num_envs)]
+    #
+    #     for i in range(self.num_envs):
+    #         eprew = sum(self.rewards[i])
+    #         eplen = len(self.rewards[i])
+    #         epinfo = {"r": eprew, "l": eplen}
+    #         info[i]['episode'] = epinfo
+    #         self.rewards[i].clear()
+    #
+    #     return info
 
     def close(self):
         self.wrapper.close()

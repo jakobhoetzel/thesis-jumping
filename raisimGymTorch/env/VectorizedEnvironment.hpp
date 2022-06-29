@@ -30,7 +30,7 @@ class VectorizedEnvironment {
       delete ptr;
   }
 
-  void init() {
+  void init(Eigen::Ref<EigenRowMajorMat> &initialStates) {
     omp_set_num_threads(cfg_["num_threads"].template As<int>());
     num_envs_ = cfg_["num_envs"].template As<int>();
 
@@ -46,17 +46,18 @@ class VectorizedEnvironment {
     for (int i = 0; i < num_envs_; i++) {
       // only the first environment is visualized
       environments_[i]->init();
-      environments_[i]->reset();
+      environments_[i]->reset(initialStates.row(i));
     }
 
     RSFATAL_IF(environments_[0]->getObDim() == 0 || environments_[0]->getActionDim() == 0, "Observation/Action dimension must be defined in the constructor of each environment!")
   }
 
   // resets all environments and returns observation
-  void reset() {
-    for (auto env: environments_)
-      env->reset();
-  }
+  void reset(Eigen::Ref<EigenRowMajorMat> &initialStates) {
+#pragma omp parallel for
+      for (int i = 0; i < num_envs_; i++)
+        environments_[i]->reset(initialStates.row(i));
+    }
 
   void observe(Eigen::Ref<EigenRowMajorMat> &ob) {
 #pragma omp parallel for
@@ -110,11 +111,12 @@ class VectorizedEnvironment {
   }
 
   void step(Eigen::Ref<EigenRowMajorMat> &action,
+            Eigen::Ref<EigenRowMajorMat> &initialStates,
             Eigen::Ref<EigenVec> &reward,
             Eigen::Ref<EigenBoolVec> &done) {
 #pragma omp parallel for
     for (int i = 0; i < num_envs_; i++)
-      perAgentStep(i, action, reward, done);
+      perAgentStep(i, action, initialStates, reward, done);
   }
 
   void turnOnVisualization() { if(render_) environments_[0]->turnOnVisualization(); }
@@ -171,6 +173,7 @@ class VectorizedEnvironment {
 
   inline void perAgentStep(int agentId,
                            Eigen::Ref<EigenRowMajorMat> &action,
+                           Eigen::Ref<EigenRowMajorMat> &initialStates,
                            Eigen::Ref<EigenVec> &reward,
                            Eigen::Ref<EigenBoolVec> &done) {
     reward[agentId] = environments_[agentId]->step(action.row(agentId));
@@ -179,7 +182,7 @@ class VectorizedEnvironment {
     done[agentId] = environments_[agentId]->isTerminalState(terminalReward);
 
     if (done[agentId]) {
-      environments_[agentId]->reset();
+      environments_[agentId]->reset(initialStates.row(agentId));
       reward[agentId] += terminalReward;
     }
   }

@@ -83,8 +83,8 @@ class ENVIRONMENT {
   void init() {
   }
 
-  void reset() {
-    controller_.reset(world_.get(), comCurriculumFactorT_, heightMap_);
+  void reset(const Eigen::Ref<EigenVec> &initialStates) {
+    controller_.reset(world_.get(), comCurriculumFactorT_, heightMap_, initialStates);
     controller_.collisionRandomization(world_.get());
 
     mu_ = 0.4 + 0.3 * (uniDist_(gen_) + 1);  // [0.4, 1.0]

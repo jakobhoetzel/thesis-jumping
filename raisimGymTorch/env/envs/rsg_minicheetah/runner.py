@@ -12,6 +12,7 @@ import numpy as np
 import torch
 import datetime
 import argparse
+import random
 
 
 # task specification
@@ -35,8 +36,19 @@ home_path = task_path + "/../../../.."
 # config
 cfg = YAML().load(open(task_path + "/cfg.yaml", 'r'))
 
+initialStatesSwitch = np.loadtxt("runInformation.csv", delimiter=",")  # gc, gv, gf, command, dist
+initialStatesSwitch = np.concatenate((initialStatesSwitch[2:2 * 12 + 7 + 6, :], initialStatesSwitch[-4:-1, :]), axis=0)  # gc (without x,y), gv, command
+# initialStatesSwitch = initialStatesSwitch[2:2 * 12 + 7 + 6, :]  # gc (without x,y), gv
+
 # create environment from the configuration file
-env = VecEnv(rsg_minicheetah.RaisimGymEnv(home_path + "/rsc", dump(cfg['environment'], Dumper=RoundTripDumper)), cfg['environment'])
+env = VecEnv(rsg_minicheetah.RaisimGymEnv(home_path + "/rsc", dump(cfg['environment'], Dumper=RoundTripDumper)), cfg['environment'], initialStatesSwitch)
+
+seed = 1  # seed for reproducibility
+random.seed(seed)
+np.random.seed(abs(seed))
+torch.manual_seed(seed)
+env.seed(seed)
+
 
 # shortcuts
 ob_dim = env.num_obs
@@ -92,7 +104,7 @@ max_iteration = 5000 + 1
 
 for update in range(max_iteration):
     start = time.time()
-    env.reset()
+    env.reset(initialStatesSwitch)
     reward_ll_sum = 0
     done_sum = 0
     average_dones = 0.
@@ -128,7 +140,7 @@ for update in range(max_iteration):
             action_ll, _ = actor.sample(torch.from_numpy(concatenated_obs_actor).to(device))  # stochastic action
             # action_ll = loaded_graph.architecture(torch.from_numpy(obs).cpu())
 
-            reward_ll, dones = env.step(action_ll.cpu().numpy())  # in stochastic action case
+            reward_ll, dones = env.step(action_ll.cpu().numpy(), initialStatesSwitch)  # in stochastic action case
             frame_end = time.time()
             wait_time = cfg['environment']['control_dt'] - (frame_end-frame_start)
             if wait_time > 0.:
@@ -137,7 +149,7 @@ for update in range(max_iteration):
         env.stop_video_recording()
         env.turn_off_visualization()
 
-        env.reset()
+        env.reset(initialStatesSwitch)
         env.save_scaling(saver.data_dir, str(update))
 
     data_size = 0
@@ -154,7 +166,7 @@ for update in range(max_iteration):
         concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
         concatenated_obs_critic = np.concatenate((obs, robotState), axis=1)
         action = ppo.observe(concatenated_obs_actor)
-        reward, dones = env.step(action)
+        reward, dones = env.step(action, initialStatesSwitch)
         ppo.step(value_obs=concatenated_obs_critic, est_in=obs, robotState=robotState, rews=reward, dones=dones)
         done_sum = done_sum + np.sum(dones)
         reward_ll_sum = reward_ll_sum + np.sum(reward)
