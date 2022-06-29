@@ -92,8 +92,8 @@ class ENVIRONMENT {
     stepData_.resize(controller_.getStepDataTag().size());
     auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world_->getObject("robot"));
     stepVector_ = Eigen::VectorXd::Zero(cheetah->getGeneralizedCoordinateDim()+cheetah->getDOF()*2+4); //gc, gv, force, command(3), dist(1)
-    stepVector_.resize(controller_.getPlotInformation(world_.get(), stepVector_).size());
-    stepMatrix_ = Eigen::MatrixXd::Zero(controller_.getPlotInformation(world_.get(), stepVector_).size(),1); //gc(+1 dim), gv, force, dist(1)
+    stepVector_.resize(controller_.getPlotInformation(world_.get(), stepVector_, xPos_Hurdles_).size());
+    stepMatrix_ = Eigen::MatrixXd::Zero(controller_.getPlotInformation(world_.get(), stepVector_, xPos_Hurdles_).size(),1); //gc(+1 dim), gv, force, dist(1)
 
     /// visualize if it is the first environment
     if (visualizable_) {  //RaisimUnity
@@ -161,6 +161,13 @@ class ENVIRONMENT {
       hurdle2_->setName("hurdle2");
     }
 
+    if(getStepInformation and false){ // deletes when reset
+      auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world_->getObject("robot"));
+      stepVector_ = Eigen::VectorXd::Zero(cheetah->getGeneralizedCoordinateDim()+cheetah->getDOF()*2+4); //gc, gv, force, command(3), dist(1)
+      stepVector_.resize(controller_.getPlotInformation(world_.get(), stepVector_, xPos_Hurdles_).size());
+      stepMatrix_ = Eigen::MatrixXd::Zero(controller_.getPlotInformation(world_.get(), stepVector_, xPos_Hurdles_).size(),1); //gc(+1 dim), gv, force, dist(1)
+    }
+
   }
 
   const std::vector<std::string>& getStepDataTag() {
@@ -201,12 +208,25 @@ class ENVIRONMENT {
       controller_.getReward(world_.get(), rewardCoeff_, simulation_dt_, rewCurriculumFactor_, heightMap_, xPos_Hurdles_, iteration, managerTraining);
       stepData_ += controller_.getStepData();
 
-      stepVector_ =  controller_.getPlotInformation(world_.get(), stepVector_);
-      stepVector_.tail(1) << xPos_Hurdles_;
-      stepMatrix_.conservativeResize(stepVector_.rows(), stepMatrix_.cols()+1);
-      stepMatrix_.col(stepMatrix_.cols()-1) = stepVector_;
+      if(getStepInformation and false){ //if I want every simulation step
+        stepVector_ =  controller_.getPlotInformation(world_.get(), stepVector_, xPos_Hurdles_);
+        if (stepVector_.norm() > 1.e-10){
+          std::cout << "save env" << std::endl;
+          stepVector_.tail(1) << xPos_Hurdles_;
+          stepMatrix_.conservativeResize(stepVector_.rows(), stepMatrix_.cols()+1);
+          stepMatrix_.col(stepMatrix_.cols()-1) = stepVector_;
+        }
+      }
     }
 
+    if(getStepInformation and false){ //if I want every control step
+      stepVector_ =  controller_.getPlotInformation(world_.get(), stepVector_, xPos_Hurdles_);
+      if (stepVector_.norm() > 1.e-10){
+        stepVector_.tail(1) << xPos_Hurdles_;
+        stepMatrix_.conservativeResize(stepVector_.rows(), stepMatrix_.cols()+1);
+        stepMatrix_.col(stepMatrix_.cols()-1) = stepVector_;
+      }
+    }
 
     controller_.updateHistory();  /// update every control_dt
     controller_.updatePreviousActions();  /// update every control_dt
@@ -275,9 +295,9 @@ class ENVIRONMENT {
         dist_obs_next = 5; //output between -0.3 and 5
       }
       if (hurdleTraining) {
-        ob.tail(2) << terrain_curriculum_ + uniDist_(gen_) * 0.05, dist_obs_next + uniDist_(gen_) * 0.05;
+        ob.tail(2) << terrain_curriculum_ + uniDist_(gen_) * 0.1, dist_obs_next + uniDist_(gen_) * 0.1;
       } else {
-        ob.tail(2) << uniDist_(gen_) * 0.05, 5 + uniDist_(gen_) * 0.05; //no hurdle
+        ob.tail(2) << uniDist_(gen_) * 0.1, 5 + uniDist_(gen_) * 0.1; //no hurdle
       }
     }
 //    std::cout << dist_obs_next << std::endl;
@@ -414,6 +434,7 @@ class ENVIRONMENT {
   Eigen::VectorXd stepData_;
   Eigen::VectorXd stepVector_;
   Eigen::MatrixXd stepMatrix_;
+  bool getStepInformation = true;
   RandomHeightMapGenerator terrainGenerator_;
   raisim::HeightMap* heightMap_;
   thread_local static std::mt19937 gen_;

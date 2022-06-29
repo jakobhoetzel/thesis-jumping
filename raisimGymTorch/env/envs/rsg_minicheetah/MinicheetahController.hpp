@@ -92,6 +92,9 @@ class MinicheetahController {
     startNetwork_ = -1; // -1 to show it's not yet initialized
     networkEverChanged_ = false;
     step=0;
+    hurdlePassed_ = false;
+    groundTouch_ = false;
+    posTouch = std::numeric_limits<double>::infinity();;
 
     /// action scaling
     actionMean_ = gc_init_.tail(nJoints_);
@@ -149,12 +152,12 @@ class MinicheetahController {
 //    cheetah->setPdTarget(pTarget_, vTarget_); //remove when self coded pd controller is used for torque limit
 
     // joint friction
-//    Eigen::VectorXd tau; tau.setZero(gvDim_);
-//    for (int i = 0; i < nJoints_; i++){
-//      double jTorque = jointPgain_.tail(nJoints_)(i) * (pTarget12_(i) - gc_.tail(nJoints_)(i));
-//      if (jTorque > 0) tau.tail(nJoints_)(i) = std::min(jointFrictions_(i), jTorque);
-//      else tau.tail(nJoints_)(i) = std::max(-jointFrictions_(i), jTorque);
-//    }
+    Eigen::VectorXd tau; tau.setZero(gvDim_);
+    for (int i = 0; i < nJoints_; i++){
+      double jTorque = jointPgain_.tail(nJoints_)(i) * (pTarget12_(i) - gc_.tail(nJoints_)(i));
+      if (jTorque > 0) tau.tail(nJoints_)(i) = std::min(jointFrictions_(i), jTorque);
+      else tau.tail(nJoints_)(i) = std::max(-jointFrictions_(i), jTorque);
+    }
 //    cheetah->setGeneralizedForce(-tau);  //remove when self coded pd controller is used for torque limit
 
     // for manager network
@@ -343,6 +346,9 @@ class MinicheetahController {
     maxXPos_ = 0.0;
     footOverHurdles = {false, false, false, false};
     step=0;
+    hurdlePassed_ = false;
+    groundTouch_ = false;
+    posTouch = std::numeric_limits<double>::infinity();;
 
     return true;
   }
@@ -613,7 +619,7 @@ class MinicheetahController {
         if(contact.getlocalBodyIndex() == footIndices_[i])
           footContactState_[i] = true;
 
-    if(true) { //output if max joint speed or torque is exceeded
+    if(false) { //output if max joint speed or torque is exceeded
       Eigen::VectorXd pTargetDiffMax = pTarget12_ - gc_.tail(nJoints_);
 
       if (std::abs(gv_.tail(nJoints_)(0)) > 40 or std::abs(gv_.tail(nJoints_)(3)) > 40
@@ -782,9 +788,22 @@ class MinicheetahController {
     return actionDim_;
   }
 
-  Eigen::VectorXd getPlotInformation(raisim::World *world, Eigen::VectorXd& stepVector) { //switch off noise
+  Eigen::VectorXd getPlotInformation(raisim::World *world, Eigen::VectorXd& stepVector, double xPosHurdles) { //switch off noise
     auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world->getObject("robot"));
     stepVector << gc_, gv_, cheetah->getGeneralizedForce().e(), command_, 0;
+
+    if(gc_[0] > (xPosHurdles + 0.1) and  (!footContactState_[0] and !footContactState_[1] and !footContactState_[2] and !footContactState_[3]) and not hurdlePassed_){
+      hurdlePassed_ = true;
+    }
+    if(hurdlePassed_ and (footContactState_[0] or footContactState_[1]) and posTouch>1.e20){
+      groundTouch_ = true;
+      posTouch = gc_[0];
+    }
+
+    if(not networkSelection_ and gc_[0]>(posTouch+0.5)){
+    }else{
+      stepVector.setZero();
+    }
     return stepVector;
   }
 
@@ -856,6 +875,8 @@ class MinicheetahController {
   bool isHeightMap_;
   double maxBodyHeight_,  maxXPos_;
   bool hurdleTraining_;
+  bool hurdlePassed_, groundTouch_;
+  double posTouch;
   int step;
   bool networkSelection_, previousNetworkSelection_, networkEverChanged_;
   int startNetwork_;

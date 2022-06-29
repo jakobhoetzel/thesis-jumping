@@ -14,6 +14,7 @@ import argparse
 import pygame
 import csv
 import datetime
+import random
 
 
 # pygame for logitech gamepad
@@ -37,7 +38,7 @@ weight_path_run = None; weight_path_jump = None; weight_path_manager = None; wei
 iteration_number_run = None; iteration_number_jump = None; iteration_number_manager = None; iteration_number_total = None
 weight_dir_run = None; weight_dir_jump = None; weight_dir_manager = None; weight_dir_total = None
 
-weight_path_run = "../../../data/minicheetah_locomotion/RunCriticG99/full_2500.pt"
+weight_path_run = "../../../data/minicheetah_locomotion/baselineRun_Switch1_Critic/full_0.pt"
 iteration_number_run = weight_path_run.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_run = weight_path_run.rsplit('/', 1)[0] + '/'
 
@@ -57,11 +58,17 @@ weight_dir_manager = weight_path_manager.rsplit('/', 1)[0] + '/'
 cfg = YAML().load(open(task_path + "/cfg.yaml", 'r')) # change to weight_path
 
 # create environment from the configuration file
-cfg['environment']['num_envs'] = 1
+cfg['environment']['num_envs'] = 2  # 1 to see
 
 sensor_dim = 2
 env = VecEnv(rsg_minicheetah.RaisimGymEnv(home_path + "/rsc", dump(cfg['environment'], Dumper=RoundTripDumper)), cfg['environment'], sensor_dim=sensor_dim)
 networkSelector = NetworkSelector(cfg['environment']['num_envs'], device)
+
+seed = random.randint(-10000, 10000)  # seed for reproducibility
+# random.seed(seed)
+np.random.seed(abs(seed))
+torch.manual_seed(seed)
+env.seed(seed)
 
 # shortcuts
 ob_dim = env.num_obs
@@ -131,18 +138,22 @@ else:
     print('actor of {} parameters'.format(sum(p.numel() for p in actor_run.parameters())))
     print('actor of {} parameters'.format(sum(p.numel() for p in actor_jump.parameters())))
 
-    env.turn_on_visualization()
-    env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy.mp4")
+    # env.turn_on_visualization()
+    # env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy.mp4")
     time.sleep(2)
 
-    # max_steps = 1000000
-    max_steps = 10000 ## 400*2 10 secs
+    max_steps = 1000000
+    # max_steps = 400 ## 400*2 10 secs
+    # command = np.array([random.uniform(3.0, 3.5), 0, 0], dtype=np.float32)
     command = np.array([3.5, 0, 0], dtype=np.float32)
     env.set_command(command, testNumber=1)
     env.curriculum_callback(0)
     env.reset()
     selectedNetwork = None
     # env.printTest()
+    projectDistance = False
+    dist_project = 0.0
+    timestep = cfg['environment']['control_dt']
 
     run_bool = np.ones(shape=(cfg['environment']['num_envs'], 1), dtype=np.intc)
     dones = np.zeros(shape=(cfg['environment']['num_envs'], 1), dtype=np.intc)
@@ -187,6 +198,28 @@ else:
         concatenated_obs_actor_jump = np.concatenate((obs_jump, est_out_jump.cpu().detach().numpy()), axis=1)
         # concatenated_obs_actor_manager = np.concatenate((obs_manager, est_out_run.cpu().detach().numpy(), np.float32(run_bool)), axis=1)
 
+        # project distance based on velocity when close to hurdle
+        if False:
+            dist_real = obs_notNorm.item(0,-1)
+            # if 0.5 > dist_real > 0.0 and not projectDistance:
+            if not run_bool[0,0] and not projectDistance and not dist_project == 5:
+                projectDistance = True
+                dist_project = dist_real + random.uniform(-0.1, 0.1)
+            elif projectDistance:
+                dist_project = dist_project - est_out_jump.data.numpy().item(0,0) * timestep
+                if dist_project < -0.3:
+                    dist_project = 5
+                    projectDistance = False
+                dist_project_norm = (dist_project - env.obs_rms_jump.mean[0,-1]) / np.sqrt(env.obs_rms_jump.var[0,-1]) # normalisation
+                concatenated_obs_actor_jump[0,ob_dim-1] = dist_project_norm  # normalisation missing
+                obs_notNorm[0,ob_dim-1] = dist_project
+                print("real: ", dist_real, ", projected: ", dist_project)
+
+            if run_bool[0,0] and dist_project == 5:  # after switch back to run
+                dist_project = 0.0
+
+
+
         # action_probs = actor_manager.architecture(torch.from_numpy(concatenated_obs_actor_manager).cpu())
         # print(action_probs)
         # dist = Categorical(action_probs)
@@ -195,7 +228,7 @@ else:
         value_run = critic_run.architecture(torch.from_numpy(concatenated_obs_critic_run).cpu())
         value_jump = critic_jump.architecture(torch.from_numpy(concatenated_obs_actor_jump).cpu())
 
-        gradient_calculation(critic_run, concatenated_obs_critic_run, concatenated_obs_critic_run_old)
+        # gradient_calculation(critic_run, concatenated_obs_critic_run, concatenated_obs_critic_run_old)
         # gradient_calculation(critic_jump, concatenated_obs_actor_jump, concatenated_obs_actor_jump_old)
 
         # print('value run: ', value_run.item(), '    value_jump: ', value_jump.item())
@@ -208,8 +241,8 @@ else:
         # run_bool = value_run > value_jump
         # run_bool = torch.from_numpy(run_bool_function_0(obs_notNorm)) #only test!!!
         # run_bool = torch.from_numpy(run_bool_function_1(obs_notNorm)) #only test!!!
-        previousNetwork = selectedNetwork
-        selectedNetwork = run_bool.item()
+        # previousNetwork = selectedNetwork
+        # selectedNetwork = run_bool.item()
         jump_bool = torch.add(torch.ones(run_bool.size(), device='cpu'), run_bool, alpha=-1)  # 1-run_bool
         actions_run = actor_run.architecture(torch.from_numpy(concatenated_obs_actor_run).cpu())
         actions_jump = actor_jump.architecture(torch.from_numpy(concatenated_obs_actor_jump).cpu())
@@ -229,38 +262,39 @@ else:
         # writer = csv.writer(f3)
         # writer.writerow(est_in[0][0:2].cpu().detach().numpy())
 
-        if step==0:
-            if selectedNetwork == 0:
-                print("selected network in step ", step, ": jump")
-            else:
-                print("selected network in step ", step, ": run")
-        elif previousNetwork == 0 and selectedNetwork == 1:
-            print("changed network in step ", step, ": jump -> run")
-        elif previousNetwork == 1 and selectedNetwork == 0:
-            print("changed network in step ", step, ": run -> jump")
+        # if step==0:
+        #     if selectedNetwork == 0:
+        #         print("selected network in step ", step, ": jump")
+        #     else:
+        #         print("selected network in step ", step, ": run")
+        # elif previousNetwork == 0 and selectedNetwork == 1:
+        #     print("changed network in step ", step, ": jump -> run")
+        # elif previousNetwork == 1 and selectedNetwork == 0:
+        #     print("changed network in step ", step, ": run -> jump")
 
         # if selectedNetwork == 0:
         #     print("jump selected")
 
         reward_ll_sum = reward_ll_sum + reward_ll[0]
-        if dones or step == max_steps - 1:
-            print('----------------------------------------------------')
-            print('{:<40} {:>6}'.format("average ll reward: ", '{:0.10f}'.format(reward_ll_sum / (step + 1 - start_step_id))))
-            print('{:<40} {:>6}'.format("time elapsed [sec]: ", '{:6.4f}'.format((step + 1 - start_step_id) * 0.01)))
-            print('----------------------------------------------------\n')
-            start_step_id = step + 1
-            reward_ll_sum = 0.0
+        # if dones or step == max_steps - 1:
+        #     print('----------------------------------------------------')
+        #     print('{:<40} {:>6}'.format("average ll reward: ", '{:0.10f}'.format(reward_ll_sum / (step + 1 - start_step_id))))
+        #     print('{:<40} {:>6}'.format("time elapsed [sec]: ", '{:6.4f}'.format((step + 1 - start_step_id) * 0.01)))
+        #     print('----------------------------------------------------\n')
+        #     start_step_id = step + 1
+        #     reward_ll_sum = 0.0
 
         frame_end = time.time()
         wait_time = cfg['environment']['control_dt'] - (frame_end-frame_start)
         if wait_time > 0.:
             time.sleep(wait_time)
-        time.sleep(0.01) #0.05
+        time.sleep(0.01) #0.05 ONLY TO SEE, NOT FOR REAL SPEED!
 
-    env.stop_video_recording()
-    env.turn_off_visualization()
-    env.reset()
+    # env.stop_video_recording()
+    # env.turn_off_visualization()
+    # env.reset()
 
-    runInfo = env.get_run_information()[:,1:].transpose()
-    np.savetxt("runInformation.csv", runInfo, delimiter=",")
-    print("Finished at the maximum visualization steps")
+    # runInfo = env.get_run_information()[:,1:]
+    # runInfoOld = np.loadtxt("runInformation.csv", delimiter=",")
+    # np.savetxt("runInformation.csv", runInfo, delimiter=",")
+    # print("Finished at the maximum visualization steps")
