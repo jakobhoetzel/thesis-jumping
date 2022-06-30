@@ -216,7 +216,7 @@ class MinicheetahController {
 
   void go_straight_controller(){
 //    command_(1) = -0.2 * gc_(1);
-    command_(2) = -2 * gv_(1);
+    command_(2) = -0.5 * gv_(1);
   }
 
   bool reset(raisim::World *world, double comCurriculumFactor, raisim::HeightMap* heightMap_, bool hurdleTraining) {
@@ -252,7 +252,7 @@ class MinicheetahController {
 
 
     bool keep_state = fabs(uniDist_(gen_)) < 0.25; /// keep state and only change command. 25%
-    if (keep_state){
+    if (keep_state and false){ //no keep_state to calculate sucess rate
       gc_init_noise.tail(17) = gc_.tail(17);  // body z, quaterniton, joint position. X and Y positions are set to zero.
       gv_init_noise = gv_;
     }

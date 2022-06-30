@@ -3,10 +3,10 @@ seed: 1
 environment:
   isHeightMap: False #True
   render: True
-  num_envs: 1 # 800
+  num_envs: 100 # 800
   eval_every_n: 250 # 500
   num_threads: 36 # 128
-  simulation_dt: 0.00001 # 0.00001 0.002    0.001
+  simulation_dt: 0.002 # 0.00001 0.002    0.001
   control_dt: 0.01 #0.01
   max_time: 4.0 # 4.0
   rew_curriculum_factor: 1

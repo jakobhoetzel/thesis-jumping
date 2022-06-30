@@ -17,7 +17,7 @@ import datetime
 import random
 
 
-# pygame for logitech gamepad
+# # pygame for logitech gamepad
 # pygame.display.init()
 # pygame.joystick.init()
 # pygame.joystick.Joystick(1).init()
@@ -58,7 +58,7 @@ weight_dir_manager = weight_path_manager.rsplit('/', 1)[0] + '/'
 cfg = YAML().load(open(task_path + "/cfg.yaml", 'r')) # change to weight_path
 
 # create environment from the configuration file
-cfg['environment']['num_envs'] = 2  # 1 to see
+cfg['environment']['num_envs'] = 1  # 1 to see
 
 sensor_dim = 2
 env = VecEnv(rsg_minicheetah.RaisimGymEnv(home_path + "/rsc", dump(cfg['environment'], Dumper=RoundTripDumper)), cfg['environment'], sensor_dim=sensor_dim)

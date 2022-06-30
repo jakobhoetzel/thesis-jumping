@@ -141,7 +141,9 @@ class VectorizedEnvironment {
   }
 
   void setCommand(const Eigen::Ref<EigenVec>& command, int testNumber=0) {
-    environments_[0]->setCommand(command, testNumber);
+#pragma omp parallel for
+    for (int i = 0; i < num_envs_; i++)
+      environments_[i]->setCommand(command, testNumber);
   }
 
   void close() {

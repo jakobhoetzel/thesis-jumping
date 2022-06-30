@@ -72,14 +72,14 @@ class ENVIRONMENT {
     }
     else {
       world_->addGround();
-      xPos_Hurdles_ = uniDist_(gen_)*0.5 + 5.0;
+      xPos_Hurdles_ = uniDist_(gen_)*0.5 + 5.0; //5
       auto hurdle1_ = world_->addBox(0.1, 500, terrain_curriculum_, 100000); //x, y, z length, mass change also in reset
       hurdle1_->setPosition(xPos_Hurdles_, 0, terrain_curriculum_/2.0); //pos of cog
       hurdle1_->setOrientation(1., 0, 0, 0); //quaternion
       hurdle1_->setName("hurdle1");
-      secondHurdle_ = true;
+      secondHurdle_ = false;
       if (secondHurdle_){
-        xPos_Hurdles2_ = uniDist_(gen_)*0.5 + 10.0;
+        xPos_Hurdles2_ = uniDist_(gen_)*0.5 + 10.0; //10
       } else{
         xPos_Hurdles2_ = xPos_Hurdles_;
       }
