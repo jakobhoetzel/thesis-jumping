@@ -10,14 +10,14 @@ import os
 
 class RaisimGymVecEnv:
 
-    def __init__(self, impl, cfg, normalize_ob=True, seed=0, normalize_rew=True, clip_obs=10.):
+    def __init__(self, impl, cfg, normalize_ob=True, seed=0, normalize_rew=True, clip_obs=10., hurdle_perc=1.0):
         if platform.system() == "Darwin":
             os.environ['KMP_DUPLICATE_LIB_OK']='True'
         self.normalize_ob = normalize_ob
         self.normalize_rew = normalize_rew
         self.clip_obs = clip_obs
         self.wrapper = impl
-        self.wrapper.init()
+        self.wrapper.init(hurdle_perc)
         self.num_obs = self.wrapper.getObDim()
         self.num_robotState = self.wrapper.getRobotStateDim()
         self.num_acts = self.wrapper.getActionDim()

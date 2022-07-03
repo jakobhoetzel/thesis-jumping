@@ -89,6 +89,16 @@ else:
 
     for step in range(max_steps):
         frame_start = time.time()
+
+        # if (step % 10 == 0):
+        #     command_Vx = -4. * pygame.joystick.Joystick(1).get_axis(1)
+        #     if (command_Vx < 0):
+        #         command_Vx *= 0.5
+        #     command_Vy = - pygame.joystick.Joystick(1).get_axis(0)
+        #     command_yaw = -2 * pygame.joystick.Joystick(1).get_axis(3)
+        #     command = np.array([command_Vx, command_Vy, command_yaw], dtype=np.float32)
+        #     env.set_command(command, testNumber=1)
+        #     # command_change = - pygame.joystick.Joystick(1).get_axis(2)  # LT
         # if step % 400 == 0:
         #     command_Vx = np.random.uniform(-1.75, 3.5, 1)
         #     command_Vy = np.random.uniform(-1., 1., 1)

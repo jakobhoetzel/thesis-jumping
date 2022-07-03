@@ -5,7 +5,7 @@ environment:
   render: True
   num_envs: 800 # 800
   eval_every_n: 500 # 500
-  num_threads: 36 # 128
+  num_threads: 128 # 128
   simulation_dt: 0.002 #     0.001
   control_dt: 0.01
   max_time: 4.0 # 4.0
@@ -18,20 +18,20 @@ environment:
   reward:
     bodyAngularVelCoeff1: 3 #1.5   3
     forwardVelCoeff1: 16 #3    3
-    airTimeCoeff: 0.0 #0.3 # 1.2      0.3
+    airTimeCoeff: 0.3 #0.3 # 1.2      0.3
     hurdlesCoeff: 5000 #
     feetForwardJumpCoeff: 20.0 #
     torqueCoeff: -6.e-4 #-2.e-5    -6.e-4
     jointSpeedCoeff: -6.e-4 #-3.25e-3        -6.e-4
-    footSlipCoeff: -0.0 #          -8.e-2
-    bodyOriCoeff: -0.0 #-0.5 #-5.0        -3.0
-    smoothnessCoeff1: -0.0 #-5.0      -2.5
-    smoothnessCoeff2: -0.0 #-1.6     -1.2
+    footSlipCoeff: -8.e-2 #          -8.e-2
+    bodyOriCoeff: -3.0 #-0.5 #-5.0        -3.0
+    smoothnessCoeff1: -2.5 #-5.0      -2.5
+    smoothnessCoeff2: -1.2 #-1.6     -1.2
     jointPosCoeff: -0.75 #     -0.75
-    jointAccCoeff: -0.0 #-3e-2      -2.e-2
-    baseMotionCoeff: -0.0  #         -1.5
-    footClearanceCoeff: -0.0 #-2.0 #-10.0    -15
-    symmetryCoeff: -2.0 #-2.0   -5.0
+    jointAccCoeff: -2.e-2 #-3e-2      -2.e-2
+    baseMotionCoeff: -1.5  #         -1.5
+    footClearanceCoeff: -15.0 #-2.0 #-10.0    -15
+    symmetryCoeff: -0.0 #-2.0   -5.0
     footContactCoeff: -0.0 #-0.05
 
 architecture:

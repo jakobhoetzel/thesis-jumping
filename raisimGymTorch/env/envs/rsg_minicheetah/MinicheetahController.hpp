@@ -225,7 +225,7 @@ class MinicheetahController {
       command_ <<  0.25 * uniDist_(gen_) + 3.25, 0.1 * uniDist_(gen_), 0.05 * uniDist_(gen_); // comCurriculumFactor, 1.0, 2.0
     }
     else{
-      if(fabs(p) < 0.2) {  // 10%
+      if(fabs(p) < 0.1) {  // 10%
         command_.setZero();
         standingMode_ = true;
       }
@@ -457,31 +457,31 @@ class MinicheetahController {
 
     double forcePenalty = 0.0;
     raisim::VecDyn genForce = cheetah->getGeneralizedForce(); // knee is critical joint -> increase factor
-      for (int i = 6; i < genForce.size(); i++){
-        if(genForce[i]>=(17-4) and (i%3==0 or i%3==1)){ //cut max torque
-          forcePenalty += std::exp((genForce[i]-17)/3);
-        }else if(genForce[i]<=-(17-4) and (i%3==0 or i%3==1)){
-          forcePenalty += std::exp((-genForce[i]-17)/3);
-        }else if(genForce[i]>=(26.3-5) and i%3==2){ //knee
-          forcePenalty += std::exp((genForce[i]-26.3)/3);
-        }else if(genForce[i]<=-(26.3-5) and i%3==2){
-          forcePenalty += std::exp((-genForce[i]-26.3)/3);
-        }
-      }
+//      for (int i = 6; i < genForce.size(); i++){
+//        if(genForce[i]>=(17-4) and (i%3==0 or i%3==1)){ //cut max torque
+//          forcePenalty += std::exp((genForce[i]-17)/3);
+//        }else if(genForce[i]<=-(17-4) and (i%3==0 or i%3==1)){
+//          forcePenalty += std::exp((-genForce[i]-17)/3);
+//        }else if(genForce[i]>=(26.3-5) and i%3==2){ //knee
+//          forcePenalty += std::exp((genForce[i]-26.3)/3);
+//        }else if(genForce[i]<=-(26.3-5) and i%3==2){
+//          forcePenalty += std::exp((-genForce[i]-26.3)/3);
+//        }
+//      }
 
     double speedPenalty = 0.0;
     Eigen::VectorXd genVel = gv_.tail(12); // knee is critical joint -> increase factor
-    for (int i = 0; i < genVel.size(); i++){
-      if(genVel[i]>=(40-6) and (i%3==0 or i%3==1)){ //cut max torque
-        speedPenalty += std::exp((genVel[i]-40)/3);
-      }else if(genVel[i]<=-(40-6) and (i%3==0 or i%3==1)){
-        speedPenalty += std::exp((-genVel[i]-40)/3);
-      }else if(genVel[i]>=(25.8-4) and i%3==2){ //knee
-        speedPenalty += std::exp((genVel[i]-25.8)/3);
-      }else if(genVel[i]<=-(25.8-4) and i%3==2){
-        speedPenalty += std::exp((-genVel[i]-25.8)/3);
-      }
-    }
+//    for (int i = 0; i < genVel.size(); i++){
+//      if(genVel[i]>=(40-6) and (i%3==0 or i%3==1)){ //cut max torque
+//        speedPenalty += std::exp((genVel[i]-40)/3);
+//      }else if(genVel[i]<=-(40-6) and (i%3==0 or i%3==1)){
+//        speedPenalty += std::exp((-genVel[i]-40)/3);
+//      }else if(genVel[i]>=(25.8-4) and i%3==2){ //knee
+//        speedPenalty += std::exp((genVel[i]-25.8)/3);
+//      }else if(genVel[i]<=-(25.8-4) and i%3==2){
+//        speedPenalty += std::exp((-genVel[i]-25.8)/3);
+//      }
+//    }
 
     double feetForwardJumpVar = 0.0; //reward that feet show forward during jump for safety and more natural look
     if(gc_[0] > (xPosHurdles - 0.6) and  (!footContactState_[0] and !footContactState_[1] and !footContactState_[2] and !footContactState_[3])){
@@ -501,21 +501,21 @@ class MinicheetahController {
     double rewBodyAngularVel = std::exp(-1.5 * pow((command_(2) - bodyAngularVel_(2)), 2)) * rewardCoeff.at(RewardType::ANGULARVELOCIY1);
     double rewLinearVel = std::exp(-1.0 * (command_.head(2) - bodyLinearVel_.head(2)).squaredNorm()) * rewardCoeff.at(RewardType::VELOCITY1);
 //    double rewLinearVel = std::exp(0.4 * std::min(bodyLinearVel_[0],3.5) - 0.4*std::abs(bodyLinearVel_[1])) * rewardCoeff.at(RewardType::VELOCITY1); //max reward limited
-    double rewAirTime = airtimeTotal * rewardCoeff.at(RewardType::AIRTIME);
-    double rewHurdles = hurdlesVar * rewardCoeff.at(RewardType::HURDLES);
+    double rewAirTime = airtimeTotal * rewardCoeff.at(RewardType::AIRTIME) * (1 - hurdleTraining_);
+    double rewHurdles = hurdlesVar * rewardCoeff.at(RewardType::HURDLES) * hurdleTraining_;
     double rewTorque = rewardCoeff.at(RewardType::TORQUE) * (genForce.squaredNorm() + forcePenalty) * exceedFactor; //max torque: 17, 17, 26.3(?) Nm (last is knee)
     double rewJointSpeed = (genVel.squaredNorm() + speedPenalty) * rewardCoeff.at(RewardType::JOINTSPEED) * exceedFactor; // max joint speed: 40, 40, 25.8(?) rad/s
-    double rewFootSlip = footTangentialForSlip * rewardCoeff.at(RewardType::FOOTSLIP);
-    double rewBodyOri = std::acos(rot_(8)) * std::acos(rot_(8)) * rewardCoeff.at(RewardType::ORIENTATION);
-    double rewSmoothness1 = rewardCoeff.at(RewardType::SMOOTHNESS1) * (pTarget12_ - previousAction_).squaredNorm();
-    double rewSmoothness2 = rewardCoeff.at(RewardType::SMOOTHNESS2) * (pTarget12_ - 2 * previousAction_ + prepreviousAction_).squaredNorm();
+    double rewFootSlip = footTangentialForSlip * rewardCoeff.at(RewardType::FOOTSLIP) * (1 - hurdleTraining_);
+    double rewBodyOri = std::acos(rot_(8)) * std::acos(rot_(8)) * rewardCoeff.at(RewardType::ORIENTATION) * (1 - hurdleTraining_);
+    double rewSmoothness1 = rewardCoeff.at(RewardType::SMOOTHNESS1) * (pTarget12_ - previousAction_).squaredNorm() * (1 - hurdleTraining_);
+    double rewSmoothness2 = rewardCoeff.at(RewardType::SMOOTHNESS2) * (pTarget12_ - 2 * previousAction_ + prepreviousAction_).squaredNorm() * (1 - hurdleTraining_);
     double rewJointPosition = (gc_.tail(nJoints_) - gc_init_.tail(nJoints_)).squaredNorm() * rewardCoeff.at(RewardType::JOINTPOS);
-    double rewJointAcc = (gv_.tail(12) - preJointVel_).squaredNorm() * rewardCoeff.at(RewardType::JOINTACC);
-    double rewBaseMotion = (0.3 * bodyLinearVel_[2] * bodyLinearVel_[2] + 0.2 * fabs(bodyAngularVel_[0]) + 0.2 * fabs(bodyAngularVel_[1])) * rewardCoeff.at(RewardType::BASEMOTION);
-    double rewFootClearance = footClearanceTangential * rewardCoeff.at(RewardType::FOOTCLEARANCE);
-    double rewSymmetry = (1 - rewCurriculumFactor) * symmetryCoeff * rewardCoeff.at(RewardType::SYMMETRY); /// curriculum 1->0
-    double rewFootContact = footContactVar * rewardCoeff.at(RewardType::FOOTCONTACT);
-    double rewFeetForwardJump = feetForwardJumpVar * rewardCoeff.at(RewardType::FEETFORWARDJUMP);
+    double rewJointAcc = (gv_.tail(12) - preJointVel_).squaredNorm() * rewardCoeff.at(RewardType::JOINTACC) * (1 - hurdleTraining_);
+    double rewBaseMotion = (0.8 * bodyLinearVel_[2] * bodyLinearVel_[2] + 0.2 * fabs(bodyAngularVel_[0]) + 0.2 * fabs(bodyAngularVel_[1])) * rewardCoeff.at(RewardType::BASEMOTION) * (1 - hurdleTraining_);
+    double rewFootClearance = footClearanceTangential * rewardCoeff.at(RewardType::FOOTCLEARANCE) * (1 - hurdleTraining_);
+    double rewSymmetry = (1 - rewCurriculumFactor) * symmetryCoeff * rewardCoeff.at(RewardType::SYMMETRY) * hurdleTraining_; /// curriculum 1->0
+    double rewFootContact = footContactVar * rewardCoeff.at(RewardType::FOOTCONTACT) * hurdleTraining_;
+    double rewFeetForwardJump = feetForwardJumpVar * rewardCoeff.at(RewardType::FEETFORWARDJUMP) * hurdleTraining_;
 //    std::cout << "rewFeetForwardJump: " << rewFeetForwardJump << std::endl;
 
     stepData_[0] = rewBodyAngularVel;  /// positive reward; maximization
@@ -660,11 +660,11 @@ class MinicheetahController {
       if (std::find(footIndices_.begin(), footIndices_.end(), contact.getlocalBodyIndex()) == footIndices_.end())
         return true;
     }
-    double exceedFactor = 4; // how much can max joint torque and speed be exceeded (curriculum)
-    if (iteration > 4000 and testNumber==0){ //only during training
-//      exceedFactor = std::max(1, 2 - (iteration-2500) / 5000);
-      exceedFactor = std::max(1.0, 4.0 - 2.0 * (iteration-4000) / 3500);
-    }
+    double exceedFactor = 1000; // 4 how much can max joint torque and speed be exceeded (curriculum)
+//    if (iteration > 4000 and testNumber==0){ //only during training
+////      exceedFactor = std::max(1, 2 - (iteration-2500) / 5000);
+//      exceedFactor = std::max(1.0, 4.0 - 2.0 * (iteration-4000) / 3500);
+//    }
 
     if (std::abs(gv_.tail(nJoints_)(0)) > 40*exceedFactor or std::abs(gv_.tail(nJoints_)(3)) > 40*exceedFactor //hip ab/ad
         or std::abs(gv_.tail(nJoints_)(6)) > 40*exceedFactor or std::abs(gv_.tail(nJoints_)(9)) > 40*exceedFactor) {

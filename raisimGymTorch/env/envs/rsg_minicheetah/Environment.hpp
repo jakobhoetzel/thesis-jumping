@@ -24,7 +24,7 @@ class ENVIRONMENT {
 
  public:
 
-  explicit ENVIRONMENT(const std::string &resourceDir, const Yaml::Node &cfg, bool visualizable) : //resourceDir = .../rsc
+  explicit ENVIRONMENT(const std::string &resourceDir, const Yaml::Node &cfg, bool visualizable, double hurdle_perc) : //resourceDir = .../rsc
   visualizable_(visualizable) {
     /// add objects
     world_ = std::make_unique<raisim::World>();
@@ -64,6 +64,7 @@ class ENVIRONMENT {
 
     terrain_curriculum_ = terCurriculumFactor_*0.25;
     testNumber = 0;
+    this->hurdle_perc = hurdle_perc;
     isHeightMap_ = cfg["isHeightMap"].template As<bool>();
     controller_.setIsHeightMap(isHeightMap_);
     if (isHeightMap_){
@@ -108,9 +109,9 @@ class ENVIRONMENT {
   }
 
   void reset() {
-    double p = uniDist_(gen_); //p between -1 and 1
+    double p = std::abs(uniDist_(gen_)); //p between -1 and 1
     hurdleTraining = true; // testNumber = 1: test of jumping -> always hurdles
-    if (p < -1.0 and testNumber==0){ // training -> hurdles according to probability (set probability here)
+    if (p < (1-hurdle_perc) and testNumber==0){ // training -> hurdles according to probability (set probability here)
       hurdleTraining = false;
     } else if(testNumber==2){
       hurdleTraining = false; // test of running without hurdles
@@ -330,7 +331,7 @@ class ENVIRONMENT {
   double simulation_dt_;
   double control_dt_;
   double mu_;
-  double hurdleHeight_;
+  double hurdleHeight_, hurdle_perc;
   int groundType_ = 5; //0  Set ground Type
   int delayDividedBySimdt;
   bool hurdleTraining;

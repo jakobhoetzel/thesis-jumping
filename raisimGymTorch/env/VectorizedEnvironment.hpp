@@ -30,12 +30,12 @@ class VectorizedEnvironment {
       delete ptr;
   }
 
-  void init() {
+  void init(double hurdle_perc) {
     omp_set_num_threads(cfg_["num_threads"].template As<int>());
     num_envs_ = cfg_["num_envs"].template As<int>();
 
     for (int i = 0; i < num_envs_; i++) {
-      environments_.push_back(new ChildEnvironment(resourceDir_, cfg_, render_ && i == 0));
+      environments_.push_back(new ChildEnvironment(resourceDir_, cfg_, render_ && i == 0, hurdle_perc));
       environments_.back()->setSimulationTimeStep(cfg_["simulation_dt"].template As<double>());
       environments_.back()->setControlTimeStep(cfg_["control_dt"].template As<double>());
     }

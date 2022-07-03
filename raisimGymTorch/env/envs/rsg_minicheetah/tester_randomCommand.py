@@ -91,7 +91,7 @@ else:
             command = np.array([command_Vx, command_Vy, command_yaw], dtype=np.float32)
             env.set_command(command, testNumber=2)
 
-        obs = env.observe(update_mean=False)
+        obs, _ = env.observe(update_mean=False)
         obs_estimator = obs[:,:ob_dim-sensor_dim]
         robotState = env.getRobotState()
         # robotState = np.ones((cfg['environment']['num_envs'],robotState_dim), dtype=np.float32)  # for checking

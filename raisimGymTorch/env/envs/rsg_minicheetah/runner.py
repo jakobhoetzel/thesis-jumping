@@ -49,14 +49,17 @@ home_path = task_path + "/../../../.."
 # config
 cfg = YAML().load(open(task_path + "/cfg.yaml", 'r'))
 
+hurdle_perc = 0.0
 if runNumber == 0:
-    cfg['environment']['reward']['feetForwardJumpCoeff'] = 5.0
+    cfg['environment']['reward']['symmetryCoeff'] = -0.0
+    hurdle_perc = 0.2
 elif runNumber == 1:
-    cfg['environment']['reward']['feetForwardJumpCoeff'] = 20.0
-elif runNumber == 2:
-    cfg['environment']['reward']['feetForwardJumpCoeff'] = 100.0
+    cfg['environment']['reward']['symmetryCoeff'] = -2.0
+    hurdle_perc = 0.3
+# elif runNumber == 2:
+#     hurdle_perc = 0.5
 # elif runNumber == 3:
-#     lr=1e-3
+#     hurdle_perc = 5.0
 # elif runNumber == 3:
 #     cfg['environment']['reward']['torqueCoeff'] = -3.e-3
 #     cfg['environment']['reward']['jointSpeedCoeff'] = -1.e-3
@@ -68,7 +71,7 @@ elif runNumber == 2:
 #     cfg['environment']['reward']['jointSpeedCoeff'] = -6.e-3
 
 # create environment from the configuration file
-env = VecEnv(rsg_minicheetah.RaisimGymEnv(home_path + "/rsc", dump(cfg['environment'], Dumper=RoundTripDumper)), cfg['environment'])
+env = VecEnv(rsg_minicheetah.RaisimGymEnv(home_path + "/rsc", dump(cfg['environment'], Dumper=RoundTripDumper)), cfg['environment'], hurdle_perc=hurdle_perc)
 
 seed = 1  # seed for reproducibility
 random.seed(seed)
