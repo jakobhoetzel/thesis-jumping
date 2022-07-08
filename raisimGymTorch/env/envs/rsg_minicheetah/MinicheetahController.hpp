@@ -164,7 +164,7 @@ class MinicheetahController {
     previousNetworkSelection_ = networkSelection_;
     networkSelection_ = run_bool;
 
-    if(false) { //output if max joint speed or torque is exceeded
+    if(false) { //output if max joint speed or torque is exceeded, every control step
         Eigen::VectorXd pTargetDiffMax = pTarget12_ - gc_.tail(nJoints_);
 //      std::cout << "gv(tail): " << gv_.tail(nJoints_)  << std::endl;
 //      std::cout << "force: " << cheetah->getGeneralizedForce() << std::endl;
@@ -182,11 +182,27 @@ class MinicheetahController {
                   std::max( {std::abs(gv_.tail(nJoints_)(1)), std::abs(gv_.tail(nJoints_)(4)),
                              std::abs(gv_.tail(nJoints_)(7)), std::abs(gv_.tail(nJoints_)(10))} ) << std::endl;
       }
-      if (std::abs(gv_.tail(nJoints_)(2)) > 25.8 or std::abs(gv_.tail(nJoints_)(5)) > 25.8
-          or std::abs(gv_.tail(nJoints_)(8)) > 25.8 or std::abs(gv_.tail(nJoints_)(11)) > 25.8) {
-        std::cout << "Exceeds maximum joint speed at knee actuator (25.8): " <<
-                  std::max( {std::abs(gv_.tail(nJoints_)(2)), std::abs(gv_.tail(nJoints_)(5)),
-                             std::abs(gv_.tail(nJoints_)(8)), std::abs(gv_.tail(nJoints_)(11))} ) << std::endl;
+//      if (std::abs(gv_.tail(nJoints_)(2)) > 25.8 or std::abs(gv_.tail(nJoints_)(5)) > 25.8
+//          or std::abs(gv_.tail(nJoints_)(8)) > 25.8 or std::abs(gv_.tail(nJoints_)(11)) > 25.8) {
+//        std::cout << "Exceeds maximum joint speed at knee actuator (25.8): " <<
+//                  std::max( {std::abs(gv_.tail(nJoints_)(2)), std::abs(gv_.tail(nJoints_)(5)),
+//                             std::abs(gv_.tail(nJoints_)(8)), std::abs(gv_.tail(nJoints_)(11))} ) << std::endl;
+//      }
+      if (std::abs(gv_.tail(nJoints_)(2)) > 25.8) { //order: RF - LF - RH - LH
+        std::cout << "Exceeds maximum joint speed at right front knee actuator (25.8): " << std::abs(gv_.tail(nJoints_)(2)) <<
+          ", contact: " << footContactState_[0] << std::endl;
+      }
+      if (std::abs(gv_.tail(nJoints_)(5)) > 25.8) { //order: RF - LF - RH - LH
+        std::cout << "Exceeds maximum joint speed at left front knee actuator (25.8): " << std::abs(gv_.tail(nJoints_)(5)) <<
+          ", contact: " << footContactState_[1] << std::endl;
+      }
+      if (std::abs(gv_.tail(nJoints_)(8)) > 25.8) { //order: RF - LF - RH - LH
+        std::cout << "Exceeds maximum joint speed at right hind knee actuator (25.8): " << std::abs(gv_.tail(nJoints_)(8)) <<
+          ", contact: " << footContactState_[2] << std::endl;
+      }
+      if (std::abs(gv_.tail(nJoints_)(11)) > 25.8) { //order: RF - LF - RH - LH
+        std::cout << "Exceeds maximum joint speed at left hind knee actuator (25.8): " << std::abs(gv_.tail(nJoints_)(11)) <<
+          ", contact: " << footContactState_[3] << std::endl;
       }
       if (std::abs(cheetah->getGeneralizedForce()[6]) > 17 or std::abs(cheetah->getGeneralizedForce()[9]) > 17
           or std::abs(cheetah->getGeneralizedForce()[12]) > 17 or std::abs(cheetah->getGeneralizedForce()[15]) > 17) {
@@ -619,7 +635,7 @@ class MinicheetahController {
         if(contact.getlocalBodyIndex() == footIndices_[i])
           footContactState_[i] = true;
 
-    if(false) { //output if max joint speed or torque is exceeded
+    if(false) { //output if max joint speed or torque is exceeded, every simulation step
       Eigen::VectorXd pTargetDiffMax = pTarget12_ - gc_.tail(nJoints_);
 
       if (std::abs(gv_.tail(nJoints_)(0)) > 40 or std::abs(gv_.tail(nJoints_)(3)) > 40
@@ -634,11 +650,27 @@ class MinicheetahController {
                   std::max( {std::abs(gv_.tail(nJoints_)(1)), std::abs(gv_.tail(nJoints_)(4)),
                              std::abs(gv_.tail(nJoints_)(7)), std::abs(gv_.tail(nJoints_)(10))} ) << std::endl;
       }
-      if (std::abs(gv_.tail(nJoints_)(2)) > 25.8 or std::abs(gv_.tail(nJoints_)(5)) > 25.8
-          or std::abs(gv_.tail(nJoints_)(8)) > 25.8 or std::abs(gv_.tail(nJoints_)(11)) > 25.8) {
-        std::cout << "Exceeds maximum joint speed at knee actuator (25.8): " <<
-                  std::max( {std::abs(gv_.tail(nJoints_)(2)), std::abs(gv_.tail(nJoints_)(5)),
-                             std::abs(gv_.tail(nJoints_)(8)), std::abs(gv_.tail(nJoints_)(11))} ) << std::endl;
+//      if (std::abs(gv_.tail(nJoints_)(2)) > 25.8 or std::abs(gv_.tail(nJoints_)(5)) > 25.8
+//          or std::abs(gv_.tail(nJoints_)(8)) > 25.8 or std::abs(gv_.tail(nJoints_)(11)) > 25.8) {
+//        std::cout << "Exceeds maximum joint speed at knee actuator (25.8): " <<
+//                  std::max( {std::abs(gv_.tail(nJoints_)(2)), std::abs(gv_.tail(nJoints_)(5)),
+//                             std::abs(gv_.tail(nJoints_)(8)), std::abs(gv_.tail(nJoints_)(11))} ) << std::endl;
+//      }
+      if (std::abs(gv_.tail(nJoints_)(2)) > 25.8) { //order: RF - LF - RH - LH
+        std::cout << "Exceeds maximum joint speed at right front knee actuator (25.8): " << std::abs(gv_.tail(nJoints_)(2)) <<
+                  ", contact: " << footContactState_[0] << std::endl;
+      }
+      if (std::abs(gv_.tail(nJoints_)(5)) > 25.8) { //order: RF - LF - RH - LH
+        std::cout << "Exceeds maximum joint speed at left front knee actuator (25.8): " << std::abs(gv_.tail(nJoints_)(5)) <<
+                  ", contact: " << footContactState_[1] << std::endl;
+      }
+      if (std::abs(gv_.tail(nJoints_)(8)) > 25.8) { //order: RF - LF - RH - LH
+        std::cout << "Exceeds maximum joint speed at right hind knee actuator (25.8): " << std::abs(gv_.tail(nJoints_)(8)) <<
+                  ", contact: " << footContactState_[2] << std::endl;
+      }
+      if (std::abs(gv_.tail(nJoints_)(11)) > 25.8) { //order: RF - LF - RH - LH
+        std::cout << "Exceeds maximum joint speed at left hind knee actuator (25.8): " << std::abs(gv_.tail(nJoints_)(11)) <<
+                  ", contact: " << footContactState_[3] << std::endl;
       }
       if (std::abs(cheetah->getGeneralizedForce()[6]) > 17 or std::abs(cheetah->getGeneralizedForce()[9]) > 17
           or std::abs(cheetah->getGeneralizedForce()[12]) > 17 or std::abs(cheetah->getGeneralizedForce()[15]) > 17) {
@@ -790,20 +822,22 @@ class MinicheetahController {
 
   Eigen::VectorXd getPlotInformation(raisim::World *world, Eigen::VectorXd& stepVector, double xPosHurdles) { //switch off noise
     auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world->getObject("robot"));
-    stepVector << gc_, gv_, cheetah->getGeneralizedForce().e(), command_, 0;
+//    stepVector << gc_, gv_, cheetah->getGeneralizedForce().e(), command_, 0;
+    stepVector << gc_, gv_, cheetah->getGeneralizedForce().e(), footContactState_[0], footContactState_[1], footContactState_[2], footContactState_[3],
+      footPos_[0].e(), footPos_[1].e(), footPos_[2].e(), footPos_[3].e(), footVel_[0].e(), footVel_[1].e(), footVel_[2].e(), footVel_[3].e(), command_, 0;
 
-    if(gc_[0] > (xPosHurdles + 0.1) and  (!footContactState_[0] and !footContactState_[1] and !footContactState_[2] and !footContactState_[3]) and not hurdlePassed_){
-      hurdlePassed_ = true;
-    }
-    if(hurdlePassed_ and (footContactState_[0] or footContactState_[1]) and posTouch>1.e20){
-      groundTouch_ = true;
-      posTouch = gc_[0];
-    }
-
-    if(not networkSelection_ and gc_[0]>(posTouch+0.5)){
-    }else{
-      stepVector.setZero();
-    }
+//    if(gc_[0] > (xPosHurdles + 0.1) and  (!footContactState_[0] and !footContactState_[1] and !footContactState_[2] and !footContactState_[3]) and not hurdlePassed_){
+//      hurdlePassed_ = true;
+//    }
+//    if(hurdlePassed_ and (footContactState_[0] or footContactState_[1]) and posTouch>1.e20){
+//      groundTouch_ = true;
+//      posTouch = gc_[0];
+//    }
+//
+//    if(not networkSelection_ and gc_[0]>(posTouch+0.5)){
+//    }else{
+//      stepVector.setZero();
+//    }
     return stepVector;
   }
 

@@ -43,7 +43,10 @@ weight_path_run = "../../../data/minicheetah_locomotion/baselineRun_Switch1_Crit
 iteration_number_run = weight_path_run.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_run = weight_path_run.rsplit('/', 1)[0] + '/'
 
-weight_path_jump = "../../../data/minicheetah_locomotion/baselineJump1-5/full_7500.pt"
+weight_path_jump = "../../../data/minicheetah_locomotion/baselineJump1-6/full_7500.pt"
+# weight_path_jump = "../../../data/minicheetah_locomotion/BaselineOneNetworkSym2/full_7500.pt"
+# weight_path_jump = "../../../data/minicheetah_locomotion/BaselineOneNetworkNoSym1/full_7500.pt"
+# weight_path_jump = "../../../data/minicheetah_locomotion/BaselineOneNetworkSym1/full_7500.pt"
 iteration_number_jump = weight_path_jump.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_jump = weight_path_jump.rsplit('/', 1)[0] + '/'
 
@@ -139,7 +142,7 @@ else:
     time.sleep(2)
 
     # max_steps = 1000000
-    max_steps = 600 ## 400*2 10 secs
+    max_steps = 350 ## 400*2 10 secs
     # command = np.array([random.uniform(3.0, 3.5), 0, 0], dtype=np.float32)
     command = np.array([3.5, 0, 0], dtype=np.float32)
     env.set_command(command, testNumber=1)
@@ -186,7 +189,7 @@ else:
             #     command_Vy = np.random.uniform(-1., 1., 1)
             #     command_yaw = np.random.uniform(-2., 2., 1)
             #     command = np.array([command_Vx, command_Vy, command_yaw], dtype=np.float32)
-            #     env.set_command(command, testNumber=1)
+            #     env.set_command(command, testNumber=2)
             # if step == 0:
             #     command_Vx = np.random.uniform(3.5, 3.5, 1)
             #     command_Vy = np.random.uniform(-1., 1., 1)
@@ -250,8 +253,9 @@ else:
             #     run_bool = networkSelector.run_bool_function(value_run, value_jump, dones, obs_notNorm, 5)
             # else:
             #     run_bool = networkSelector.run_bool_function(value_run, value_jump, dones, obs_notNorm, 4)
-            run_bool = networkSelector.run_bool_function(value_run, value_jump, dones, obs_notNorm, 3)
-            # 0=pure value, 1=smoothing, 2=change after steps, 3=manual on dist, 4=run, 5=jump
+            run_bool = networkSelector.run_bool_function(value_run, value_jump, dones, obs_notNorm, 3)  # switch
+            # run_bool = networkSelector.run_bool_function(value_run, value_jump, dones, obs_notNorm, 5) # jump
+                # 0=pure value, 1=smoothing, 2=change after steps, 3=manual on dist, 4=run, 5=jump
             # run_bool = value_run > value_jump
             # run_bool = torch.from_numpy(run_bool_function_0(obs_notNorm)) #only test!!!
             # run_bool = torch.from_numpy(run_bool_function_1(obs_notNorm)) #only test!!!

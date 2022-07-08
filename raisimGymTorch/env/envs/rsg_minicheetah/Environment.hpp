@@ -91,7 +91,8 @@ class ENVIRONMENT {
 
     stepData_.resize(controller_.getStepDataTag().size());
     auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world_->getObject("robot"));
-    stepVector_ = Eigen::VectorXd::Zero(cheetah->getGeneralizedCoordinateDim()+cheetah->getDOF()*2+4); //gc, gv, force, command(3), dist(1)
+    stepVector_ = Eigen::VectorXd::Zero(cheetah->getGeneralizedCoordinateDim()+cheetah->getDOF()*2+32);
+                                  //gc, gv, force, footContact[4], footPos[12], footVel[12], command(3), dist(1)
     stepVector_.resize(controller_.getPlotInformation(world_.get(), stepVector_, xPos_Hurdles_).size());
     stepMatrix_ = Eigen::MatrixXd::Zero(controller_.getPlotInformation(world_.get(), stepVector_, xPos_Hurdles_).size(),1); //gc(+1 dim), gv, force, dist(1)
 
@@ -161,9 +162,10 @@ class ENVIRONMENT {
       hurdle2_->setName("hurdle2");
     }
 
-    if(getStepInformation and false){ // deletes when reset
+    if(getStepInformation and true){ // deletes when reset
       auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world_->getObject("robot"));
-      stepVector_ = Eigen::VectorXd::Zero(cheetah->getGeneralizedCoordinateDim()+cheetah->getDOF()*2+4); //gc, gv, force, command(3), dist(1)
+      stepVector_ = Eigen::VectorXd::Zero(cheetah->getGeneralizedCoordinateDim()+cheetah->getDOF()*2+32);
+                          //gc, gv, force, footContact[4], footPos[12], footVel[12], command(3), dist(1)
       stepVector_.resize(controller_.getPlotInformation(world_.get(), stepVector_, xPos_Hurdles_).size());
       stepMatrix_ = Eigen::MatrixXd::Zero(controller_.getPlotInformation(world_.get(), stepVector_, xPos_Hurdles_).size(),1); //gc(+1 dim), gv, force, dist(1)
     }
@@ -208,10 +210,11 @@ class ENVIRONMENT {
       controller_.getReward(world_.get(), rewardCoeff_, simulation_dt_, rewCurriculumFactor_, heightMap_, xPos_Hurdles_, iteration, managerTraining);
       stepData_ += controller_.getStepData();
 
-      if(getStepInformation and false){ //if I want every simulation step
+      int getEveryNthStep = 200; //change also in tester_jumping
+      if(getStepInformation and true and i%getEveryNthStep==0){ //if I want every simulation step
         stepVector_ =  controller_.getPlotInformation(world_.get(), stepVector_, xPos_Hurdles_);
         if (stepVector_.norm() > 1.e-10){
-          std::cout << "save env" << std::endl;
+//          std::cout << "save env" << std::endl;
           stepVector_.tail(1) << xPos_Hurdles_;
           stepMatrix_.conservativeResize(stepVector_.rows(), stepMatrix_.cols()+1);
           stepMatrix_.col(stepMatrix_.cols()-1) = stepVector_;

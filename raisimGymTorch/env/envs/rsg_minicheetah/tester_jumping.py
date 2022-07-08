@@ -42,7 +42,8 @@ weight_path_run = "../../../data/minicheetah_locomotion/baselineRun_Switch1_Crit
 iteration_number_run = weight_path_run.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_run = weight_path_run.rsplit('/', 1)[0] + '/'
 
-weight_path_jump = "../../../data/minicheetah_locomotion/baselineJump1-5/full_7500.pt"
+weight_path_jump = "../../../data/minicheetah_locomotion/baselineJump1-6/full_7500.pt"
+# weight_path_jump = "../../../data/minicheetah_locomotion/2022-07-13-04-21-41/full_7500.pt"
 iteration_number_jump = weight_path_jump.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_jump = weight_path_jump.rsplit('/', 1)[0] + '/'
 
@@ -142,8 +143,8 @@ else:
     # env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy.mp4")
     time.sleep(2)
 
-    max_steps = 1000000
-    # max_steps = 400 ## 400*2 10 secs
+    # max_steps = 1000000
+    max_steps = 350 ## 400*2 10 secs
     # command = np.array([random.uniform(3.0, 3.5), 0, 0], dtype=np.float32)
     command = np.array([3.5, 0, 0], dtype=np.float32)
     env.set_command(command, testNumber=1)
@@ -154,9 +155,12 @@ else:
     projectDistance = False
     dist_project = 0.0
     timestep = cfg['environment']['control_dt']
+    getEveryNthStep = 200  # from environment
+    sim_steps_per_control = round(cfg['environment']['control_dt']/cfg['environment']['simulation_dt']/getEveryNthStep)
 
     run_bool = np.ones(shape=(cfg['environment']['num_envs'], 1), dtype=np.intc)
     dones = np.zeros(shape=(cfg['environment']['num_envs'], 1), dtype=np.intc)
+    networkSelectionSave = np.zeros((max_steps*sim_steps_per_control, 1))
     concatenated_obs_actor_jump = None
     concatenated_obs_critic_run = None
     # run_bool = None
@@ -237,7 +241,9 @@ else:
         # else:
         #     run_bool = networkSelector.run_bool_function(value_run, value_jump, dones, obs_notNorm, 4)
         run_bool = networkSelector.run_bool_function(value_run, value_jump, dones, obs_notNorm, 3)
+        # run_bool = networkSelector.run_bool_function(value_run, value_jump, dones, obs_notNorm, 5)
                                     # 0=pure value, 1=smoothing, 2=change after steps, 3=manual on dist, 4=run, 5=jump
+        networkSelectionSave[step*sim_steps_per_control:(step+1)*sim_steps_per_control] = run_bool[0]*np.ones((sim_steps_per_control, 1))
         # run_bool = value_run > value_jump
         # run_bool = torch.from_numpy(run_bool_function_0(obs_notNorm)) #only test!!!
         # run_bool = torch.from_numpy(run_bool_function_1(obs_notNorm)) #only test!!!
@@ -294,7 +300,7 @@ else:
     # env.turn_off_visualization()
     # env.reset()
 
-    # runInfo = env.get_run_information()[:,1:]
+    # runInfo = np.concatenate((env.get_run_information()[:,1:], networkSelectionSave.transpose()),0)
     # runInfoOld = np.loadtxt("runInformation.csv", delimiter=",")
-    # np.savetxt("runInformation.csv", runInfo, delimiter=",")
-    # print("Finished at the maximum visualization steps")
+    # np.savetxt("runInformation.csv", runInfo.transpose(), delimiter=",")
+    print("Finished at the maximum visualization steps")
