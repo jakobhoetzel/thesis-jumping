@@ -76,7 +76,7 @@ class ENVIRONMENT {
       hurdleHeight_ = terrain_curriculum_;
       if(p<0.3 and testNumber==0){ //train with lower hurdles
         double val = uniDist_(gen_);
-        hurdleHeight_ = std::max(0.1, terrain_curriculum_*(1/4 + 3/4*val));
+        hurdleHeight_ = std::max(0.1, terrain_curriculum_*(1.0/4.0 + 3.0/4.0*val));
       }
       auto hurdle1_ = world_->addBox(0.1, 500, hurdleHeight_, 100000); //x, y, z length, mass; change also in init
       hurdle1_->setPosition(xPos_Hurdles_, 0, hurdleHeight_/2.0); //pos of cog
@@ -130,7 +130,7 @@ class ENVIRONMENT {
       hurdleHeight_ = terrain_curriculum_;
       if(p<0.3 and testNumber==0){ //train with lower hurdles
         double val = uniDist_(gen_);
-        hurdleHeight_ = std::max(0.1, terrain_curriculum_*(1/4 + 3/4*val));
+        hurdleHeight_ = std::max(0.1, terrain_curriculum_*(1./4.0 + 3.0/4.0*val));
       }
       auto hurdle2_ = world_->addBox(0.1, 500, hurdleHeight_, 100000); //x, y, z length, mass; change also in init
       hurdle2_->setPosition(xPos_Hurdles_, 0, hurdleHeight_/2.0); //pos of cog
@@ -180,7 +180,7 @@ class ENVIRONMENT {
       if (server_) server_->lockVisualizationServerMutex();
       world_->integrate();  // What does integration do? A. Simulate robot states and motions for the next simulation time.
       if (server_) server_->unlockVisualizationServerMutex();
-      controller_.getReward(world_.get(), rewardCoeff_, simulation_dt_, rewCurriculumFactor_, heightMap_, xPos_Hurdles_, iteration);
+      controller_.getReward(world_.get(), rewardCoeff_, simulation_dt_, rewCurriculumFactor_, heightMap_, xPos_Hurdles_, hurdleHeight_, iteration);
       stepData_ += controller_.getStepData();
     }
 
@@ -205,7 +205,7 @@ class ENVIRONMENT {
       dist_obs_next = 5; //distance between 0 and 8
     }
     if(hurdleTraining){
-      ob.tail(2) << hurdleHeight_+uniDist_(gen_) * 0.1, dist_obs_next+uniDist_(gen_) * 0.2;
+      ob.tail(2) << hurdleHeight_+uniDist_(gen_) * 0.05, dist_obs_next+uniDist_(gen_) * 0.15;
 //      ob.tail(2) << hurdleHeight_, dist_obs_next;
     } else{
       ob.tail(2) << uniDist_(gen_) * 0.05, 5 + uniDist_(gen_) * 0.05; //no hurdle

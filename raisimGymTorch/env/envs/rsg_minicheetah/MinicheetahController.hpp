@@ -363,7 +363,7 @@ class MinicheetahController {
     cheetah->setCollisionObjectShapeParameters(foot_hl_idx, rand_radius);
   }
 
-  void getReward(raisim::World *world, const std::map<RewardType, float>& rewardCoeff, double simulation_dt, double rewCurriculumFactor, raisim::HeightMap* heightMap_, double xPosHurdles, int iteration) {
+  void getReward(raisim::World *world, const std::map<RewardType, float>& rewardCoeff, double simulation_dt, double rewCurriculumFactor, raisim::HeightMap* heightMap_, double xPosHurdles, double hurdleHeight, int iteration) {
     auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world->getObject("robot"));
 
     double desiredFootZPosition = 0.09;
@@ -416,7 +416,7 @@ class MinicheetahController {
     double hurdlesVar = 0;
     double footContactNumber = std::accumulate(footContactState_.begin(), footContactState_.end(),0); //number of feet touching the ground
     if (gc_[0] >= xPosHurdles && maxXPos_ < xPosHurdles && footContactNumber == 0){ // get reward once when above hurdle
-      hurdlesVar = 1.0 + gc_[2]/2;
+      hurdlesVar = 1.5 - std::abs(gc_[2] - (hurdleHeight+0.25));
     } else if ( gc_[0] >= xPosHurdles + 0.14 && maxXPos_ < xPosHurdles + 0.14 ){  // get reward once when behind
       hurdlesVar = 1.0;
     }
