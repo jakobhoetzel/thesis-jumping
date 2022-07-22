@@ -716,7 +716,7 @@ class MinicheetahController {
         0.0, gc_(0); //x_pos; sensor observation in environment
 
     /// Observation noise
-    bool addObsNoise = true;
+    bool addObsNoise = false;
     if(addObsNoise) {
       for(int i=0; i<obDim_; i++) {
         if(i<3) {  // orientation

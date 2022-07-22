@@ -273,7 +273,7 @@ class ENVIRONMENT {
         dist_obs_next = 5; //output between -0.3 and 5
       }
       if (hurdleTraining) {
-        bool addObsNoise = true; /// TODO: noise
+        bool addObsNoise = false;
         if(addObsNoise){
           ob.tail(2) << terrain_curriculum_ + uniDist_(gen_) * 0.05, dist_obs_next + uniDist_(gen_) * 0.05;
         } else{
