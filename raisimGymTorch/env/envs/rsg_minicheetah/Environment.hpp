@@ -74,9 +74,9 @@ class ENVIRONMENT {
       xPos_Hurdles_ = uniDist_(gen_)*0.5 + 5.0;
       double p = std::abs(uniDist_(gen_));
       hurdleHeight_ = terrain_curriculum_;
-      if(p<0.3 and testNumber==0){ //train with lower hurdles
+      if(p<0.15 and testNumber==0){ //train with lower hurdles
         double val = uniDist_(gen_);
-        hurdleHeight_ = std::max(0.1, terrain_curriculum_*(1.0/4.0 + 3.0/4.0*val));
+        hurdleHeight_ = std::max(0.1, terrain_curriculum_*(1.0/2.0 + 1.0/2.0*val));
       }
       auto hurdle1_ = world_->addBox(0.1, 500, hurdleHeight_, 100000); //x, y, z length, mass; change also in init
       hurdle1_->setPosition(xPos_Hurdles_, 0, hurdleHeight_/2.0); //pos of cog
@@ -128,9 +128,9 @@ class ENVIRONMENT {
     if (hurdleTraining){
       p = std::abs(uniDist_(gen_));
       hurdleHeight_ = terrain_curriculum_;
-      if(p<0.3 and testNumber==0){ //train with lower hurdles
+      if(p<0.15 and testNumber==0){ //train with lower hurdles
         double val = uniDist_(gen_);
-        hurdleHeight_ = std::max(0.1, terrain_curriculum_*(1./4.0 + 3.0/4.0*val));
+        hurdleHeight_ = std::max(0.1, terrain_curriculum_*(1.0/2.0 + 1.0/2.0*val));
       }
       auto hurdle2_ = world_->addBox(0.1, 500, hurdleHeight_, 100000); //x, y, z length, mass; change also in init
       hurdle2_->setPosition(xPos_Hurdles_, 0, hurdleHeight_/2.0); //pos of cog
