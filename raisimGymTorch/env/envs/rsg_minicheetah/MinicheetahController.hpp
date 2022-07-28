@@ -247,7 +247,7 @@ class MinicheetahController {
     /// command generation
     double p = uniDist_(gen_);
     if(hurdleTraining_){
-      // command_ << 3.5, 0.0, 0.0; // 4.0, 0, 0
+//       command_ << 3.25, 0.0, 0.0; // 4.0, 0, 0 //TODO select correct command
       command_ <<  0.25 * uniDist_(gen_) + 3.25, 0.1 * uniDist_(gen_), 0.05 * uniDist_(gen_); // comCurriculumFactor, 1.0, 2.0
     }
     else{
@@ -273,7 +273,7 @@ class MinicheetahController {
       gv_init_noise = gv_;
     }
     else {
-      bool init_noise = true;
+      bool init_noise = true; //TODO: yes/no, select correct
       if (init_noise) { //TODO: set noise
         /// Generalized Coordinates randomization.
         for (int i = 0; i < gcDim_; i++) {
@@ -823,8 +823,27 @@ class MinicheetahController {
   Eigen::VectorXd getPlotInformation(raisim::World *world, Eigen::VectorXd& stepVector, double xPosHurdles) { //switch off noise
     auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world->getObject("robot"));
 //    stepVector << gc_, gv_, cheetah->getGeneralizedForce().e(), command_, 0;
+
+    Eigen::Vector3d xBodyInWorld = rot_.e().col(0);
+    Eigen::Vector3d x_World(1.0, 0.0, 0.0);
+    Eigen::Vector3d y_World(0.0, 1.0, 0.0);
+    Eigen::Vector3d z_World(0.0, 0.0, 1.0);
+    //https://www.maplesoft.com/support/help/maple/view.aspx?path=MathApps%2FProjectionOfVectorOntoPlane
+    Eigen::Vector3d xProjXYPlane = xBodyInWorld - xBodyInWorld.dot(z_World)/(xBodyInWorld.norm()*z_World.norm())*z_World;
+    Eigen::Vector3d xProjXZPlane = xBodyInWorld - xBodyInWorld.dot(y_World)/(xBodyInWorld.norm()*y_World.norm())*y_World;
+    double pitchAngle = std::asin(xProjXZPlane.cross(x_World)(1)/(xProjXZPlane.norm()*x_World.norm()))*180/M_PI;
+    double approachAngle = std::abs(std::asin(xProjXYPlane.cross(z_World)(2)/(xProjXYPlane.norm()*z_World.norm())))*180/M_PI;
+
+    Eigen::VectorXd Impulses = Eigen::VectorXd::Zero(12);
+    for(auto& contact: cheetah->getContacts())
+      for(size_t i=0; i<4; i++)
+        if(contact.getlocalBodyIndex() == footIndices_[i]) {
+          Impulses.segment(3*i,3) = contact.getContactFrame().e().transpose() * contact.getImpulse().e();
+        }
+
     stepVector << gc_, gv_, cheetah->getGeneralizedForce().e(), footContactState_[0], footContactState_[1], footContactState_[2], footContactState_[3],
-      footPos_[0].e(), footPos_[1].e(), footPos_[2].e(), footPos_[3].e(), footVel_[0].e(), footVel_[1].e(), footVel_[2].e(), footVel_[3].e(), command_, 0;
+      footPos_[0].e(), footPos_[1].e(), footPos_[2].e(), footPos_[3].e(), footVel_[0].e(), footVel_[1].e(), footVel_[2].e(), footVel_[3].e(), command_,
+      Impulses, pitchAngle, xPosHurdles;
 
 //    if(gc_[0] > (xPosHurdles + 0.1) and  (!footContactState_[0] and !footContactState_[1] and !footContactState_[2] and !footContactState_[3]) and not hurdlePassed_){
 //      hurdlePassed_ = true;

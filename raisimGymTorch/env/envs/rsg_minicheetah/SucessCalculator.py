@@ -161,6 +161,7 @@ else:
     np.random.seed(abs(seed))
     torch.manual_seed(seed)
     env.seed(seed)
+    failedEnvsTotal = np.zeros((0,), dtype=np.intc)
 
 
     max_reps = 10 #total simulated envs = max_reps*numEnvs
@@ -310,6 +311,7 @@ else:
             # time.sleep(0.01) #0.05 ONLY TO SEE, NOT FOR REAL SPEED!
 
         failedEnvs = fails > 0
+        failedEnvsTotal = np.concatenate((failedEnvsTotal, failedEnvs))
         failPercentage_step = np.sum(failedEnvs) / cfg['environment']['num_envs']
         failPercentage = (repetition*failPercentage + failPercentage_step) / (repetition + 1)  # total percentage
 

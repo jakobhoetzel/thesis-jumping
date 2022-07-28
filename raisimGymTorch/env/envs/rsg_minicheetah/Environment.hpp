@@ -91,7 +91,7 @@ class ENVIRONMENT {
 
     stepData_.resize(controller_.getStepDataTag().size());
     auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world_->getObject("robot"));
-    stepVector_ = Eigen::VectorXd::Zero(cheetah->getGeneralizedCoordinateDim()+cheetah->getDOF()*2+32);
+    stepVector_ = Eigen::VectorXd::Zero(cheetah->getGeneralizedCoordinateDim()+cheetah->getDOF()*2+45);
                                   //gc, gv, force, footContact[4], footPos[12], footVel[12], command(3), dist(1)
     stepVector_.resize(controller_.getPlotInformation(world_.get(), stepVector_, xPos_Hurdles_).size());
     stepMatrix_ = Eigen::MatrixXd::Zero(controller_.getPlotInformation(world_.get(), stepVector_, xPos_Hurdles_).size(),1); //gc(+1 dim), gv, force, dist(1)
@@ -148,7 +148,7 @@ class ENVIRONMENT {
       hurdle2_->setOrientation(1., 0, 0, 0); //quaternion
       hurdle2_->setName("hurdle1");
       hurdle2_ = world_->addBox(0.1, 500, terrain_curriculum_, 100000); //x, y, z length, mass; change also in init
-      hurdle2_->setPosition(xPos_Hurdles2_, 0, terrain_curriculum_/2.0); //pos of cog
+      hurdle2_->setPosition(xPos_Hurdles2_, 0, terrain_curriculum_/2.0-100); //pos of cog
       hurdle2_->setOrientation(1., 0, 0, 0); //quaternion
       hurdle2_->setName("hurdle2");
     }else{
@@ -164,7 +164,7 @@ class ENVIRONMENT {
 
     if(getStepInformation and true){ // deletes when reset
       auto* cheetah = reinterpret_cast<raisim::ArticulatedSystem*>(world_->getObject("robot"));
-      stepVector_ = Eigen::VectorXd::Zero(cheetah->getGeneralizedCoordinateDim()+cheetah->getDOF()*2+32);
+      stepVector_ = Eigen::VectorXd::Zero(cheetah->getGeneralizedCoordinateDim()+cheetah->getDOF()*2+45);
                           //gc, gv, force, footContact[4], footPos[12], footVel[12], command(3), dist(1)
       stepVector_.resize(controller_.getPlotInformation(world_.get(), stepVector_, xPos_Hurdles_).size());
       stepMatrix_ = Eigen::MatrixXd::Zero(controller_.getPlotInformation(world_.get(), stepVector_, xPos_Hurdles_).size(),1); //gc(+1 dim), gv, force, dist(1)
@@ -215,7 +215,7 @@ class ENVIRONMENT {
         stepVector_ =  controller_.getPlotInformation(world_.get(), stepVector_, xPos_Hurdles_);
         if (stepVector_.norm() > 1.e-10){
 //          std::cout << "save env" << std::endl;
-          stepVector_.tail(1) << xPos_Hurdles_;
+//          stepVector_.tail(1) << xPos_Hurdles_;
           stepMatrix_.conservativeResize(stepVector_.rows(), stepMatrix_.cols()+1);
           stepMatrix_.col(stepMatrix_.cols()-1) = stepVector_;
         }
@@ -225,7 +225,7 @@ class ENVIRONMENT {
     if(getStepInformation and false){ //if I want every control step
       stepVector_ =  controller_.getPlotInformation(world_.get(), stepVector_, xPos_Hurdles_);
       if (stepVector_.norm() > 1.e-10){
-        stepVector_.tail(1) << xPos_Hurdles_;
+//        stepVector_.tail(1) << xPos_Hurdles_;
         stepMatrix_.conservativeResize(stepVector_.rows(), stepMatrix_.cols()+1);
         stepMatrix_.col(stepMatrix_.cols()-1) = stepVector_;
       }
