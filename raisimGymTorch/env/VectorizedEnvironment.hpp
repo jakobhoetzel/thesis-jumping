@@ -70,6 +70,12 @@ class VectorizedEnvironment {
       environments_[i]->getRobotState(ob.row(i));
   }
 
+    void getApproachAngle(Eigen::Ref<EigenVec> &ob) {
+#pragma omp parallel for
+      for (int i = 0; i < num_envs_; i++)
+        ob[i] = environments_[i]->getApproachAngle();
+    }
+
   void go_straight_controller() {
 #pragma omp parallel for
       for (int i = 0; i < num_envs_; i++)
@@ -195,7 +201,7 @@ class VectorizedEnvironment {
     done[agentId] = environments_[agentId]->isTerminalState(terminalReward);
 
     if (done[agentId]) {
-      environments_[agentId]->reset();
+      environments_[agentId]->reset(1);
       reward[agentId] += terminalReward;
     }
   }

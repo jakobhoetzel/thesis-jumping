@@ -94,7 +94,8 @@ class MinicheetahController {
     step=0;
     hurdlePassed_ = false;
     groundTouch_ = false;
-    posTouch = std::numeric_limits<double>::infinity();;
+    posTouch = std::numeric_limits<double>::infinity();
+    approachAngle_ = 1.0e12; //arbitrary high number
 
     /// action scaling
     actionMean_ = gc_init_.tail(nJoints_);
@@ -235,7 +236,7 @@ class MinicheetahController {
     command_(2) = -0.5 * gv_(1);
   }
 
-  bool reset(raisim::World *world, double comCurriculumFactor, raisim::HeightMap* heightMap_, bool hurdleTraining) {
+  bool reset(raisim::World *world, double comCurriculumFactor, raisim::HeightMap* heightMap_, bool hurdleTraining, int becauseFail=0) {
     hurdleTraining_ = hurdleTraining;
     auto *cheetah = reinterpret_cast<raisim::ArticulatedSystem *>(world->getObject("robot"));
 
@@ -364,7 +365,10 @@ class MinicheetahController {
     step=0;
     hurdlePassed_ = false;
     groundTouch_ = false;
-    posTouch = std::numeric_limits<double>::infinity();;
+    posTouch = std::numeric_limits<double>::infinity();
+    if(becauseFail==0){
+      approachAngle_ = 1.0e12; //arbitrary high number
+    }
 
     return true;
   }
@@ -808,6 +812,10 @@ class MinicheetahController {
     return false;
   }
 
+  double getApproachAngle() {
+    return approachAngle_;
+  }
+
   int getObDim() {
     return obDim_;
   }
@@ -832,7 +840,7 @@ class MinicheetahController {
     Eigen::Vector3d xProjXYPlane = xBodyInWorld - xBodyInWorld.dot(z_World)/(xBodyInWorld.norm()*z_World.norm())*z_World;
     Eigen::Vector3d xProjXZPlane = xBodyInWorld - xBodyInWorld.dot(y_World)/(xBodyInWorld.norm()*y_World.norm())*y_World;
     double pitchAngle = std::asin(xProjXZPlane.cross(x_World)(1)/(xProjXZPlane.norm()*x_World.norm()))*180/M_PI;
-    double approachAngle = std::abs(std::asin(xProjXYPlane.cross(z_World)(2)/(xProjXYPlane.norm()*z_World.norm())))*180/M_PI;
+    double approachAngle = std::abs(std::asin(xProjXYPlane.cross(x_World)(2)/(xProjXYPlane.norm()*x_World.norm())))*180./M_PI;
 
     Eigen::VectorXd Impulses = Eigen::VectorXd::Zero(12);
     for(auto& contact: cheetah->getContacts())
@@ -844,6 +852,10 @@ class MinicheetahController {
     stepVector << gc_, gv_, cheetah->getGeneralizedForce().e(), footContactState_[0], footContactState_[1], footContactState_[2], footContactState_[3],
       footPos_[0].e(), footPos_[1].e(), footPos_[2].e(), footPos_[3].e(), footVel_[0].e(), footVel_[1].e(), footVel_[2].e(), footVel_[3].e(), command_,
       Impulses, pitchAngle, xPosHurdles;
+
+    if(approachAngle_>500 and (xPosHurdles-gc_[0])<0.5){ //if nothing assigned yet and close to hurdle
+      approachAngle_ = approachAngle;
+    }
 
 //    if(gc_[0] > (xPosHurdles + 0.1) and  (!footContactState_[0] and !footContactState_[1] and !footContactState_[2] and !footContactState_[3]) and not hurdlePassed_){
 //      hurdlePassed_ = true;
@@ -914,6 +926,7 @@ class MinicheetahController {
   std::vector<raisim::Vec<3>> footPos_, footVel_;
   std::vector<size_t> footFrameIndices_;
   int obDim_=0, actionDim_=0, robotStateDim_;
+  double approachAngle_;
   int historyLength_;
   Eigen::VectorXd stepData_;
   Eigen::VectorXd airTime_, stanceTime_;

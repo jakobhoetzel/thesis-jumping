@@ -117,7 +117,7 @@ class ENVIRONMENT {
   void init() {
   }
 
-  void reset() {
+  void reset(int becauseFail = 0) {
     double p = uniDist_(gen_); //p between -1 and 1
     hurdleTraining = true; // testNumber = 1: test of jumping -> always hurdles
     if (fabs(p) < 0.5 and testNumber==0){ // training -> hurdles according to probability (set probability here)
@@ -125,7 +125,7 @@ class ENVIRONMENT {
     } else if(testNumber==2){
       hurdleTraining = false; // test of running without hurdles
     }
-    controller_.reset(world_.get(), comCurriculumFactorT_, heightMap_, hurdleTraining);
+    controller_.reset(world_.get(), comCurriculumFactorT_, heightMap_, hurdleTraining, becauseFail);
     controller_.collisionRandomization(world_.get());
     std::tie(jointPgain_, jointDgain_) = controller_.getPDGain_self(); //when self coded pd controller is used for torque limit
 
@@ -309,6 +309,15 @@ class ENVIRONMENT {
   void getRobotState(Eigen::Ref<EigenVec> ob) {  // related to the estimator network learning
     ob = controller_.getRobotState(heightMap_).cast<float>();
 //    ob.tail(2) << terrain_curriculum_, xPos_Hurdles_-ob.tail(1)(0); //height and distance to hurdle
+  }
+
+  double getApproachAngle() {
+//    Eigen::VectorXd approachAngle = Eigen::VectorXd::Zero(1);
+//    std::cout << "angle " << approachAngle << std::endl;
+//    approachAngle(1) = controller_.getApproachAngle();
+//    ob = approachAngle.cast<float>();
+//    std::cout << "ob " << ob << std::endl;
+    return controller_.getApproachAngle();
   }
 
   void setGeneralizedForce_self() {  //when self coded pd controller is used for torque limit

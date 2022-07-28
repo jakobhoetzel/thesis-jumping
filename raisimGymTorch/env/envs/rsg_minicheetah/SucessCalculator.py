@@ -162,9 +162,10 @@ else:
     torch.manual_seed(seed)
     env.seed(seed)
     failedEnvsTotal = np.zeros((0,), dtype=np.intc)
+    approachAngleTotal = np.zeros((0,), dtype=np.intc)
 
 
-    max_reps = 10 #total simulated envs = max_reps*numEnvs
+    max_reps = 10 #total simulated envs = max_reps*numEnvs 10
     for repetition in range(max_reps):
         env.reset()
         run_bool = np.ones(shape=(cfg['environment']['num_envs'], 1), dtype=np.intc)
@@ -310,8 +311,10 @@ else:
             #     time.sleep(wait_time)
             # time.sleep(0.01) #0.05 ONLY TO SEE, NOT FOR REAL SPEED!
 
-        failedEnvs = fails > 0
+        approachAngle = env.getApproachAngle()
+        failedEnvs = np.logical_and(fails > 0, approachAngle<1.e5)  # failed and did not reach hurdle
         failedEnvsTotal = np.concatenate((failedEnvsTotal, failedEnvs))
+        approachAngleTotal = np.concatenate((approachAngleTotal, approachAngle))
         failPercentage_step = np.sum(failedEnvs) / cfg['environment']['num_envs']
         failPercentage = (repetition*failPercentage + failPercentage_step) / (repetition + 1)  # total percentage
 
@@ -320,6 +323,34 @@ else:
     print("Environments simulated: ", max_reps*cfg['environment']['num_envs'])
     print("Failed in ", failPercentage*100, "%")
     # env.reset()
+
+    numSizeCategories = 10
+    StepSize = 5 #degree
+    countFailed = np.zeros((numSizeCategories,1))
+    countSuccess = np.zeros((numSizeCategories,1))
+    failureCategory = np.zeros((numSizeCategories,1))
+    countCategory = np.zeros((numSizeCategories,1))
+    for i in range(cfg['environment']['num_envs']*max_reps-1):
+        if failedEnvsTotal[i]:
+            category = np.minimum(math.floor(approachAngleTotal[i]/StepSize+1.e-3),numSizeCategories-1,dtype=np.uint)
+            print(category, " ", approachAngleTotal[i], " ", i)
+            countFailed[category] += 1
+        else:
+            category = np.minimum(math.floor(approachAngleTotal[i]/StepSize+1.e-3),numSizeCategories-1,dtype=np.uint)
+            print(category, " ", approachAngleTotal[i], " ", i)
+            countSuccess[category] += 1
+
+    countCategory = countFailed + countSuccess
+    for i in range(numSizeCategories):
+        if countCategory[i] > 0:
+            failureCategory[i] = countFailed[i]/(countCategory[i]+1.e-10)
+        else:
+            failureCategory[i] = np.nan
+
+    print("-------")
+    print("Category Size: ", StepSize, " (0,",StepSize,"),(",StepSize,",",2*StepSize,"),...")
+    print("Failure: ",failureCategory)
+    print("Count: ",countCategory)
 
     # runInfo = env.get_run_information()[:,1:]
     # runInfoOld = np.loadtxt("runInformation.csv", delimiter=",")
