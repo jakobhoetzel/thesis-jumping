@@ -67,7 +67,7 @@ class ENVIRONMENT {
     isHeightMap_ = cfg["isHeightMap"].template As<bool>();
     controller_.setIsHeightMap(isHeightMap_);
     if (isHeightMap_){
-      heightMap_ = terrainGenerator_.generateTerrain(world_.get(), RandomHeightMapGenerator::GroundType(groundType_), terrain_curriculum_, false, gen_, uniDist_);
+      heightMap_ = terrainGenerator_.generateTerrain(world_.get(), RandomHeightMapGenerator::GroundType(0), 1.0, false, gen_, uniDist_);
     }
     else {
       world_->addGround();
@@ -79,7 +79,7 @@ class ENVIRONMENT {
         hurdleHeight_ = std::max(0.1, terrain_curriculum_*(1.0/2.0 + 1.0/2.0*val));
       }
       auto hurdle1_ = world_->addBox(0.1, 500, hurdleHeight_, 100000); //x, y, z length, mass; change also in init
-      hurdle1_->setPosition(xPos_Hurdles_, 0, hurdleHeight_/2.0); //pos of cog
+      hurdle1_->setPosition(xPos_Hurdles_, 0, hurdleHeight_/2.0+0.15); //pos of cog
       hurdle1_->setOrientation(1., 0, 0, 0); //quaternion
       hurdle1_->setName("hurdle1");
     }
@@ -133,7 +133,7 @@ class ENVIRONMENT {
         hurdleHeight_ = std::max(0.1, terrain_curriculum_*(1.0/2.0 + 1.0/2.0*val));
       }
       auto hurdle2_ = world_->addBox(0.1, 500, hurdleHeight_, 100000); //x, y, z length, mass; change also in init
-      hurdle2_->setPosition(xPos_Hurdles_, 0, hurdleHeight_/2.0); //pos of cog
+      hurdle2_->setPosition(xPos_Hurdles_, 0, hurdleHeight_/2.0+0.15); //pos of cog
       hurdle2_->setOrientation(1., 0, 0, 0); //quaternion
       hurdle2_->setName("hurdle1");
     }else{
@@ -268,9 +268,11 @@ class ENVIRONMENT {
     iteration = iter;
     if(isHeightMap_) {
       //groundType_ = (groundType_+1) % 2;
+//      double terrain_curriculum = 1 * std::min(1., iter / terrain_curriculum_heightMap_);
+      double terrain_curriculum = 1;
       world_->removeObject(heightMap_);
       //double terrain_curriculum_ = 1 * std::min(1., iter / terCurriculumFactor_);
-      heightMap_ = terrainGenerator_.generateTerrain(world_.get(), RandomHeightMapGenerator::GroundType(groundType_), terrain_curriculum_, false, gen_, uniDist_);
+      heightMap_ = terrainGenerator_.generateTerrain(world_.get(), RandomHeightMapGenerator::GroundType(0), terrain_curriculum, false, gen_, uniDist_);
       //std::cout << std::setprecision( 6 ) << "terrain_corriculum: " << terrain_curriculum_ << std::endl;
     }
   };
@@ -326,12 +328,13 @@ class ENVIRONMENT {
   double comCurriculumFactorT_ = 1., comCurriculumFactor1_, comCurriculumFactor2_, comCurriculumFactor3_;
   double terCurriculumFactor_;
   double terrain_curriculum_; // height of hurdles
+  double terrain_curriculum_heightMap_ = 3000; // height of hurdles
   double xPos_Hurdles_;
   double simulation_dt_;
   double control_dt_;
   double mu_;
   double hurdleHeight_;
-  int groundType_ = 5; //0  Set ground Type
+  int groundType_ = 0; //0  Set ground Type
   int delayDividedBySimdt;
   bool hurdleTraining;
   int testNumber, iteration;

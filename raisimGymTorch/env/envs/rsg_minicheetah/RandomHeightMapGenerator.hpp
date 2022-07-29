@@ -41,9 +41,9 @@ class RandomHeightMapGenerator {
     switch (groundType) {
       case GroundType::HEIGHT_MAP: {
         terrainProperties_.frequency = 0.8;
-        terrainProperties_.zScale = targetRoughness * curriculumFactor * 1.4;
-        terrainProperties_.xSize = 20.0;
-        terrainProperties_.ySize = 20.0;
+        terrainProperties_.zScale = targetRoughness * curriculumFactor;
+        terrainProperties_.xSize = 40.0;
+        terrainProperties_.ySize = 40.0;
         terrainProperties_.xSamples = 50;
         terrainProperties_.ySamples = 50;
         terrainProperties_.fractalOctaves = 5;
