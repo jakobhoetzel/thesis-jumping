@@ -76,6 +76,12 @@ class VectorizedEnvironment {
         ob[i] = environments_[i]->getApproachAngle();
     }
 
+    void getApproachSpeed(Eigen::Ref<EigenVec> &ob) {
+#pragma omp parallel for
+      for (int i = 0; i < num_envs_; i++)
+        ob[i] = environments_[i]->getApproachSpeed();
+    }
+
   void go_straight_controller() {
 #pragma omp parallel for
       for (int i = 0; i < num_envs_; i++)

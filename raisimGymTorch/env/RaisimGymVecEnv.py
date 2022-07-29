@@ -25,6 +25,7 @@ class RaisimGymVecEnv:
         self._observation = np.zeros([self.num_envs, self.num_obs], dtype=np.float32)
         self._robotState = np.zeros([self.num_envs, self.num_robotState], dtype=np.float32)
         self._approachAngles = np.zeros(self.num_envs, dtype=np.float32)
+        self._approachSpeed = np.zeros(self.num_envs, dtype=np.float32)
         self.obs_rms_run = RunningMeanStd(shape=[self.num_envs, self.num_obs])
         self.obs_rms_jump = RunningMeanStd(shape=[self.num_envs, self.num_obs])
         self.obs_rms_manager = RunningMeanStd(shape=[self.num_envs, self.num_obs])
@@ -118,6 +119,10 @@ class RaisimGymVecEnv:
     def getApproachAngle(self):
         self.wrapper.getApproachAngle(self._approachAngles)
         return self._approachAngles.copy()
+
+    def getApproachSpeed(self):
+        self.wrapper.getApproachSpeed(self._approachSpeed)
+        return self._approachSpeed.copy()
 
     def reset(self):
         self._reward = np.zeros(self.num_envs, dtype=np.float32)

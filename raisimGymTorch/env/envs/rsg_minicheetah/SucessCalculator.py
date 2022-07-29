@@ -43,7 +43,8 @@ weight_path_run = "../../../data/minicheetah_locomotion/baselineRun_Switch1_Crit
 iteration_number_run = weight_path_run.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_run = weight_path_run.rsplit('/', 1)[0] + '/'
 
-weight_path_jump = "../../../data/minicheetah_locomotion/baselineJump1-6/full_7500.pt"
+weight_path_jump = "../../../data/minicheetah_locomotion/baselineJump1-8/full_7500.pt"
+# weight_path_jump = "../../../data/minicheetah_locomotion/BaselineOneNetworkNoSym2/full_7500.pt"
 # weight_path_jump = "../../../data/minicheetah_locomotion/BaselineOneNetworkSym2/full_7500.pt"
 # weight_path_jump = "../../../data/minicheetah_locomotion/BaselineOneNetworkNoSym1/full_7500.pt"
 # weight_path_jump = "../../../data/minicheetah_locomotion/BaselineOneNetworkSym1/full_7500.pt"
@@ -142,7 +143,7 @@ else:
     time.sleep(2)
 
     # max_steps = 1000000
-    max_steps = 350 ## 400*2 10 secs
+    max_steps = 500 ## 400*2 10 secs
     # command = np.array([random.uniform(3.0, 3.5), 0, 0], dtype=np.float32)
     command = np.array([3.5, 0, 0], dtype=np.float32)
     env.set_command(command, testNumber=1)
@@ -162,7 +163,9 @@ else:
     torch.manual_seed(seed)
     env.seed(seed)
     failedEnvsTotal = np.zeros((0,), dtype=np.intc)
+    notReachedEnvsTotal = np.zeros((0,), dtype=np.intc)
     approachAngleTotal = np.zeros((0,), dtype=np.intc)
+    approachSpeedTotal = np.zeros((0,), dtype=np.intc)
 
 
     max_reps = 10 #total simulated envs = max_reps*numEnvs 10
@@ -312,9 +315,13 @@ else:
             # time.sleep(0.01) #0.05 ONLY TO SEE, NOT FOR REAL SPEED!
 
         approachAngle = env.getApproachAngle()
+        approachSpeed = env.getApproachSpeed()
         failedEnvs = np.logical_and(fails > 0, approachAngle<1.e5)  # failed and did not reach hurdle
+        notReachedEnvs = approachSpeed>1.e5  # failed and did not reach hurdle
         failedEnvsTotal = np.concatenate((failedEnvsTotal, failedEnvs))
+        notReachedEnvsTotal = np.concatenate((notReachedEnvsTotal, notReachedEnvs))
         approachAngleTotal = np.concatenate((approachAngleTotal, approachAngle))
+        approachSpeedTotal = np.concatenate((approachSpeedTotal, approachSpeed))
         failPercentage_step = np.sum(failedEnvs) / cfg['environment']['num_envs']
         failPercentage = (repetition*failPercentage + failPercentage_step) / (repetition + 1)  # total percentage
 
@@ -325,20 +332,33 @@ else:
     # env.reset()
 
     numSizeCategories = 10
-    StepSize = 5 #degree
+    StepSize = 0.25 #degree / m/s
+    smallestValue = 1.5
     countFailed = np.zeros((numSizeCategories,1))
     countSuccess = np.zeros((numSizeCategories,1))
     failureCategory = np.zeros((numSizeCategories,1))
     countCategory = np.zeros((numSizeCategories,1))
+    # for i in range(cfg['environment']['num_envs']*max_reps-1): # angle
+    #     if failedEnvsTotal[i]:
+    #         category = np.minimum(math.floor(approachAngleTotal[i]/StepSize+1.e-3),numSizeCategories-1,dtype=np.uint)
+    #         # print(category, " ", approachAngleTotal[i], " ", i)
+    #         if not notReachedEnvsTotal[i]: #not reached not counted
+    #             countFailed[category] += 1
+    #     else:
+    #         category = np.minimum(math.floor(approachAngleTotal[i]/StepSize+1.e-3),numSizeCategories-1,dtype=np.uint)
+    #         # print(category, " ", approachAngleTotal[i], " ", i)
+    #         if not notReachedEnvsTotal[i]: #not reached not counted
+    #             countSuccess[category] += 1
+
     for i in range(cfg['environment']['num_envs']*max_reps-1):
         if failedEnvsTotal[i]:
-            category = np.minimum(math.floor(approachAngleTotal[i]/StepSize+1.e-3),numSizeCategories-1,dtype=np.uint)
-            print(category, " ", approachAngleTotal[i], " ", i)
-            countFailed[category] += 1
+            category = np.maximum(np.minimum(math.floor((approachSpeedTotal[i]-smallestValue)/StepSize+1.e-3),numSizeCategories-1,dtype=np.int_),0,dtype=np.int_)
+            if not notReachedEnvsTotal[i]: #not reached not counted
+                countFailed[category] += 1
         else:
-            category = np.minimum(math.floor(approachAngleTotal[i]/StepSize+1.e-3),numSizeCategories-1,dtype=np.uint)
-            print(category, " ", approachAngleTotal[i], " ", i)
-            countSuccess[category] += 1
+            category = np.maximum(np.minimum(math.floor((approachSpeedTotal[i]-smallestValue)/StepSize+1.e-3),numSizeCategories-1,dtype=np.int_),0,dtype=np.int_)
+            if not notReachedEnvsTotal[i]: #not reached not counted
+                countSuccess[category] += 1
 
     countCategory = countFailed + countSuccess
     for i in range(numSizeCategories):
@@ -348,8 +368,8 @@ else:
             failureCategory[i] = np.nan
 
     print("-------")
-    print("Category Size: ", StepSize, " (0,",StepSize,"),(",StepSize,",",2*StepSize,"),...")
-    print("Failure: ",failureCategory)
+    print("Category Size: ", StepSize, " (",smallestValue,")",smallestValue+StepSize,"),(",smallestValue+StepSize,",",smallestValue+2*StepSize,"),...")
+    print("Failure [%]: ",failureCategory*100)
     print("Count: ",countCategory)
 
     # runInfo = env.get_run_information()[:,1:]

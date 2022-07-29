@@ -96,6 +96,7 @@ class MinicheetahController {
     groundTouch_ = false;
     posTouch = std::numeric_limits<double>::infinity();
     approachAngle_ = 1.0e12; //arbitrary high number
+    approachSpeed_ = 1.0e12; //arbitrary high number
 
     /// action scaling
     actionMean_ = gc_init_.tail(nJoints_);
@@ -250,6 +251,8 @@ class MinicheetahController {
     if(hurdleTraining_){
 //       command_ << 3.25, 0.0, 0.0; // 4.0, 0, 0 //TODO select correct command
       command_ <<  0.25 * uniDist_(gen_) + 3.25, 0.1 * uniDist_(gen_), 0.05 * uniDist_(gen_); // comCurriculumFactor, 1.0, 2.0
+//      command_ <<   1.25 * uniDist_(gen_) + 2.75, 0.0, 0.0; // comCurriculumFactor, 1.0, 2.0
+//      std::cout << "command: " << command_ << std::endl;
     }
     else{
       if(fabs(p) < 0.1) {  // 10%
@@ -274,7 +277,7 @@ class MinicheetahController {
       gv_init_noise = gv_;
     }
     else {
-      bool init_noise = true; //TODO: yes/no, select correct
+      bool init_noise = false; //TODO: yes/no, select correct
       if (init_noise) { //TODO: set noise
         /// Generalized Coordinates randomization.
         for (int i = 0; i < gcDim_; i++) {
@@ -282,6 +285,8 @@ class MinicheetahController {
             continue;  /// XYZ position: no noise.
           } else if (i < 7) {
             gc_init_noise(i) = gc_init_(i) + uniDist_(gen_) * 0.2;  /// quaternion: +- 0.2
+//          } else if (i == 6) {///TODO only for angle diagram!!!
+//            gc_init_noise(i) = gc_init_(i) + uniDist_(gen_) * 0.4;  /// quaternion: +- 0.2
           } else {
             if (i % 3 == 1)
               gc_init_noise(i) = gc_init_(i) + uniDist_(gen_) * 0.2;  /// HAA joint angles: +- 0.2rad (hip abduction/adduction)
@@ -368,6 +373,7 @@ class MinicheetahController {
     posTouch = std::numeric_limits<double>::infinity();
     if(becauseFail==0){
       approachAngle_ = 1.0e12; //arbitrary high number
+      approachSpeed_ = 1.0e12;
     }
 
     return true;
@@ -816,6 +822,10 @@ class MinicheetahController {
     return approachAngle_;
   }
 
+  double getApproachSpeed() {
+    return approachSpeed_;
+  }
+
   int getObDim() {
     return obDim_;
   }
@@ -855,6 +865,10 @@ class MinicheetahController {
 
     if(approachAngle_>500 and (xPosHurdles-gc_[0])<0.5){ //if nothing assigned yet and close to hurdle
       approachAngle_ = approachAngle;
+    }
+
+    if(approachSpeed_>500 and (xPosHurdles-gc_[0])<1.5){ //if nothing assigned yet and close to hurdle
+      approachSpeed_ = gv_[0];
     }
 
 //    if(gc_[0] > (xPosHurdles + 0.1) and  (!footContactState_[0] and !footContactState_[1] and !footContactState_[2] and !footContactState_[3]) and not hurdlePassed_){
@@ -926,7 +940,7 @@ class MinicheetahController {
   std::vector<raisim::Vec<3>> footPos_, footVel_;
   std::vector<size_t> footFrameIndices_;
   int obDim_=0, actionDim_=0, robotStateDim_;
-  double approachAngle_;
+  double approachAngle_, approachSpeed_;
   int historyLength_;
   Eigen::VectorXd stepData_;
   Eigen::VectorXd airTime_, stanceTime_;

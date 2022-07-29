@@ -106,6 +106,7 @@ class ENVIRONMENT {
     iteration = 0;
 
     previousError = Eigen::VectorXd::Zero(cheetah->getDOF()-6); //when self coded pd controller is used for torque limit
+    previousJointState = Eigen::VectorXd::Zero(cheetah->getDOF()-6); //when self coded pd controller is used for torque limit
     pTarget_ = Eigen::VectorXd::Zero(cheetah->getDOF()-6); //when self coded pd controller is used for torque limit
     friction = Eigen::VectorXd::Zero(cheetah->getDOF()-6); //when self coded pd controller is used for torque limit
   }
@@ -320,6 +321,10 @@ class ENVIRONMENT {
     return controller_.getApproachAngle();
   }
 
+    double getApproachSpeed() {
+      return controller_.getApproachSpeed();
+    }
+
   void setGeneralizedForce_self() {  //when self coded pd controller is used for torque limit
     auto *cheetah = reinterpret_cast<raisim::ArticulatedSystem *>(world_->getObject("robot"));
     jointState = controller_.getJointState_self();
@@ -328,7 +333,8 @@ class ENVIRONMENT {
 
     Eigen::VectorXd genForce = Eigen::VectorXd::Zero(cheetah->getDOF());
 
-    genForce.tail(cheetah->getDOF() - 6) = jointPgain_.cwiseProduct(error) + jointDgain_.cwiseProduct((error-previousError)/simulation_dt_);
+//    genForce.tail(cheetah->getDOF() - 6) = jointPgain_.cwiseProduct(error) + jointDgain_.cwiseProduct((error-previousError)/simulation_dt_);
+    genForce.tail(cheetah->getDOF() - 6) = jointPgain_.cwiseProduct(error) - jointDgain_.cwiseProduct((jointState-previousJointState)/simulation_dt_);
     genForce = genForce-friction;
 
 //    double exceedFactor = std::max(1.0, 2.0 - iteration/5000.0);
@@ -348,6 +354,7 @@ class ENVIRONMENT {
       cheetah->setGeneralizedForce(genForce);
     }
     previousError = error;
+    previousJointState = jointState;
   }
 
   bool isTerminalState(float &terminalReward) {
@@ -441,7 +448,7 @@ class ENVIRONMENT {
   int delayDividedBySimdt;
   bool hurdleTraining, secondHurdle_;
   int testNumber, iteration;
-  Eigen::VectorXd jointPgain_, jointDgain_, pTarget_, friction, jointState, previousError; //when self coded pd controller is used for torque limit
+  Eigen::VectorXd jointPgain_, jointDgain_, pTarget_, friction, jointState, previousError, previousJointState; //when self coded pd controller is used for torque limit
   std::unique_ptr<raisim::RaisimServer> server_;
   Eigen::VectorXd stepData_;
   Eigen::VectorXd stepVector_;

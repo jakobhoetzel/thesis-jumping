@@ -144,7 +144,7 @@ else:
     time.sleep(2)
 
     # max_steps = 1000000
-    max_steps = 350 ## 400*2 10 secs
+    max_steps = 800 ## 400*2 10 secs
     # command = np.array([random.uniform(3.0, 3.5), 0, 0], dtype=np.float32)
     command = np.array([3.5, 0, 0], dtype=np.float32)
     env.set_command(command, testNumber=1)
@@ -290,6 +290,9 @@ else:
         #     start_step_id = step + 1
         #     reward_ll_sum = 0.0
 
+        # if step%20 == 0:
+        #     temp=0
+
         frame_end = time.time()
         wait_time = cfg['environment']['control_dt'] - (frame_end-frame_start)
         if wait_time > 0.:
@@ -300,7 +303,7 @@ else:
     # env.turn_off_visualization()
     # env.reset()
 
-    # runInfo = np.concatenate((env.get_run_information()[:,1:], networkSelectionSave.transpose()),0)
-    # runInfoOld = np.loadtxt("runInformation.csv", delimiter=",")
-    # np.savetxt("runInformation.csv", runInfo.transpose(), delimiter=",")
+    runInfo = np.concatenate((env.get_run_information()[:,1:], networkSelectionSave.transpose()),0)
+    runInfoOld = np.loadtxt("runInformation.csv", delimiter=",")
+    np.savetxt("runInformation.csv", runInfo.transpose(), delimiter=",")
     print("Finished at the maximum visualization steps")
