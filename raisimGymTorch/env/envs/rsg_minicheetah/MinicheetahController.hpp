@@ -117,8 +117,6 @@ class MinicheetahController {
     pTarget12_ += actionMean_;
     pTarget_.tail(nJoints_) = pTarget12_;
 
-//    pTarget_ = gc_stationay_target;
-
     cheetah->setPdTarget(pTarget_, vTarget_);
 
     // joint friction
@@ -165,7 +163,6 @@ class MinicheetahController {
     else if(fabs(uniDist_(gen_)) < 0.1 and comCurriculumFactor>3.2){ // starts at iter ~2000, to learn switch from jump policy
       Eigen::VectorXd initialStatesVec = initialStates.cast<double>();
       gc_init_noise.tail(17) = initialStatesVec.head(17);  // body z, quaterniton, joint position. X and Y positions are set to zero.
-//      gv_init_noise = initialStatesVec.tail(18);
       gv_init_noise = initialStatesVec.segment(17,18);
       command_ = initialStatesVec.tail(3);
     }
@@ -426,9 +423,6 @@ class MinicheetahController {
         gv_.tail(12), /// joint velocity 12
         previousAction_, /// previous action 12
         prepreviousAction_, /// preprevious action 12
-//        jointPosErrorHist_.segment((historyLength_ - 12) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 12) * nJoints_, nJoints_), /// joint History 24
-//        jointPosErrorHist_.segment((historyLength_ - 10) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 10) * nJoints_, nJoints_), /// joint History 24
-//        jointPosErrorHist_.segment((historyLength_ - 8) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 8) * nJoints_, nJoints_), /// joint History 24
         jointPosErrorHist_.segment((historyLength_ - 6) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 6) * nJoints_, nJoints_), /// joint History 24
         jointPosErrorHist_.segment((historyLength_ - 4) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 4) * nJoints_, nJoints_), /// joint History 24
         jointPosErrorHist_.segment((historyLength_ - 2) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 2) * nJoints_, nJoints_), /// joint History 24
@@ -501,14 +495,6 @@ class MinicheetahController {
   void setIsHeightMap(bool isHeightMap) { isHeightMap_ = isHeightMap;}
 
   void printTest() {
-//    std::cout << "Test1: Observation before normalization." << std::endl;
-//    std::cout << obDouble_ << std::endl;
-//    std::cout << "joint target after scaling: " << std::endl;
-//    std::cout << pTarget12_ << std::endl;
-
-//    std::cout << "Observation Test for debugging!" << std::endl;
-//    std::cout << "Observation: " << std::endl;
-//    std::cout << getObservation() << std::endl;
   }
 
  private:
