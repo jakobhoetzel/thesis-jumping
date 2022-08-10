@@ -48,11 +48,9 @@ class RolloutStorage:
         self.actor_obs[self.step] = actor_obs
         self.estimator_input[self.step] = est_in
         self.robotState[self.step] = robotState
-        # self.actions[self.step] = actions.cpu().detach().numpy() #is already torch -> no need to convert
         self.actions_tc[self.step] = actions
         self.rewards[self.step] = rewards.reshape(-1, 1)
         self.dones[self.step] = dones.reshape(-1, 1)
-        # self.actions_log_prob[self.step] = actions_log_prob.reshape(-1, 1).cpu().detach().numpy() #is already torch
         self.actions_log_prob_tc[self.step] = actions_log_prob.reshape(-1, 1)
         self.step += 1
 
@@ -65,10 +63,8 @@ class RolloutStorage:
         for step in reversed(range(self.num_transitions_per_env)):
             if step == self.num_transitions_per_env - 1:
                 next_values = last_values.cpu().numpy()
-                # next_is_not_terminal = 1.0 - self.dones[step].float()
             else:
                 next_values = self.values[step + 1]
-                # next_is_not_terminal = 1.0 - self.dones[step+1].float()
 
             next_is_not_terminal = 1.0 - self.dones[step]
             delta = self.rewards[step] + next_is_not_terminal * gamma * next_values - self.values[step]
@@ -84,8 +80,6 @@ class RolloutStorage:
         self.actor_obs_tc = torch.from_numpy(self.actor_obs).to(self.device)
         self.estimator_input_tc = torch.from_numpy(self.estimator_input).to(self.device)
         self.robotState_tc = torch.from_numpy(self.robotState).to(self.device)
-        # self.actions_tc = torch.from_numpy(self.actions).to(self.device)
-        # self.actions_log_prob_tc = torch.from_numpy(self.actions_log_prob).to(self.device)
         self.values_tc = torch.from_numpy(self.values).to(self.device)
         self.returns_tc = torch.from_numpy(self.returns).to(self.device)
         self.advantages_tc = torch.from_numpy(self.advantages).to(self.device)
