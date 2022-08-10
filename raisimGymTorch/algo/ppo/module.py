@@ -50,14 +50,11 @@ class Manager: # https://github.com/nikhilbarhate99/PPO-PyTorch/blob/master/PPO.
     def __init__(self, architecture, device='cpu'):
         super(Manager, self).__init__()
 
-        # self.architecture = nn.Sequential(architecture, nn.Softmax(1))
         self.architecture = architecture
         self.architecture.to(device)
         self.device = device
 
     def sample(self, obs):
-        # logits = self.architecture.architecture(obs)
-        # actions, log_prob = self.distribution.sample(logits)
         action_probs = self.architecture.architecture(obs)
         dist = Categorical(action_probs)
         action = dist.sample()
@@ -65,7 +62,6 @@ class Manager: # https://github.com/nikhilbarhate99/PPO-PyTorch/blob/master/PPO.
         return action.detach(), log_prob.detach()
 
     def evaluate(self, obs, run_bool):
-        # action_mean = self.architecture.architecture(obs)
         action_probs = self.architecture.architecture(obs)
         dist = Categorical(action_probs)
         action_logprobs = dist.log_prob(run_bool[:,0])

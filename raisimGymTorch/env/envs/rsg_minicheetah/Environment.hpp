@@ -131,7 +131,6 @@ class ENVIRONMENT {
     std::tie(jointPgain_, jointDgain_) = controller_.getPDGain_self(); //when self coded pd controller is used for torque limit
 
     mu_ = 0.4 + 0.3 * (uniDist_(gen_) + 1);  // [0.4, 1.0]
-//    mu_ = 0.4 + 0.3;  // [0.4, 1.0]
     world_->setDefaultMaterial(mu_, 0, 0);
 
     auto hurdle1_ = world_->getObject("hurdle1");
@@ -216,8 +215,6 @@ class ENVIRONMENT {
       if(getStepInformation and true and i%getEveryNthStep==0){ //if I want every simulation step
         stepVector_ =  controller_.getPlotInformation(world_.get(), stepVector_, xPos_Hurdles_);
         if (stepVector_.norm() > 1.e-10){
-//          std::cout << "save env" << std::endl;
-//          stepVector_.tail(1) << xPos_Hurdles_;
           stepMatrix_.conservativeResize(stepVector_.rows(), stepMatrix_.cols()+1);
           stepMatrix_.col(stepMatrix_.cols()-1) = stepVector_;
         }
@@ -252,12 +249,10 @@ class ENVIRONMENT {
     raisim::quatToRotMat(quat, rot_);  // rot_: R_wb
     Eigen::Vector3d x_rob(rot_.e()(0,0), rot_.e()(1,0), 0); //projected on xy plane
     x_rob.normalize();
-//    std::cout << x_rob(0) << "   " << x_rob(1) << "   " << x_rob(2) << "   " << std::endl;
     Eigen::Vector3d x_world(1,0,0);
     double turn_angle = std::acos(x_rob.dot(x_world)); //angle between robots x-axis and world's x-axis
 
     ob = controller_.getObservation().cast<float>();
-    //ob.tail(2) = {{terrain_curriculum_, xPos_Hurdles_-ob.tail(1)(0)}}; //height and distance to hurdle
     double dist_obs_next = 0;
     if (turn_angle < M_PI/2) { //starting direction
       double xPos_Hurdles_Next_; //distance to correct hurdle
@@ -305,20 +300,13 @@ class ENVIRONMENT {
         ob.tail(2) << uniDist_(gen_) * 0.1, 5 + uniDist_(gen_) * 0.1; //no hurdle
       }
     }
-//    std::cout << dist_obs_next << std::endl;
   }
 
   void getRobotState(Eigen::Ref<EigenVec> ob) {  // related to the estimator network learning
     ob = controller_.getRobotState(heightMap_).cast<float>();
-//    ob.tail(2) << terrain_curriculum_, xPos_Hurdles_-ob.tail(1)(0); //height and distance to hurdle
   }
 
   double getApproachAngle() {
-//    Eigen::VectorXd approachAngle = Eigen::VectorXd::Zero(1);
-//    std::cout << "angle " << approachAngle << std::endl;
-//    approachAngle(1) = controller_.getApproachAngle();
-//    ob = approachAngle.cast<float>();
-//    std::cout << "ob " << ob << std::endl;
     return controller_.getApproachAngle();
   }
 
@@ -334,11 +322,9 @@ class ENVIRONMENT {
 
     Eigen::VectorXd genForce = Eigen::VectorXd::Zero(cheetah->getDOF());
 
-//    genForce.tail(cheetah->getDOF() - 6) = jointPgain_.cwiseProduct(error) + jointDgain_.cwiseProduct((error-previousError)/simulation_dt_);
     genForce.tail(cheetah->getDOF() - 6) = jointPgain_.cwiseProduct(error) - jointDgain_.cwiseProduct((jointState-previousJointState)/simulation_dt_);
     genForce = genForce-friction;
 
-//    double exceedFactor = std::max(1.0, 2.0 - iteration/5000.0);
     double exceedFactor = 1.0;
 
     for(int i=6; i<cheetah->getDOF(); i++){
@@ -368,22 +354,9 @@ class ENVIRONMENT {
   }
   /////// optional methods ///////
   void curriculumUpdate(int iter) {
-//    rewCurriculumFactor_ = pow(rewCurriculumFactor_+1, rewCurriculumRate_);
-//    rewCurriculumFactor2_ = rewCurriculumFactor2_*rewCurriculumRate_;
-//    rewCurriculumFactor_ = 1 - rewCurriculumFactor2_;
-//    comCurriculumFactorT_ = 1 + comCurriculumFactor3_ / (1 + std::exp(-comCurriculumFactor1_ * (iter - comCurriculumFactor2_)));
-//    comCurriculumFactorT_ = std::fmax(1., comCurriculumFactorT_);
     comCurriculumFactorT_ = 1.0;
-//    terrain_curriculum_ = std::min(iter * (terCurriculumFactor_*0.0) / 5000.0 + terCurriculumFactor_*1.0, terCurriculumFactor_);
     terrain_curriculum_ = terCurriculumFactor_;
     iteration = iter;
-//    if(isHeightMap_) {
-//      //groundType_ = (groundType_+1) % 2;
-//      world_->removeObject(heightMap_);
-//      //double terrain_curriculum_ = 1 * std::min(1., iter / terCurriculumFactor_);
-//      heightMap_ = terrainGenerator_.generateTerrain(world_.get(), RandomHeightMapGenerator::GroundType(groundType_), terrain_curriculum_, false, gen_, uniDist_);
-//      //std::cout << std::setprecision( 6 ) << "terrain_corriculum: " << terrain_curriculum_ << std::endl;
-//    }
   };
   float getCurriculumFactor() {return float(rewCurriculumFactor_);};
   void close() { if (server_) server_->killServer(); };
@@ -391,7 +364,6 @@ class ENVIRONMENT {
     controller_.setSeed(seed);
     terrainGenerator_.setSeed(seed);
     gen_.seed(seed);
-    //groundType_ = seed % 2;
   };
   ////////////////////////////////
 
@@ -422,8 +394,6 @@ class ENVIRONMENT {
   void stopRecordingVideo() { server_->stopRecordingVideo(); }
 
   void printTest() { controller_.printTest();
-//    std::cout << "height: "<< terrain_curriculum_ << std::endl;
-//    std::cout << "factor: "<< terCurriculumFactor_ << std::endl;
   }
 
   const Eigen::MatrixXd& getRunInformation() {

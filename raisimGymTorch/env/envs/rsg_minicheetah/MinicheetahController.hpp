@@ -135,18 +135,6 @@ class MinicheetahController {
     pTarget12_ = pTarget12_.cwiseProduct(actionStd_);
     pTarget12_ += actionMean_;
 
-//    double reduceFactor = 0.98;
-//    for (int i = 0; i < pTarget12_.size(); i++){
-//        if(pTarget12_[i]>=17*reduceFactor and (i%3==0 or i%3==1)){ //cut max torque
-//            pTarget12_[i]=17*reduceFactor;
-//        }else if(pTarget12_[i]<=-17*reduceFactor and (i%3==0 or i%3==1)){
-//            pTarget12_[i]=-17*reduceFactor;
-//        }else if(pTarget12_[i]>=26.3*reduceFactor and i%3==2){ //knee
-//            pTarget12_[i]=26.3*reduceFactor;
-//        }else if(pTarget12_[i]<=-26.3*reduceFactor and i%3==2){
-//            pTarget12_[i]=-26.3*reduceFactor;
-//        }
-//    }
     pTarget_.tail(nJoints_) = pTarget12_;
 
 //    pTarget_ = gc_stationay_target;
@@ -165,69 +153,6 @@ class MinicheetahController {
     // for manager network
     previousNetworkSelection_ = networkSelection_;
     networkSelection_ = run_bool;
-
-    if(false) { //output if max joint speed or torque is exceeded, every control step
-        Eigen::VectorXd pTargetDiffMax = pTarget12_ - gc_.tail(nJoints_);
-//      std::cout << "gv(tail): " << gv_.tail(nJoints_)  << std::endl;
-//      std::cout << "force: " << cheetah->getGeneralizedForce() << std::endl;
-//      std::cout << "Max PD-Coeff (of all): " << pTargetDiffMax.array().abs().maxCoeff() << std::endl;
-
-      if (std::abs(gv_.tail(nJoints_)(0)) > 40 or std::abs(gv_.tail(nJoints_)(3)) > 40
-          or std::abs(gv_.tail(nJoints_)(6)) > 40 or std::abs(gv_.tail(nJoints_)(9)) > 40) {
-        std::cout << "Exceeds maximum joint speed at hip actuator (40): " <<
-        std::max( {std::abs(gv_.tail(nJoints_)(0)), std::abs(gv_.tail(nJoints_)(3)),
-                   std::abs(gv_.tail(nJoints_)(6)), std::abs(gv_.tail(nJoints_)(9))} ) << std::endl;
-      }
-      if (std::abs(gv_.tail(nJoints_)(1)) > 40 or std::abs(gv_.tail(nJoints_)(4)) > 40
-          or std::abs(gv_.tail(nJoints_)(7)) > 40 or std::abs(gv_.tail(nJoints_)(10)) > 40) {
-        std::cout << "Exceeds maximum joint speed at ab/ad actuator (40): " <<
-                  std::max( {std::abs(gv_.tail(nJoints_)(1)), std::abs(gv_.tail(nJoints_)(4)),
-                             std::abs(gv_.tail(nJoints_)(7)), std::abs(gv_.tail(nJoints_)(10))} ) << std::endl;
-      }
-//      if (std::abs(gv_.tail(nJoints_)(2)) > 25.8 or std::abs(gv_.tail(nJoints_)(5)) > 25.8
-//          or std::abs(gv_.tail(nJoints_)(8)) > 25.8 or std::abs(gv_.tail(nJoints_)(11)) > 25.8) {
-//        std::cout << "Exceeds maximum joint speed at knee actuator (25.8): " <<
-//                  std::max( {std::abs(gv_.tail(nJoints_)(2)), std::abs(gv_.tail(nJoints_)(5)),
-//                             std::abs(gv_.tail(nJoints_)(8)), std::abs(gv_.tail(nJoints_)(11))} ) << std::endl;
-//      }
-      if (std::abs(gv_.tail(nJoints_)(2)) > 25.8) { //order: RF - LF - RH - LH
-        std::cout << "Exceeds maximum joint speed at right front knee actuator (25.8): " << std::abs(gv_.tail(nJoints_)(2)) <<
-          ", contact: " << footContactState_[0] << std::endl;
-      }
-      if (std::abs(gv_.tail(nJoints_)(5)) > 25.8) { //order: RF - LF - RH - LH
-        std::cout << "Exceeds maximum joint speed at left front knee actuator (25.8): " << std::abs(gv_.tail(nJoints_)(5)) <<
-          ", contact: " << footContactState_[1] << std::endl;
-      }
-      if (std::abs(gv_.tail(nJoints_)(8)) > 25.8) { //order: RF - LF - RH - LH
-        std::cout << "Exceeds maximum joint speed at right hind knee actuator (25.8): " << std::abs(gv_.tail(nJoints_)(8)) <<
-          ", contact: " << footContactState_[2] << std::endl;
-      }
-      if (std::abs(gv_.tail(nJoints_)(11)) > 25.8) { //order: RF - LF - RH - LH
-        std::cout << "Exceeds maximum joint speed at left hind knee actuator (25.8): " << std::abs(gv_.tail(nJoints_)(11)) <<
-          ", contact: " << footContactState_[3] << std::endl;
-      }
-      if (std::abs(cheetah->getGeneralizedForce()[6]) > 17 or std::abs(cheetah->getGeneralizedForce()[9]) > 17
-          or std::abs(cheetah->getGeneralizedForce()[12]) > 17 or std::abs(cheetah->getGeneralizedForce()[15]) > 17) {
-        std::cout << "Exceeds maximum joint torque at hip actuator (17): " <<
-                  std::max( {std::abs(cheetah->getGeneralizedForce()[6]), std::abs(cheetah->getGeneralizedForce()[9]),
-                             std::abs(cheetah->getGeneralizedForce()[12]), std::abs(cheetah->getGeneralizedForce()[15])} ) << std::endl;
-        std::cout << "Max PD-Coeff (of all): " << pTargetDiffMax.array().abs().maxCoeff() << std::endl;
-      }
-      if (std::abs(cheetah->getGeneralizedForce()[7]) > 17 or std::abs(cheetah->getGeneralizedForce()[10]) > 17
-          or std::abs(cheetah->getGeneralizedForce()[13]) > 17 or std::abs(cheetah->getGeneralizedForce()[16]) > 17) {
-        std::cout << "Exceeds maximum joint torque at ab/ad actuator (17): " <<
-                  std::max( {std::abs(cheetah->getGeneralizedForce()[7]), std::abs(cheetah->getGeneralizedForce()[10]),
-                             std::abs(cheetah->getGeneralizedForce()[13]), std::abs(cheetah->getGeneralizedForce()[16])} ) << std::endl;
-        std::cout << "Max PD-Coeff (of all): " << pTargetDiffMax.array().abs().maxCoeff() << std::endl;
-      }
-      if (std::abs(cheetah->getGeneralizedForce()[8]) > 26.3 or std::abs(cheetah->getGeneralizedForce()[11]) > 26.3
-          or std::abs(cheetah->getGeneralizedForce()[14]) > 26.3 or std::abs(cheetah->getGeneralizedForce()[17]) > 26.3) {
-        std::cout << "Exceeds maximum joint torque at knee actuator (26.3): " <<
-                  std::max( {std::abs(cheetah->getGeneralizedForce()[8]), std::abs(cheetah->getGeneralizedForce()[11]),
-                             std::abs(cheetah->getGeneralizedForce()[14]), std::abs(cheetah->getGeneralizedForce()[17])} ) << std::endl;
-        std::cout << "Max PD-Coeff (of all): " << pTargetDiffMax.array().abs().maxCoeff() << std::endl;
-      }
-    }
 
     return true;
   }
@@ -494,9 +419,6 @@ class MinicheetahController {
     }
 
     double exceedFactor = 1;
-//    if(iteration>5000){
-//      exceedFactor = 10 * (iteration-5000)/2500;
-//    }
 
     double forcePenalty = 0.0;
     raisim::VecDyn genForce = cheetah->getGeneralizedForce(); // knee is critical joint -> increase factor
@@ -551,7 +473,6 @@ class MinicheetahController {
     // curriculum factor in negative reward
     double rewBodyAngularVel = std::exp(-1.5 * pow((command_(2) - bodyAngularVel_(2)), 2)) * rewardCoeff.at(RewardType::ANGULARVELOCIY1);
     double rewLinearVel = std::exp(-1.0 * (command_.head(2) - bodyLinearVel_.head(2)).squaredNorm()) * rewardCoeff.at(RewardType::VELOCITY1);
-//    double rewLinearVel = std::exp(0.4 * std::min(bodyLinearVel_[0],3.5) - 0.4*std::abs(bodyLinearVel_[1])) * rewardCoeff.at(RewardType::VELOCITY1); //max reward limited
     double rewAirTime = airtimeTotal * rewardCoeff.at(RewardType::AIRTIME);
     double rewHurdles = hurdlesVar * rewardCoeff.at(RewardType::HURDLES);
     double rewNetworkChange = networkChangeVar * rewardCoeff.at(RewardType::NETWORKCHANGE) * managerTraining;
@@ -608,7 +529,6 @@ class MinicheetahController {
 
   void setCommand(const Eigen::Ref<EigenVec>& command) {
     command_ = command.cast<double>();
-//    std::cout << "command: " << command_ << std::endl; // print command
   }
 
   void updateHistory() {
@@ -647,79 +567,15 @@ class MinicheetahController {
       for(size_t i=0; i<4; i++)
         if(contact.getlocalBodyIndex() == footIndices_[i])
           footContactState_[i] = true;
-
-    if(false) { //output if max joint speed or torque is exceeded, every simulation step
-      Eigen::VectorXd pTargetDiffMax = pTarget12_ - gc_.tail(nJoints_);
-
-      if (std::abs(gv_.tail(nJoints_)(0)) > 40 or std::abs(gv_.tail(nJoints_)(3)) > 40
-          or std::abs(gv_.tail(nJoints_)(6)) > 40 or std::abs(gv_.tail(nJoints_)(9)) > 40) {
-        std::cout << "Exceeds maximum joint speed at hip ab/ad actuator (40): " <<
-                  std::max( {std::abs(gv_.tail(nJoints_)(0)), std::abs(gv_.tail(nJoints_)(3)),
-                             std::abs(gv_.tail(nJoints_)(6)), std::abs(gv_.tail(nJoints_)(9))} ) << std::endl;
-      }
-      if (std::abs(gv_.tail(nJoints_)(1)) > 40 or std::abs(gv_.tail(nJoints_)(4)) > 40
-          or std::abs(gv_.tail(nJoints_)(7)) > 40 or std::abs(gv_.tail(nJoints_)(10)) > 40) {
-        std::cout << "Exceeds maximum joint speed at hip flex actuator (40): " <<
-                  std::max( {std::abs(gv_.tail(nJoints_)(1)), std::abs(gv_.tail(nJoints_)(4)),
-                             std::abs(gv_.tail(nJoints_)(7)), std::abs(gv_.tail(nJoints_)(10))} ) << std::endl;
-      }
-//      if (std::abs(gv_.tail(nJoints_)(2)) > 25.8 or std::abs(gv_.tail(nJoints_)(5)) > 25.8
-//          or std::abs(gv_.tail(nJoints_)(8)) > 25.8 or std::abs(gv_.tail(nJoints_)(11)) > 25.8) {
-//        std::cout << "Exceeds maximum joint speed at knee actuator (25.8): " <<
-//                  std::max( {std::abs(gv_.tail(nJoints_)(2)), std::abs(gv_.tail(nJoints_)(5)),
-//                             std::abs(gv_.tail(nJoints_)(8)), std::abs(gv_.tail(nJoints_)(11))} ) << std::endl;
-//      }
-      if (std::abs(gv_.tail(nJoints_)(2)) > 25.8) { //order: RF - LF - RH - LH
-        std::cout << "Exceeds maximum joint speed at right front knee actuator (25.8): " << std::abs(gv_.tail(nJoints_)(2)) <<
-                  ", contact: " << footContactState_[0] << std::endl;
-      }
-      if (std::abs(gv_.tail(nJoints_)(5)) > 25.8) { //order: RF - LF - RH - LH
-        std::cout << "Exceeds maximum joint speed at left front knee actuator (25.8): " << std::abs(gv_.tail(nJoints_)(5)) <<
-                  ", contact: " << footContactState_[1] << std::endl;
-      }
-      if (std::abs(gv_.tail(nJoints_)(8)) > 25.8) { //order: RF - LF - RH - LH
-        std::cout << "Exceeds maximum joint speed at right hind knee actuator (25.8): " << std::abs(gv_.tail(nJoints_)(8)) <<
-                  ", contact: " << footContactState_[2] << std::endl;
-      }
-      if (std::abs(gv_.tail(nJoints_)(11)) > 25.8) { //order: RF - LF - RH - LH
-        std::cout << "Exceeds maximum joint speed at left hind knee actuator (25.8): " << std::abs(gv_.tail(nJoints_)(11)) <<
-                  ", contact: " << footContactState_[3] << std::endl;
-      }
-      if (std::abs(cheetah->getGeneralizedForce()[6]) > 17 or std::abs(cheetah->getGeneralizedForce()[9]) > 17
-          or std::abs(cheetah->getGeneralizedForce()[12]) > 17 or std::abs(cheetah->getGeneralizedForce()[15]) > 17) {
-        std::cout << "Exceeds maximum joint torque at hip ab/ad actuator (17): " <<
-                  std::max( {std::abs(cheetah->getGeneralizedForce()[6]), std::abs(cheetah->getGeneralizedForce()[9]),
-                             std::abs(cheetah->getGeneralizedForce()[12]), std::abs(cheetah->getGeneralizedForce()[15])} ) << std::endl;
-        std::cout << "Max PD-Coeff (of all): " << pTargetDiffMax.array().abs().maxCoeff() << std::endl;
-      }
-      if (std::abs(cheetah->getGeneralizedForce()[7]) > 17 or std::abs(cheetah->getGeneralizedForce()[10]) > 17
-          or std::abs(cheetah->getGeneralizedForce()[13]) > 17 or std::abs(cheetah->getGeneralizedForce()[16]) > 17) {
-        std::cout << "Exceeds maximum joint torque at hip flex actuator (17): " <<
-                  std::max( {std::abs(cheetah->getGeneralizedForce()[7]), std::abs(cheetah->getGeneralizedForce()[10]),
-                             std::abs(cheetah->getGeneralizedForce()[13]), std::abs(cheetah->getGeneralizedForce()[16])} ) << std::endl;
-        std::cout << "Max PD-Coeff (of all): " << pTargetDiffMax.array().abs().maxCoeff() << std::endl;
-      }
-      if (std::abs(cheetah->getGeneralizedForce()[8]) > 26.3 or std::abs(cheetah->getGeneralizedForce()[11]) > 26.3
-          or std::abs(cheetah->getGeneralizedForce()[14]) > 26.3 or std::abs(cheetah->getGeneralizedForce()[17]) > 26.3) {
-        std::cout << "Exceeds maximum joint torque at knee actuator (26.3): " <<
-                  std::max( {std::abs(cheetah->getGeneralizedForce()[8]), std::abs(cheetah->getGeneralizedForce()[11]),
-                             std::abs(cheetah->getGeneralizedForce()[14]), std::abs(cheetah->getGeneralizedForce()[17])} ) << std::endl;
-        std::cout << "Max PD-Coeff (of all): " << pTargetDiffMax.array().abs().maxCoeff() << std::endl;
-      }
-    }
   }
 
   const Eigen::VectorXd& getObservation() {
     obDouble_ << rot_.e().row(2).transpose(), /// body orientation(z-axis in world frame expressed in body frame). 3
         gc_.tail(12), /// joint angles 12
-//        bodyLinearVel_, /// body linear velocity. 3
         bodyAngularVel_, /// body angular velocity. 3
         gv_.tail(12), /// joint velocity 12
         previousAction_, /// previous action 12
         prepreviousAction_, /// preprevious action 12
-//        jointPosErrorHist_.segment((historyLength_ - 12) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 12) * nJoints_, nJoints_), /// joint History 24
-//        jointPosErrorHist_.segment((historyLength_ - 10) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 10) * nJoints_, nJoints_), /// joint History 24
-//        jointPosErrorHist_.segment((historyLength_ - 8) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 8) * nJoints_, nJoints_), /// joint History 24
         jointPosErrorHist_.segment((historyLength_ - 6) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 6) * nJoints_, nJoints_), /// joint History 24
         jointPosErrorHist_.segment((historyLength_ - 4) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 4) * nJoints_, nJoints_), /// joint History 24
         jointPosErrorHist_.segment((historyLength_ - 2) * nJoints_, nJoints_), jointVelHist_.segment((historyLength_ - 2) * nJoints_, nJoints_), /// joint History 24
@@ -776,48 +632,33 @@ class MinicheetahController {
     }
     double exceedFactor = 4; // how much can max joint torque and speed be exceeded (curriculum)
     if (iteration > 4000 and testNumber==0){ //only during training
-//      exceedFactor = std::max(1, 2 - (iteration-2500) / 5000);
       exceedFactor = std::max(1.0, 4.0 - 2.0 * (iteration-4000) / 3500);
     }
 
     if (std::abs(gv_.tail(nJoints_)(0)) > 40*exceedFactor or std::abs(gv_.tail(nJoints_)(3)) > 40*exceedFactor //hip ab/ad
         or std::abs(gv_.tail(nJoints_)(6)) > 40*exceedFactor or std::abs(gv_.tail(nJoints_)(9)) > 40*exceedFactor) {
-//      std::cout << "Terminate 1" << std::endl;
       return true;
     }
     else if (std::abs(gv_.tail(nJoints_)(1)) > 40*exceedFactor or std::abs(gv_.tail(nJoints_)(4)) > 40*exceedFactor //hip flex
         or std::abs(gv_.tail(nJoints_)(7)) > 40*exceedFactor or std::abs(gv_.tail(nJoints_)(10)) > 40*exceedFactor) {
-//      std::cout << "Terminate 2" << std::endl;
       return true;
     }
     else if (std::abs(gv_.tail(nJoints_)(2)) > 25.8*exceedFactor or std::abs(gv_.tail(nJoints_)(5)) > 25.8*exceedFactor // knee
         or std::abs(gv_.tail(nJoints_)(8)) > 25.8*exceedFactor or std::abs(gv_.tail(nJoints_)(11)) > 25.8*exceedFactor) {
-//      std::cout << "Terminate 3" << std::endl;
       return true;
     }
     else if (std::abs(cheetah->getGeneralizedForce()[6]) > 17*exceedFactor or std::abs(cheetah->getGeneralizedForce()[9]) > 17*exceedFactor //hip ab/ad
         or std::abs(cheetah->getGeneralizedForce()[12]) > 17*exceedFactor or std::abs(cheetah->getGeneralizedForce()[15]) > 17*exceedFactor) {
-//      std::cout << "Terminate 4" << std::endl;
       return true;
     }
     else if (std::abs(cheetah->getGeneralizedForce()[7]) > 17*exceedFactor or std::abs(cheetah->getGeneralizedForce()[10]) > 17*exceedFactor // hip flex
         or std::abs(cheetah->getGeneralizedForce()[13]) > 17*exceedFactor or std::abs(cheetah->getGeneralizedForce()[16]) > 17*exceedFactor) {
-//      std::cout << "Terminate 5" << std::endl;
       return true;
     }
     else if (std::abs(cheetah->getGeneralizedForce()[8]) > 26.3*exceedFactor or std::abs(cheetah->getGeneralizedForce()[11]) > 26.3*exceedFactor //knee
         or std::abs(cheetah->getGeneralizedForce()[14]) > 26.3*exceedFactor or std::abs(cheetah->getGeneralizedForce()[17]) > 26.3*exceedFactor) {
-//      std::cout << "Terminate 6" << std::endl;
       return true;
     }
-//    else if (hurdleTraining_ and gc_[0]>2.0 and gv_[0]<0.25){ //to prevent robot from stopping in front of hurdle
-//      std::cout << "Terminate 7" << std::endl;
-//      return true;
-//    }
-//    else if (hurdleTraining_ and gv_[0]<0.1 and step>30){ //to prevent robot from standing stil
-//      std::cout << "Terminate 8" << std::endl;
-//      return true;
-//    }
     return false;
   }
 
@@ -849,12 +690,10 @@ class MinicheetahController {
     Eigen::Vector3d x_World(1.0, 0.0, 0.0);
     Eigen::Vector3d y_World(0.0, 1.0, 0.0);
     Eigen::Vector3d z_World(0.0, 0.0, 1.0);
-    //https://www.maplesoft.com/support/help/maple/view.aspx?path=MathApps%2FProjectionOfVectorOntoPlane
     Eigen::Vector3d xProjXYPlane = xBodyInWorld - xBodyInWorld.dot(z_World)/(xBodyInWorld.norm()*z_World.norm())*z_World;
     Eigen::Vector3d xProjXZPlane = xBodyInWorld - xBodyInWorld.dot(y_World)/(xBodyInWorld.norm()*y_World.norm())*y_World;
     double pitchAngle = std::asin(xProjXZPlane.cross(x_World)(1)/(xProjXZPlane.norm()*x_World.norm()))*180/M_PI;
     double approachAngle = std::abs(std::asin(xProjXYPlane.cross(x_World)(2)/(xProjXYPlane.norm()*x_World.norm())))*180./M_PI;
-//    std::cout << pitchAngle << std::endl;
 
     Eigen::VectorXd Impulses = Eigen::VectorXd::Zero(12);
     for(auto& contact: cheetah->getContacts())
@@ -875,18 +714,6 @@ class MinicheetahController {
       approachSpeed_ = gv_[0];
     }
 
-//    if(gc_[0] > (xPosHurdles + 0.1) and  (!footContactState_[0] and !footContactState_[1] and !footContactState_[2] and !footContactState_[3]) and not hurdlePassed_){
-//      hurdlePassed_ = true;
-//    }
-//    if(hurdlePassed_ and (footContactState_[0] or footContactState_[1]) and posTouch>1.e20){
-//      groundTouch_ = true;
-//      posTouch = gc_[0];
-//    }
-//
-//    if(not networkSelection_ and gc_[0]>(posTouch+0.5)){
-//    }else{
-//      stepVector.setZero();
-//    }
     return stepVector;
   }
 
@@ -916,19 +743,6 @@ class MinicheetahController {
   void setIsHeightMap(bool isHeightMap) { isHeightMap_ = isHeightMap;}
 
   void printTest() {
-//    std::cout << "Test1: Observation before normalization." << std::endl;
-//    std::cout << obDouble_ << std::endl;
-//    std::cout << "joint target after scaling: " << std::endl;
-//    std::cout << pTarget12_ << std::endl;
-
-//    std::cout << "Observation Test for debugging!" << std::endl;
-//    std::cout << "Observation: " << std::endl;
-//    std::cout << getObservation() << std::endl;
-//    std::cout << "control com: "<< command_ << std::endl;
-//    std::cout << "RF: "<< gc_.segment(7, 3) << std::endl;
-//    std::cout << "LF: "<< gc_.segment(10, 3) << std::endl;
-//    std::cout << "RH: "<< gc_.segment(13, 3) << std::endl;
-//    std::cout << "FF: "<< gc_.segment(16, 3) << std::endl;
   }
 
  private:

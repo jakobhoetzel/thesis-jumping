@@ -96,22 +96,6 @@ class NetworkSelector:
         elif selection_number == 5:  # only jump
             self.run_bool = torch.zeros(self.numEnv, 1)
 
-        if False:
-            if self.old_bool is not None:
-                old_bool = self.old_bool.cpu().numpy()
-                run_bool = self.run_bool.cpu().numpy()
-                if (old_bool.reshape(-1,1)[0,0] is np.bool_(True)) and (run_bool[0,0] is np.bool_(False)):
-                    # if (old_bool.cpu().numpy().reshape(-1,1)[0,0] is np.bool_(True)) and (run_bool[0,0] is np.bool_(False)):
-                    print("switch run -> jump")
-                # elif (old_bool.cpu().numpy().reshape(-1,1)[0,0] is np.bool_(False)) and (run_bool[0,0] is np.bool_(True)):
-                elif (old_bool.reshape(-1,1)[0,0] is np.bool_(False)) and (run_bool[0,0] is np.bool_(True)):
-                    print("switch jump -> run")
-            else:
-                if self.run_bool[0,0] is np.bool_(False):
-                    print("First selected network: jump")
-                elif self.run_bool[0,0] is np.bool_(True):
-                    print("First selected network: run")
-
         self.old_bool = self.run_bool
 
         return self.run_bool

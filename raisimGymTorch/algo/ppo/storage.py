@@ -3,8 +3,6 @@ from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 
 
 class RolloutStorage:
-    # def __init__(self, num_envs, num_transitions_per_env, actor_run_obs_shape, actor_jump_obs_shape, actor_manager_obs_shape,
-    #              critic_obs_run_shape, critic_obs_jump_shape, critic_manager_obs_shape, actions_shape, estimator_input_shape, robotState_shape, device):
     def __init__(self, num_envs, num_transitions_per_env, actor_run_obs_shape, actor_jump_obs_shape, actor_manager_obs_shape,
                  critic_obs_run_shape, critic_obs_jump_shape, critic_manager_obs_shape, actions_shape, device):
         self.device = device
@@ -12,12 +10,6 @@ class RolloutStorage:
         # Core
         self.critic_run_obs = torch.zeros(num_transitions_per_env, num_envs, *critic_obs_run_shape, device=self.device)
         self.critic_jump_obs = torch.zeros(num_transitions_per_env, num_envs, *critic_obs_jump_shape, device=self.device)
-        # self.critic_manager_obs = torch.zeros(num_transitions_per_env, num_envs, *critic_manager_obs_shape, device=self.device)
-        # self.actor_run_obs = torch.zeros(num_transitions_per_env, num_envs, *actor_run_obs_shape, device=self.device)
-        # self.actor_jump_obs = torch.zeros(num_transitions_per_env, num_envs, *actor_jump_obs_shape, device=self.device)
-        # self.actor_manager_obs = torch.zeros(num_transitions_per_env, num_envs, *actor_manager_obs_shape, device=self.device)
-        # self.estimator_input = torch.zeros(num_transitions_per_env, num_envs, *estimator_input_shape, device=self.device)
-        # self.robotState = torch.zeros(num_transitions_per_env, num_envs, *robotState_shape, device=self.device)
         self.rewards = torch.zeros(num_transitions_per_env, num_envs, 1, device=self.device)
         self.critic_run_value = torch.zeros(num_transitions_per_env, num_envs, 1, device=self.device)
         self.critic_jump_value = torch.zeros(num_transitions_per_env, num_envs, 1, device=self.device)
@@ -43,12 +35,6 @@ class RolloutStorage:
             raise AssertionError("Rollout buffer overflow")
         self.critic_run_obs[self.step].copy_(torch.from_numpy(critic_run_obs).to(self.device))
         self.critic_jump_obs[self.step].copy_(torch.from_numpy(critic_jump_obs).to(self.device))
-        # self.critic_manager_obs[self.step].copy_(torch.from_numpy(critic_manager_obs).to(self.device))
-        # self.actor_run_obs[self.step].copy_(torch.from_numpy(actor_run_obs).to(self.device))
-        # self.actor_jump_obs[self.step].copy_(torch.from_numpy(actor_jump_obs).to(self.device))
-        # self.actor_manager_obs[self.step].copy_(torch.from_numpy(actor_manager_obs).to(self.device))
-        # self.estimator_input[self.step].copy_(torch.from_numpy(est_in).to(self.device))
-        # self.robotState[self.step].copy_(torch.from_numpy(robotState).to(self.device))
         self.actions[self.step].copy_(actions.to(self.device))
         self.critic_run_value[self.step].copy_(critic_run_value.to(self.device))
         self.critic_jump_value[self.step].copy_(critic_jump_value.to(self.device))
@@ -65,7 +51,7 @@ class RolloutStorage:
 
     def compute_returns(self, last_values, last_run_bool, last_jump_bool, gamma, lam):
         advantage = 0
-        for step in reversed(range(self.num_transitions_per_env)):  # TODO: mix values (e.g. 1 step TD)
+        for step in reversed(range(self.num_transitions_per_env)):
             if step == self.num_transitions_per_env - 1:
                 next_values = last_values
                 # next_is_not_terminal = 1.0 - self.dones[step].float()
@@ -74,8 +60,6 @@ class RolloutStorage:
                 # next_is_not_terminal = 1.0 - self.dones[step+1].float()
 
             next_is_not_terminal = 1.0 - self.dones[step].float()
-            # delta = self.rewards[step] + next_is_not_terminal * gamma * next_values - self.values[step]
-            # advantage = delta + next_is_not_terminal * gamma * lam * advantage
             advantage = self.rewards[step] + next_is_not_terminal * gamma * next_values - self.values[step] # 1 step TD
             self.returns[step] = advantage + self.values[step]
 
@@ -88,14 +72,8 @@ class RolloutStorage:
         mini_batch_size = batch_size // num_mini_batches
 
         for indices in BatchSampler(SubsetRandomSampler(range(batch_size)), mini_batch_size, drop_last=True):
-            # actor_run_obs_batch = self.actor_run_obs.view(-1, *self.actor_run_obs.size()[2:])[indices]
-            # actor_jump_obs_batch = self.actor_jump_obs.view(-1, *self.actor_jump_obs.size()[2:])[indices]
-            # actor_manager_obs_batch = self.actor_manager_obs.view(-1, *self.actor_manager_obs.size()[2:])[indices]
             critic_run_obs_batch = self.critic_run_obs.view(-1, *self.critic_run_obs.size()[2:])[indices]
             critic_jump_obs_batch = self.critic_jump_obs.view(-1, *self.critic_jump_obs.size()[2:])[indices]
-            # critic_manager_obs_batch = self.critic_manager_obs.view(-1, *self.critic_manager_obs.size()[2:])[indices]
-            # est_in_batch = self.estimator_input.view(-1, *self.estimator_input.size()[2:])[indices]
-            # robotState_batch = self.robotState.view(-1, *self.robotState.size()[2:])[indices]
             actions_batch = self.actions.view(-1, self.actions.size(-1))[indices]
             values_batch = self.values.view(-1, 1)[indices]
             returns_batch = self.returns.view(-1, 1)[indices]

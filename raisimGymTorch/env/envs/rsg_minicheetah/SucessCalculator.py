@@ -38,16 +38,11 @@ weight_path_run = None; weight_path_jump = None; weight_path_manager = None; wei
 iteration_number_run = None; iteration_number_jump = None; iteration_number_manager = None; iteration_number_total = None
 weight_dir_run = None; weight_dir_jump = None; weight_dir_manager = None; weight_dir_total = None
 
-# weight_path_run = "../../../data/minicheetah_locomotion/RunCriticG99/full_2500.pt"
 weight_path_run = "../../../data/minicheetah_locomotion/baselineRun_Switch1_Critic/full_0.pt"
 iteration_number_run = weight_path_run.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_run = weight_path_run.rsplit('/', 1)[0] + '/'
 
 weight_path_jump = "../../../data/minicheetah_locomotion/baselineJump1-8/full_7500.pt"
-# weight_path_jump = "../../../data/minicheetah_locomotion/BaselineOneNetworkNoSym2/full_7500.pt"
-# weight_path_jump = "../../../data/minicheetah_locomotion/BaselineOneNetworkSym2/full_7500.pt"
-# weight_path_jump = "../../../data/minicheetah_locomotion/BaselineOneNetworkNoSym1/full_7500.pt"
-# weight_path_jump = "../../../data/minicheetah_locomotion/BaselineOneNetworkSym1/full_7500.pt"
 iteration_number_jump = weight_path_jump.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_jump = weight_path_jump.rsplit('/', 1)[0] + '/'
 
@@ -55,16 +50,8 @@ weight_path_manager = "../../../data/minicheetah_locomotion/2022-04-06-11-07-33/
 iteration_number_manager = weight_path_manager.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_manager = weight_path_manager.rsplit('/', 1)[0] + '/'
 
-# weight_path_total = "../../../data/minicheetah_locomotion/2022-04-54-16-53-54/full_7000.pt"
-# iteration_number_total = weight_path_total.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
-# weight_dir_total = weight_path_total.rsplit('/', 1)[0] + '/'
-
-
 # config
 cfg = YAML().load(open(task_path + "/cfg.yaml", 'r')) # change to weight_path
-
-# create environment from the configuration file
-# cfg['environment']['num_envs'] = 1  # 1 to see
 
 sensor_dim = 2
 env = VecEnv(rsg_minicheetah.RaisimGymEnv(home_path + "/rsc", dump(cfg['environment'], Dumper=RoundTripDumper)), cfg['environment'], sensor_dim=sensor_dim)
@@ -78,7 +65,6 @@ act_dim = env.num_acts
 if False:  # weight_path == "":
     print("Can't find trained weight, please provide a trained weight with --weight switch\n")
 else:
-    # print("Loaded weight from {}\n".format(weight_path))
     start = time.time()
     env.reset()
     reward_ll_sum = 0
@@ -97,12 +83,10 @@ else:
                                     act_dim)
         critic_run = ppo_module.MLP(cfg['architecture']['value_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, 1)
         critic_jump = ppo_module.MLP(cfg['architecture']['value_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, 1)
-        # actor_manager = ppo_module.MLP(cfg['architecture']['manager_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim + 1, 2, softmax=True)
         actor_run.load_state_dict(torch.load(weight_path_total)['actor_run_architecture_state_dict'])
         actor_jump.load_state_dict(torch.load(weight_path_total)['actor_jump_architecture_state_dict'])
         critic_run.load_state_dict(torch.load(weight_path_total)['critic_run_architecture_state_dict'])
         critic_jump.load_state_dict(torch.load(weight_path_total)['critic_jump_architecture_state_dict'])
-        # actor_manager.load_state_dict(torch.load(weight_path_manager)['actor_architecture_state_dict'])  # actor_architecture_state_dict
         estimator_run = ppo_module.MLP(cfg['architecture']['estimator_net'], torch.nn.LeakyReLU, ob_dim - sensor_dim,
                                        robotState_dim)
         estimator_jump = ppo_module.MLP(cfg['architecture']['estimator_net'], torch.nn.LeakyReLU, ob_dim - sensor_dim,
@@ -119,12 +103,10 @@ else:
                                     act_dim)
         critic_run = ppo_module.MLP(cfg['architecture']['value_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, 1)
         critic_jump = ppo_module.MLP(cfg['architecture']['value_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, 1)
-        # actor_manager = ppo_module.MLP(cfg['architecture']['manager_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim + 1, 2, softmax=True)
         actor_run.load_state_dict(torch.load(weight_path_run)['actor_architecture_state_dict'])
         actor_jump.load_state_dict(torch.load(weight_path_jump)['actor_architecture_state_dict'])
         critic_run.load_state_dict(torch.load(weight_path_run)['critic_architecture_state_dict'])
         critic_jump.load_state_dict(torch.load(weight_path_jump)['critic_architecture_state_dict'])
-        # actor_manager.load_state_dict(torch.load(weight_path_manager)['actor_architecture_state_dict'])  # actor_architecture_state_dict
         estimator_run = ppo_module.MLP(cfg['architecture']['estimator_net'], torch.nn.LeakyReLU, ob_dim - sensor_dim,
                                        robotState_dim)
         estimator_jump = ppo_module.MLP(cfg['architecture']['estimator_net'], torch.nn.LeakyReLU, ob_dim - sensor_dim,
@@ -138,13 +120,10 @@ else:
     print('actor of {} parameters'.format(sum(p.numel() for p in actor_run.parameters())))
     print('actor of {} parameters'.format(sum(p.numel() for p in actor_jump.parameters())))
 
-    # env.turn_on_visualization()
-    # env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy.mp4")
     time.sleep(2)
 
     # max_steps = 1000000
     max_steps = 500 ## 400*2 10 secs
-    # command = np.array([random.uniform(3.0, 3.5), 0, 0], dtype=np.float32)
     command = np.array([3.5, 0, 0], dtype=np.float32)
     env.set_command(command, testNumber=1)
     env.curriculum_callback(0)
@@ -156,7 +135,6 @@ else:
     timestep = cfg['environment']['control_dt']
     failPercentage = 0.0
 
-    # seed = random.randint(-10000, 10000)  # seed for reproducibility
     seed = 1  # seed for reproducibility
     random.seed(seed)
     np.random.seed(abs(seed))
@@ -179,28 +157,6 @@ else:
 
         for step in range(max_steps):
             frame_start = time.time()
-
-            # if (step % 10 == 0):
-            #     command_Vx = -4. * pygame.joystick.Joystick(1).get_axis(1)
-            #     if (command_Vx < 0):
-            #         command_Vx *= 0.5
-            #     command_Vy = - pygame.joystick.Joystick(1).get_axis(0)
-            #     command_yaw = -2 * pygame.joystick.Joystick(1).get_axis(3)
-            #     command = np.array([command_Vx, command_Vy, command_yaw], dtype=np.float32)
-            #     env.set_command(command, testNumber=1)
-            #     # command_change = - pygame.joystick.Joystick(1).get_axis(2)  # LT
-            # if step % 400 == 0:
-            #     command_Vx = np.random.uniform(-1.75, 3.5, 1)
-            #     command_Vy = np.random.uniform(-1., 1., 1)
-            #     command_yaw = np.random.uniform(-2., 2., 1)
-            #     command = np.array([command_Vx, command_Vy, command_yaw], dtype=np.float32)
-            #     env.set_command(command, testNumber=2)
-            # if step == 0:
-            #     command_Vx = np.random.uniform(3.5, 3.5, 1)
-            #     command_Vy = np.random.uniform(-1., 1., 1)
-            #     command_yaw = np.random.uniform(-2., 2., 1)
-            #     command = np.array([command_Vx, command_Vy, command_yaw], dtype=np.float32)
-            #     env.set_command(command, testNumber=1)
 
             if concatenated_obs_actor_jump is not None:
                 concatenated_obs_actor_jump_old = concatenated_obs_actor_jump.copy() #for gradient calculation
@@ -242,77 +198,25 @@ else:
 
 
 
-            # action_probs = actor_manager.architecture(torch.from_numpy(concatenated_obs_actor_manager).cpu())
-            # print(action_probs)
-            # dist = Categorical(action_probs)
-            # bool_manager = dist.sample()
-            # run_bool = bool_manager.unsqueeze(1)
             value_run = critic_run.architecture(torch.from_numpy(concatenated_obs_critic_run).to(device))
             value_jump = critic_jump.architecture(torch.from_numpy(concatenated_obs_actor_jump).to(device))
 
-            # gradient_calculation(critic_run, concatenated_obs_critic_run, concatenated_obs_critic_run_old)
-            # gradient_calculation(critic_jump, concatenated_obs_actor_jump, concatenated_obs_actor_jump_old)
-
-            # print('value run: ', value_run.item(), '    value_jump: ', value_jump.item())
-            # if command_change > 0:
-            #     run_bool = networkSelector.run_bool_function(value_run, value_jump, dones, obs_notNorm, 5)
-            # else:
-            #     run_bool = networkSelector.run_bool_function(value_run, value_jump, dones, obs_notNorm, 4)
             run_bool = networkSelector.run_bool_function(value_run, value_jump, dones, obs_notNorm, 3)  # switch
             # run_bool = networkSelector.run_bool_function(value_run, value_jump, dones, obs_notNorm, 5) # jump
                 # 0=pure value, 1=smoothing, 2=change after steps, 3=manual on dist, 4=run, 5=jump
-            # run_bool = value_run > value_jump
-            # run_bool = torch.from_numpy(run_bool_function_0(obs_notNorm)) #only test!!!
-            # run_bool = torch.from_numpy(run_bool_function_1(obs_notNorm)) #only test!!!
-            # previousNetwork = selectedNetwork
-            # selectedNetwork = run_bool.item()
             jump_bool = torch.add(torch.ones(run_bool.size(), device=device), run_bool, alpha=-1)  # 1-run_bool
             actions_run = actor_run.architecture(torch.from_numpy(concatenated_obs_actor_run).to(device))
             actions_jump = actor_jump.architecture(torch.from_numpy(concatenated_obs_actor_jump).to(device))
             action_ll = run_bool * actions_run + jump_bool * actions_jump
             reward_ll, dones = env.step(action_ll.detach().numpy(), run_bool=run_bool.detach().numpy().astype(bool), manager_training=False)
             fails = fails + dones
-            # env.go_straight_controller()
-
-            # f1 = open('randomCommandData.csv', 'a')
-            # writer = csv.writer(f1)
-            # writer.writerow([command[0][0], command[1][0], command[2][0]])
-            #
-            # f2 = open('velocityData.csv', 'a')
-            # writer = csv.writer(f2)
-            # writer.writerow([*robotState[0][0:2], obs[0][17]])
-            #
-            # f3 = open('estimatedVelocityData.csv', 'a')
-            # writer = csv.writer(f3)
-            # writer.writerow(est_in[0][0:2].cpu().detach().numpy())
-
-            # if step==0:
-            #     if selectedNetwork == 0:
-            #         print("selected network in step ", step, ": jump")
-            #     else:
-            #         print("selected network in step ", step, ": run")
-            # elif previousNetwork == 0 and selectedNetwork == 1:
-            #     print("changed network in step ", step, ": jump -> run")
-            # elif previousNetwork == 1 and selectedNetwork == 0:
-            #     print("changed network in step ", step, ": run -> jump")
-
-            # if selectedNetwork == 0:
-            #     print("jump selected")
 
             reward_ll_sum = reward_ll_sum + reward_ll[0]
-            # if dones or step == max_steps - 1:
-            #     print('----------------------------------------------------')
-            #     print('{:<40} {:>6}'.format("average ll reward: ", '{:0.10f}'.format(reward_ll_sum / (step + 1 - start_step_id))))
-            #     print('{:<40} {:>6}'.format("time elapsed [sec]: ", '{:6.4f}'.format((step + 1 - start_step_id) * 0.01)))
-            #     print('----------------------------------------------------\n')
-            #     start_step_id = step + 1
-            #     reward_ll_sum = 0.0
 
             frame_end = time.time()
             wait_time = cfg['environment']['control_dt'] - (frame_end-frame_start)
             # if wait_time > 0.:
             #     time.sleep(wait_time)
-            # time.sleep(0.01) #0.05 ONLY TO SEE, NOT FOR REAL SPEED!
 
         approachAngle = env.getApproachAngle()
         approachSpeed = env.getApproachSpeed()
@@ -325,11 +229,8 @@ else:
         failPercentage_step = np.sum(failedEnvs) / cfg['environment']['num_envs']
         failPercentage = (repetition*failPercentage + failPercentage_step) / (repetition + 1)  # total percentage
 
-    # env.stop_video_recording()
-    # env.turn_off_visualization()
     print("Environments simulated: ", max_reps*cfg['environment']['num_envs'])
     print("Failed in ", failPercentage*100, "%")
-    # env.reset()
 
     # numSizeCategories = 15
     # StepSize = 0.25 #5 degree / 0.25 m/s
