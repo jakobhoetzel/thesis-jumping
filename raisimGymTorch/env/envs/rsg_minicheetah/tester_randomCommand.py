@@ -70,8 +70,6 @@ else:
     estimator.load_state_dict(torch.load(weight_path)['estimator_architecture_state_dict'])
 
     env.load_scaling(weight_dir, int(iteration_number), weight_dir)
-    # env.turn_on_visualization()
-    # env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy.mp4")
     time.sleep(1)
 
     max_steps = 1000000
@@ -94,23 +92,10 @@ else:
         obs, _ = env.observe(update_mean=False)
         obs_estimator = obs[:,:ob_dim-sensor_dim]
         robotState = env.getRobotState()
-        # robotState = np.ones((cfg['environment']['num_envs'],robotState_dim), dtype=np.float32)  # for checking
         est_out = estimator.architecture(torch.from_numpy(obs_estimator).cpu())
         concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
         action_ll = actor.architecture(torch.from_numpy(concatenated_obs_actor).cpu())
         reward_ll, dones = env.step(action_ll.cpu().detach().numpy())
-
-        # f1 = open('randomCommandData.csv', 'a')
-        # writer = csv.writer(f1)
-        # writer.writerow([command[0][0], command[1][0], command[2][0]])
-        #
-        # f2 = open('velocityData.csv', 'a')
-        # writer = csv.writer(f2)
-        # writer.writerow([*robotState[0][0:2], obs[0][17]])
-        #
-        # f3 = open('estimatedVelocityData.csv', 'a')
-        # writer = csv.writer(f3)
-        # writer.writerow(est_out[0][0:2].cpu().detach().numpy())
 
         reward_ll_sum = reward_ll_sum + reward_ll[0]
         if dones or step == max_steps - 1:
@@ -126,7 +111,5 @@ else:
         if wait_time > 0.:
             time.sleep(wait_time)
 
-    # env.stop_video_recording()
-    # env.turn_off_visualization()
     env.reset()
     print("Finished at the maximum visualization steps")

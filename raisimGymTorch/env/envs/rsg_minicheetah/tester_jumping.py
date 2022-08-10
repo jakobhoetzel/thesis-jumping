@@ -1,8 +1,6 @@
 from ruamel.yaml import YAML, dump, RoundTripDumper
 from raisimGymTorch.env.bin import rsg_minicheetah
 from raisimGymTorch.env.RaisimGymVecEnv import RaisimGymVecEnv as VecEnv
-# from torch.distributions import Categorical
-# from networkSelector import run_bool_function
 import os
 import math
 import time
@@ -72,8 +70,6 @@ else:
     estimator.load_state_dict(torch.load(weight_path)['estimator_architecture_state_dict'])
 
     env.load_scaling(weight_dir, int(iteration_number))
-    # env.turn_on_visualization()
-    # env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy.mp4")
     time.sleep(1)
 
     # max_steps = 1000000
@@ -110,8 +106,6 @@ else:
         obs_estimator = obs[:,:ob_dim-sensor_dim]
         robotState = env.getRobotState()
         est_out = estimator.architecture(torch.from_numpy(obs_estimator).cpu())
-        # print("real: ", robotState.item(0,0), "  esti: ", est_out.data.numpy().item(0,0))
-        # print("esti: ", est_out.data.numpy().item(0,0))
         concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)
 
         # project distance based on velocity when close to hurdle
@@ -128,24 +122,8 @@ else:
                 dist_project_norm = (dist_project - env.obs_rms.mean[0,-1]) / np.sqrt(env.obs_rms.var[0,-1]) # normalisation
                 concatenated_obs_actor[0,ob_dim-1] = dist_project_norm  # normalisation missing
 
-            # print("real: ", dist_real, ", projected: ", dist_project)
-
-
         action_ll = actor.architecture(torch.from_numpy(concatenated_obs_actor).cpu())
         reward_ll, dones = env.step(action_ll.detach().numpy())
-        # env.go_straight_controller()
-
-        # f1 = open('randomCommandData.csv', 'a')
-        # writer = csv.writer(f1)
-        # writer.writerow([command[0][0], command[1][0], command[2][0]])
-        #
-        # f2 = open('velocityData.csv', 'a')
-        # writer = csv.writer(f2)
-        # writer.writerow([*robotState[0][0:2], obs[0][17]])
-        #
-        # f3 = open('estimatedVelocityData.csv', 'a')
-        # writer = csv.writer(f3)
-        # writer.writerow(est_in[0][0:2].cpu().detach().numpy())
 
         reward_ll_sum = reward_ll_sum + reward_ll[0]
         if dones or step == max_steps - 1:
@@ -161,10 +139,6 @@ else:
         if wait_time > 0.:
             time.sleep(wait_time)
         time.sleep(0.01) #0.05
-        # time.sleep(0.1) #0.05
-        # print(step)
 
-    # env.stop_video_recording()
-    # env.turn_off_visualization()
     env.reset()
     print("Finished at the maximum visualization steps")

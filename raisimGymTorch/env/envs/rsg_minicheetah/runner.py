@@ -49,26 +49,7 @@ home_path = task_path + "/../../../.."
 # config
 cfg = YAML().load(open(task_path + "/cfg.yaml", 'r'))
 
-hurdle_perc = 0.0
-if runNumber == 0:
-    cfg['environment']['reward']['symmetryCoeff'] = -0.0
-    hurdle_perc = 0.2
-elif runNumber == 1:
-    cfg['environment']['reward']['symmetryCoeff'] = -2.0
-    hurdle_perc = 0.3
-# elif runNumber == 2:
-#     hurdle_perc = 0.5
-# elif runNumber == 3:
-#     hurdle_perc = 5.0
-# elif runNumber == 3:
-#     cfg['environment']['reward']['torqueCoeff'] = -3.e-3
-#     cfg['environment']['reward']['jointSpeedCoeff'] = -1.e-3
-# elif runNumber == 4:
-#     cfg['environment']['reward']['torqueCoeff'] = -6.e-3
-#     cfg['environment']['reward']['jointSpeedCoeff'] = -1.e-3
-# elif runNumber == 5:
-#     cfg['environment']['reward']['torqueCoeff'] = -1.e-3
-#     cfg['environment']['reward']['jointSpeedCoeff'] = -6.e-3
+hurdle_perc = 0.2
 
 # create environment from the configuration file
 env = VecEnv(rsg_minicheetah.RaisimGymEnv(home_path + "/rsc", dump(cfg['environment'], Dumper=RoundTripDumper)), cfg['environment'], hurdle_perc=hurdle_perc)
@@ -110,9 +91,6 @@ mlpEstimator = ppo_module.MLP(cfg['architecture']['estimator_net'], torch.nn.Lea
 mlpEstimator.load_state_dict(torch.load(weight_path)['estimator_architecture_state_dict'])
 stateEstimator = ppo_module.StateEstimator(mlpEstimator,
                                            device)
-
-# actor_test = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim - sensor_dim + robotState_dim, act_dim).to(device)
-# actor_test.load_state_dict(torch.load(weight_path)['actor_architecture_state_dict'])
 
 saver = ConfigurationSaver(log_dir=home_path + "/raisimGymTorch/data/"+task_name,  # save environment and configuration data.
                            save_items=[task_path + "/cfg.yaml", task_path + "/Environment.hpp", task_path + "/MinicheetahController.hpp",
@@ -175,14 +153,6 @@ for update in range(max_iteration):
         actor.save_deterministic_graph(saver.data_dir + "/actor_" + str(update) + ".pt", torch.rand(1, ob_dim + robotState_dim).cpu())
         stateEstimator.save_deterministic_graph(saver.data_dir + "/estimator_" + str(update) + ".pt", torch.rand(1, ob_dim-sensor_dim).cpu())
 
-        # temp_obs = np.ones((cfg['environment']['num_envs'], ob_dim + robotState_dim), dtype=np.float32)  # to see if input network changes
-        # temp_action = actor.architecture.architecture(torch.from_numpy(temp_obs).to(device)).detach()
-        # np.savetxt("ones_action_beg.csv", temp_action.cpu().numpy(), delimiter=",")
-
-        # we create another graph just to demonstrate the save/load method
-        # loaded_graph = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim + robotState_dim, act_dim)
-        # loaded_graph.load_state_dict(torch.load(saver.data_dir+"/full_"+str(update)+'.pt')['actor_architecture_state_dict'])
-
         env.turn_on_visualization()
         env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy_"+str(update)+'.mp4')
         time.sleep(1) #1
@@ -196,11 +166,7 @@ for update in range(max_iteration):
             concatenated_obs_actor = np.concatenate((obs, est_out.cpu().detach().numpy()), axis=1)  # different observation due to different normalisation
             action = ppo.act(concatenated_obs_actor)
 
-            # action_ll, _ = actor.sample(torch.from_numpy(concatenated_obs_actor).to(device))  # stochastic action
-            # action_ll = loaded_graph.architecture(torch.from_numpy(obs).cpu())
-
             reward_ll, dones = env.step(action)  # in stochastic action case
-            # env.go_straight_controller()
             frame_end = time.time()
             wait_time = cfg['environment']['control_dt'] - (frame_end-frame_start)
             if wait_time > 0.:
@@ -231,7 +197,6 @@ for update in range(max_iteration):
         action = ppo.act(concatenated_obs_actor)
 
         reward, dones = env.step(action)
-        # env.go_straight_controller()
         ppo.step(value_obs=concatenated_obs_critic,
                  est_in=obs_estimator, robotState=robotState, rews=reward, dones=dones)
         done_sum = done_sum + np.sum(dones)
@@ -264,8 +229,6 @@ for update in range(max_iteration):
 
     actor.distribution.enforce_minimum_std(torch.ones(12, device=device)*0.25)
 
-    # env.curriculum_callback(update) # at the beginning now
-
     end = time.time()
 
     scheduler.step()
@@ -278,12 +241,3 @@ for update in range(max_iteration):
     print('{:<40} {:>6}'.format("fps: ", '{:6.0f}'.format(total_steps / (end - start))))
     print('{:<40} {:>6}'.format("real time factor: ", '{:6.0f}'.format(total_steps / (end - start)
                                                                        * cfg['environment']['control_dt'])))
-    # print('std: ')
-    # print(np.exp(actor.distribution.std.cpu().detach().numpy()))
-    # print('----------------------------------------------------\n')
-
-
-    # if update % cfg['environment']['eval_every_n'] == 0:
-    #     temp_obs = np.ones((cfg['environment']['num_envs'], ob_dim + robotState_dim), dtype=np.float32)  # to see if input network changes
-    #     temp_action = actor.architecture.architecture(torch.from_numpy(temp_obs).to(device)).detach()
-    #     np.savetxt("ones_action_end.csv", temp_action.cpu().numpy(), delimiter=",")

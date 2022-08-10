@@ -196,7 +196,6 @@ class ENVIRONMENT {
 
   void observe(Eigen::Ref<EigenVec> ob) {
     ob = controller_.getObservation().cast<float>();
-    //ob.tail(2) = {{terrain_curriculum_, xPos_Hurdles_-ob.tail(1)(0)}}; //height and distance to hurdle
     double dist_obs_next = 0;
     if ((xPos_Hurdles_-ob.tail(1)(0)-0.15) >= 0) { // head before hurdle
       dist_obs_next = std::min( std::max(xPos_Hurdles_-ob.tail(1)(0)-0.15, 0.0), 5.0); //distance between 0 and 5
@@ -207,7 +206,6 @@ class ENVIRONMENT {
     }
     if(hurdleTraining){
       ob.tail(2) << hurdleHeight_+uniDist_(gen_) * 0.1, dist_obs_next+uniDist_(gen_) * 0.2;
-//      ob.tail(2) << hurdleHeight_, dist_obs_next;
     } else{
       ob.tail(2) << uniDist_(gen_) * 0.05, 5 + uniDist_(gen_) * 0.05; //no hurdle
 
@@ -217,7 +215,6 @@ class ENVIRONMENT {
 
   void getRobotState(Eigen::Ref<EigenVec> ob) {  // related to the estimator network learning
     ob = controller_.getRobotState(heightMap_).cast<float>();
-//    ob.tail(2) << terrain_curriculum_, xPos_Hurdles_-ob.tail(1)(0); //height and distance to hurdle
   }
 
   void setGeneralizedForce_self() {  //when self coded pd controller is used for torque limit
@@ -268,11 +265,8 @@ class ENVIRONMENT {
     terrain_curriculum_ = std::min(iter * (terCurriculumFactor_*0.75) / 5000.0 + terCurriculumFactor_*0.25, terCurriculumFactor_);
     iteration = iter;
     if(isHeightMap_) {
-      //groundType_ = (groundType_+1) % 2;
       world_->removeObject(heightMap_);
-      //double terrain_curriculum_ = 1 * std::min(1., iter / terCurriculumFactor_);
       heightMap_ = terrainGenerator_.generateTerrain(world_.get(), RandomHeightMapGenerator::GroundType(groundType_), terrain_curriculum_, false, gen_, uniDist_);
-      //std::cout << std::setprecision( 6 ) << "terrain_corriculum: " << terrain_curriculum_ << std::endl;
     }
   };
   float getCurriculumFactor() {return float(rewCurriculumFactor_);};
@@ -312,8 +306,6 @@ class ENVIRONMENT {
   void stopRecordingVideo() { server_->stopRecordingVideo(); }
 
   void printTest() { controller_.printTest();
-//    std::cout << "height: "<< terrain_curriculum_ << std::endl;
-//    std::cout << "factor: "<< terCurriculumFactor_ << std::endl;
   }
 
  private:
