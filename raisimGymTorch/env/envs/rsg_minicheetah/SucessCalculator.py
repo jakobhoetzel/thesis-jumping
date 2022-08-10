@@ -331,13 +331,13 @@ else:
     print("Failed in ", failPercentage*100, "%")
     # env.reset()
 
-    numSizeCategories = 10
-    StepSize = 0.25 #degree / m/s
-    smallestValue = 1.5
-    countFailed = np.zeros((numSizeCategories,1))
-    countSuccess = np.zeros((numSizeCategories,1))
-    failureCategory = np.zeros((numSizeCategories,1))
-    countCategory = np.zeros((numSizeCategories,1))
+    # numSizeCategories = 15
+    # StepSize = 0.25 #5 degree / 0.25 m/s
+    # smallestValue = 1.0 #only speed: 1
+    # countFailed = np.zeros((numSizeCategories,1))
+    # countSuccess = np.zeros((numSizeCategories,1))
+    # failureCategory = np.zeros((numSizeCategories,1))
+    # countCategory = np.zeros((numSizeCategories,1))
     # for i in range(cfg['environment']['num_envs']*max_reps-1): # angle
     #     if failedEnvsTotal[i]:
     #         category = np.minimum(math.floor(approachAngleTotal[i]/StepSize+1.e-3),numSizeCategories-1,dtype=np.uint)
@@ -349,28 +349,28 @@ else:
     #         # print(category, " ", approachAngleTotal[i], " ", i)
     #         if not notReachedEnvsTotal[i]: #not reached not counted
     #             countSuccess[category] += 1
-
-    for i in range(cfg['environment']['num_envs']*max_reps-1):
-        if failedEnvsTotal[i]:
-            category = np.maximum(np.minimum(math.floor((approachSpeedTotal[i]-smallestValue)/StepSize+1.e-3),numSizeCategories-1,dtype=np.int_),0,dtype=np.int_)
-            if not notReachedEnvsTotal[i]: #not reached not counted
-                countFailed[category] += 1
-        else:
-            category = np.maximum(np.minimum(math.floor((approachSpeedTotal[i]-smallestValue)/StepSize+1.e-3),numSizeCategories-1,dtype=np.int_),0,dtype=np.int_)
-            if not notReachedEnvsTotal[i]: #not reached not counted
-                countSuccess[category] += 1
-
-    countCategory = countFailed + countSuccess
-    for i in range(numSizeCategories):
-        if countCategory[i] > 0:
-            failureCategory[i] = countFailed[i]/(countCategory[i]+1.e-10)
-        else:
-            failureCategory[i] = np.nan
-
-    print("-------")
-    print("Category Size: ", StepSize, " (",smallestValue,")",smallestValue+StepSize,"),(",smallestValue+StepSize,",",smallestValue+2*StepSize,"),...")
-    print("Failure [%]: ",failureCategory*100)
-    print("Count: ",countCategory)
+    #
+    # for i in range(cfg['environment']['num_envs']*max_reps-1):
+    #     if failedEnvsTotal[i]:
+    #         category = np.maximum(np.minimum(math.floor((approachSpeedTotal[i]-smallestValue)/StepSize+1.e-3),numSizeCategories-1,dtype=np.int_),0,dtype=np.int_)
+    #         if not notReachedEnvsTotal[i]: #not reached not counted
+    #             countFailed[category] += 1
+    #     else:
+    #         category = np.maximum(np.minimum(math.floor((approachSpeedTotal[i]-smallestValue)/StepSize+1.e-3),numSizeCategories-1,dtype=np.int_),0,dtype=np.int_)
+    #         if not notReachedEnvsTotal[i]: #not reached not counted
+    #             countSuccess[category] += 1
+    #
+    # countCategory = countFailed + countSuccess
+    # for i in range(numSizeCategories):
+    #     if countCategory[i] > 0:
+    #         failureCategory[i] = countFailed[i]/(countCategory[i]+1.e-10)
+    #     else:
+    #         failureCategory[i] = np.nan
+    #
+    # print("-------")
+    # print("Category Size: ", StepSize, " (",smallestValue,",",smallestValue+StepSize,"),(",smallestValue+StepSize,",",smallestValue+2*StepSize,"),...")
+    # print("Failure [%]: ",failureCategory*100)
+    # print("Count: ",countCategory)
 
     # runInfo = env.get_run_information()[:,1:]
     # runInfoOld = np.loadtxt("runInformation.csv", delimiter=",")

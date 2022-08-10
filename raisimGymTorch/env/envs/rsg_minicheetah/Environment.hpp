@@ -131,6 +131,7 @@ class ENVIRONMENT {
     std::tie(jointPgain_, jointDgain_) = controller_.getPDGain_self(); //when self coded pd controller is used for torque limit
 
     mu_ = 0.4 + 0.3 * (uniDist_(gen_) + 1);  // [0.4, 1.0]
+//    mu_ = 0.4 + 0.3;  // [0.4, 1.0]
     world_->setDefaultMaterial(mu_, 0, 0);
 
     auto hurdle1_ = world_->getObject("hurdle1");

@@ -42,7 +42,7 @@ weight_path_run = "../../../data/minicheetah_locomotion/baselineRun_Switch1_Crit
 iteration_number_run = weight_path_run.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_run = weight_path_run.rsplit('/', 1)[0] + '/'
 
-weight_path_jump = "../../../data/minicheetah_locomotion/baselineJump1-6/full_7500.pt"
+weight_path_jump = "../../../data/minicheetah_locomotion/baselineJump1-8/full_7500.pt"
 # weight_path_jump = "../../../data/minicheetah_locomotion/2022-07-13-04-21-41/full_7500.pt"
 iteration_number_jump = weight_path_jump.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir_jump = weight_path_jump.rsplit('/', 1)[0] + '/'
@@ -143,8 +143,8 @@ else:
     # env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy.mp4")
     time.sleep(2)
 
-    # max_steps = 1000000
-    max_steps = 800 ## 400*2 10 secs
+    max_steps = 1000000
+    # max_steps = 350 ## 400*2 10 secs
     # command = np.array([random.uniform(3.0, 3.5), 0, 0], dtype=np.float32)
     command = np.array([3.5, 0, 0], dtype=np.float32)
     env.set_command(command, testNumber=1)
@@ -168,15 +168,16 @@ else:
     for step in range(max_steps):
         frame_start = time.time()
 
-        # if (step % 10 == 0):
-        #     command_Vx = -4. * pygame.joystick.Joystick(1).get_axis(1)
-        #     if (command_Vx < 0):
-        #         command_Vx *= 0.5
-        #     command_Vy = - pygame.joystick.Joystick(1).get_axis(0)
-        #     command_yaw = -2 * pygame.joystick.Joystick(1).get_axis(3)
-        #     command = np.array([command_Vx, command_Vy, command_yaw], dtype=np.float32)
-        #     env.set_command(command, testNumber=1)
-        #     # command_change = - pygame.joystick.Joystick(1).get_axis(2)  # LT
+        if (step % 10 == 0):
+            command_Vx = -3.25 * pygame.joystick.Joystick(1).get_axis(1) #TODO: select
+            # command_Vx = -2.25 * pygame.joystick.Joystick(1).get_axis(1)
+            if (command_Vx < 0):
+                command_Vx *= 0.5
+            command_Vy = - pygame.joystick.Joystick(1).get_axis(0)
+            command_yaw = -2 * pygame.joystick.Joystick(1).get_axis(3)
+            command = np.array([command_Vx, command_Vy, command_yaw], dtype=np.float32)
+            env.set_command(command, testNumber=1)
+            # command_change = - pygame.joystick.Joystick(1).get_axis(2)  # LT
         # if step % 400 == 0:
         #     command_Vx = np.random.uniform(-1.75, 3.5, 1)
         #     command_Vy = np.random.uniform(-1., 1., 1)

@@ -249,8 +249,9 @@ class MinicheetahController {
     /// command generation
     double p = uniDist_(gen_);
     if(hurdleTraining_){
-//       command_ << 3.25, 0.0, 0.0; // 4.0, 0, 0 //TODO select correct command
-      command_ <<  0.25 * uniDist_(gen_) + 3.25, 0.1 * uniDist_(gen_), 0.05 * uniDist_(gen_); // comCurriculumFactor, 1.0, 2.0
+       command_ << 3.25, 0.0, 0.0; // 4.0, 0, 0 //TODO select correct command
+//       command_ << 2.25, 0.0, 0.0; // 4.0, 0, 0
+//      command_ <<  0.25 * uniDist_(gen_) + 3.25, 0.1 * uniDist_(gen_), 0.05 * uniDist_(gen_); // comCurriculumFactor, 1.0, 2.0
 //      command_ <<   1.25 * uniDist_(gen_) + 2.75, 0.0, 0.0; // comCurriculumFactor, 1.0, 2.0
 //      std::cout << "command: " << command_ << std::endl;
     }
@@ -285,8 +286,10 @@ class MinicheetahController {
             continue;  /// XYZ position: no noise.
           } else if (i < 7) {
             gc_init_noise(i) = gc_init_(i) + uniDist_(gen_) * 0.2;  /// quaternion: +- 0.2
-//          } else if (i == 6) {///TODO only for angle diagram!!!
-//            gc_init_noise(i) = gc_init_(i) + uniDist_(gen_) * 0.4;  /// quaternion: +- 0.2
+//          } else if (i < 7) {///TODO only for angle diagram!!!
+//            gc_init_noise(i) = gc_init_(i);
+//            if (i==6){
+//              gc_init_noise(i) += uniDist_(gen_) * 0.4;}  /// quaternion: +- 0.4
           } else {
             if (i % 3 == 1)
               gc_init_noise(i) = gc_init_(i) + uniDist_(gen_) * 0.2;  /// HAA joint angles: +- 0.2rad (hip abduction/adduction)
@@ -851,6 +854,7 @@ class MinicheetahController {
     Eigen::Vector3d xProjXZPlane = xBodyInWorld - xBodyInWorld.dot(y_World)/(xBodyInWorld.norm()*y_World.norm())*y_World;
     double pitchAngle = std::asin(xProjXZPlane.cross(x_World)(1)/(xProjXZPlane.norm()*x_World.norm()))*180/M_PI;
     double approachAngle = std::abs(std::asin(xProjXYPlane.cross(x_World)(2)/(xProjXYPlane.norm()*x_World.norm())))*180./M_PI;
+//    std::cout << pitchAngle << std::endl;
 
     Eigen::VectorXd Impulses = Eigen::VectorXd::Zero(12);
     for(auto& contact: cheetah->getContacts())
